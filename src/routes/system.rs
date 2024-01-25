@@ -1,5 +1,5 @@
 use crate::{
-    models::system::{NewSystem, System},
+    models::system::{NewSystem, System, UpdateSystem},
     {services, AppState},
 };
 //use expert_system_rust::models::system::{NewSystem, System};
@@ -10,30 +10,13 @@ use rocket::{
     State,
 };
 use rocket_contrib::json;
-use services::system::{create_system, get_systems};
-
-#[get("/")]
-pub fn index(state: &State<AppState>) -> Result<Json<Vec<System>>, Custom<Value>> {
-    let mut connection = state
-        .db_pool
-        .get()
-        .expect("Failed to get a database connection");
-    let result = get_systems(&mut connection);
-
-    match result {
-        Ok(system) => Ok(Json(system)),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
-            json!({"error":err.to_string()}).into(),
-        )),
-    }
-}
+use services::system::{create_system, delete_system, get_system, get_systems, update_system};
 
 #[post("/", format = "json", data = "<system_info>")]
-pub fn create(
+pub fn system_create(
     state: &State<AppState>,
     system_info: Json<NewSystem>,
-) -> Result<Json<Vec<System>>, Custom<Value>> {
+) -> Result<Json<System>, Custom<Value>> {
     let mut connection = state
         .db_pool
         .get()
@@ -48,18 +31,81 @@ pub fn create(
         )),
     }
 }
-/*
-#[post("/users/add-role", format = "json", data = "<role_info>")]
-pub fn create_role(role_info: Json<NewSystem>) -> Value {
-    services::users::add_role(&role_info.role_name)
+
+#[get("/?<search>")]
+pub fn system_list(
+    state: &State<AppState>,
+    search: Option<String>,
+) -> Result<Json<Vec<System>>, Custom<Value>> {
+    let mut connection = state
+        .db_pool
+        .get()
+        .expect("Failed to get a database connection");
+    let result = get_systems(&mut connection, search);
+
+    match result {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(Custom(
+            Status::BadRequest,
+            json!({"error":err.to_string()}).into(),
+        )),
+    }
 }
 
-#[post("/users/create-user", format = "json", data = "<user_info>")]
-pub fn create_user(user_info: Json<UserInputUser>) -> Value {
-    services::users::create_user(&user_info)
+#[get("/<system_id>")]
+pub fn system_retrieve(
+    state: &State<AppState>,
+    system_id: i32,
+) -> Result<Json<System>, Custom<Value>> {
+    let mut connection = state
+        .db_pool
+        .get()
+        .expect("Failed to get a database connection");
+    let result = get_system(&mut connection, system_id);
+
+    match result {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(Custom(
+            Status::BadRequest,
+            json!({"error":err.to_string()}).into(),
+        )),
+    }
 }
 
-#[put("/users/update", format = "json", data = "<user_info>")]
-pub fn update_user(user_info: Json<UserInputUpdateUser>) -> Value {
-    services::users::update_user(&user_info)
-} */
+#[patch("/<system_id>", format = "json", data = "<system_info>")]
+pub fn system_partial_update(
+    state: &State<AppState>,
+    system_id: i32,
+    system_info: Json<UpdateSystem>,
+) -> Result<Json<System>, Custom<Value>> {
+    let mut connection = state
+        .db_pool
+        .get()
+        .expect("Failed to get a database connection");
+    let result = update_system(&mut connection, system_id, system_info);
+
+    match result {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(Custom(
+            Status::BadRequest,
+            json!({"error":err.to_string()}).into(),
+        )),
+    }
+}
+
+#[delete("/<system_id>")]
+pub fn system_delete(state: &State<AppState>, system_id: i32) -> Result<Value, Custom<Value>> {
+    let mut connection = state
+        .db_pool
+        .get()
+        .expect("Failed to get a database connection");
+    let result = delete_system(&mut connection, system_id);
+
+    match result {
+        Ok(_) => Ok(json!({"delete":"successful"}).into()),
+        Err(err) => Err(Custom(
+            Status::BadRequest,
+            json!({"error":err.to_string()}).into(),
+        )),
+    }
+}

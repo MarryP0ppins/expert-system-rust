@@ -9,15 +9,21 @@ pub fn get_users(connection: &mut PgConnection) -> Result<Vec<User>, Error> {
     let result = users.load::<User>(connection);
 
     match result {
-        Ok(system) => Ok(system),
+        Ok(result) => Ok(result),
         Err(err) => Err(err),
     }
 }
 
-pub fn create_user(
-    connection: &mut PgConnection,
-    user_info: Json<NewUser>,
-) -> Result<Vec<User>, Error> {
+pub fn get_user(connection: &mut PgConnection, user_id: i32) -> Result<User, Error> {
+    let result = users.find(user_id).first::<User>(connection);
+
+    match result {
+        Ok(result) => Ok(result),
+        Err(err) => Err(err),
+    }
+}
+
+pub fn create_user(connection: &mut PgConnection, user_info: Json<NewUser>) -> Result<User, Error> {
     let new_system = NewUser {
         email: user_info.email.clone(),
         username: user_info.username.clone(),
@@ -29,7 +35,7 @@ pub fn create_user(
 
     let result = insert_into(users)
         .values::<NewUser>(new_system)
-        .get_results(connection);
+        .get_result(connection);
 
     match result {
         Ok(system) => Ok(system),

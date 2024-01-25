@@ -9,7 +9,7 @@ use rocket::{
     State,
 };
 use rocket_contrib::json;
-use services::user::{create_user, get_users};
+use services::user::{create_user, get_user, get_users};
 
 #[get("/")]
 pub fn index(state: &State<AppState>) -> Result<Json<Vec<User>>, Custom<Value>> {
@@ -28,11 +28,28 @@ pub fn index(state: &State<AppState>) -> Result<Json<Vec<User>>, Custom<Value>> 
     }
 }
 
+#[get("/<id>")]
+pub fn user(state: &State<AppState>, id: i32) -> Result<Json<User>, Custom<Value>> {
+    let mut connection = state
+        .db_pool
+        .get()
+        .expect("Failed to get a database connection");
+    let result = get_user(&mut connection, id);
+
+    match result {
+        Ok(user) => Ok(Json(user)),
+        Err(err) => Err(Custom(
+            Status::BadRequest,
+            json!({"error":err.to_string()}).into(),
+        )),
+    }
+}
+
 #[post("/", format = "json", data = "<user_info>")]
 pub fn create(
     state: &State<AppState>,
     user_info: Json<NewUser>,
-) -> Result<Json<Vec<User>>, Custom<Value>> {
+) -> Result<Json<User>, Custom<Value>> {
     let mut connection = state
         .db_pool
         .get()

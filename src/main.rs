@@ -11,12 +11,12 @@ use dotenvy::dotenv;
 use rocket::serde::json::{json, Value};
 use std::env;
 
-mod routes;
-mod services;
 mod models;
+mod routes;
 mod schema;
+mod services;
 
-use routes::{system as system_routes, user as user_routes};
+use routes::{system, user as user_routes};
 
 type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -53,9 +53,18 @@ fn rocket() -> _ {
     rocket::build()
         .mount(
             "/systems",
-            routes![system_routes::index, system_routes::create],
+            routes![
+                system::system_create,
+                system::system_list,
+                system::system_retrieve,
+                system::system_partial_update,
+                system::system_delete
+            ],
         )
-        .mount("/user", routes![user_routes::index, user_routes::create]) //, get_users, create_role, create_user, update_user])
+        .mount(
+            "/user",
+            routes![user_routes::index, user_routes::create, user_routes::user],
+        )
         .register("/", catchers![not_found, server_error])
         .manage(AppState { db_pool: pool })
 }
