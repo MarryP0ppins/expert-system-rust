@@ -2,7 +2,6 @@ use crate::{
     models::system::{NewSystem, System, UpdateSystem},
     {services, AppState},
 };
-//use expert_system_rust::models::system::{NewSystem, System};
 use rocket::{
     http::Status,
     response::status::Custom,
@@ -32,16 +31,16 @@ pub fn system_create(
     }
 }
 
-#[get("/?<search>")]
+#[get("/?<name>")]
 pub fn system_list(
     state: &State<AppState>,
-    search: Option<String>,
+    name: Option<String>,
 ) -> Result<Json<Vec<System>>, Custom<Value>> {
     let mut connection = state
         .db_pool
         .get()
         .expect("Failed to get a database connection");
-    let result = get_systems(&mut connection, search);
+    let result = get_systems(&mut connection, name);
 
     match result {
         Ok(result) => Ok(Json(result)),

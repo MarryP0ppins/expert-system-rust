@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 * User models begin from here
 */
 
-#[derive(Debug, Queryable, Serialize)]
+#[derive(Debug, Queryable, Serialize, Identifiable)]
+#[diesel(table_name=systems)]
 pub struct System {
     pub id: i32,
     pub user: i32,

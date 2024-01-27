@@ -7,18 +7,18 @@ use rocket::serde::json::Json;
 
 pub fn get_systems(
     connection: &mut PgConnection,
-    search: Option<String>,
+    _name: Option<String>,
 ) -> Result<Vec<System>, Error> {
     let mut query = systems.into_boxed();
 
-    if let Some(param) = search {
+    if let Some(param) = _name {
         query = query.filter(name.like(format!("%{}%", param)));
     }
 
     let result = query.load::<System>(connection);
 
     match result {
-        Ok(system) => Ok(system),
+        Ok(result) => Ok(result),
         Err(err) => Err(err),
     }
 }
@@ -27,7 +27,7 @@ pub fn get_system(connection: &mut PgConnection, system_id: i32) -> Result<Syste
     let result = systems.find(system_id).first::<System>(connection);
 
     match result {
-        Ok(system) => Ok(system),
+        Ok(result) => Ok(result),
         Err(err) => Err(err),
     }
 }
@@ -37,10 +37,9 @@ pub fn create_system(
     system_info: Json<NewSystem>,
 ) -> Result<System, Error> {
     let new_system = NewSystem {
-        user: system_info.user,
         about: system_info.about.to_owned(),
         name: system_info.name.to_owned(),
-        private: system_info.private,
+        ..system_info.0
     };
 
     let result = insert_into(systems)
@@ -48,7 +47,7 @@ pub fn create_system(
         .get_result::<System>(connection);
 
     match result {
-        Ok(system) => Ok(system),
+        Ok(result) => Ok(result),
         Err(err) => Err(err),
     }
 }
@@ -59,10 +58,9 @@ pub fn update_system(
     system_info: Json<UpdateSystem>,
 ) -> Result<System, Error> {
     let update_system = UpdateSystem {
-        user: system_info.user,
         about: system_info.about.to_owned(),
         name: system_info.name.to_owned(),
-        private: system_info.private,
+        ..system_info.0
     };
 
     let result = update(systems)
@@ -71,7 +69,7 @@ pub fn update_system(
         .get_result::<System>(connection);
 
     match result {
-        Ok(system) => Ok(system),
+        Ok(result) => Ok(result),
         Err(err) => Err(err),
     }
 }
@@ -80,7 +78,7 @@ pub fn delete_system(connection: &mut PgConnection, system_id: i32) -> Result<us
     let result = delete(systems).filter(id.eq(system_id)).execute(connection);
 
     match result {
-        Ok(system) => Ok(system),
+        Ok(result) => Ok(result),
         Err(err) => Err(err),
     }
 }

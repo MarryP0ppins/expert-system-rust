@@ -16,7 +16,7 @@ mod routes;
 mod schema;
 mod services;
 
-use routes::{system, user as user_routes};
+use routes::{history, system, user as user_routes};
 
 type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -64,6 +64,14 @@ fn rocket() -> _ {
         .mount(
             "/user",
             routes![user_routes::index, user_routes::create, user_routes::user],
+        )
+        .mount(
+            "/history",
+            routes![
+                history::history_create,
+                history::history_list,
+                history::history_delete
+            ],
         )
         .register("/", catchers![not_found, server_error])
         .manage(AppState { db_pool: pool })
