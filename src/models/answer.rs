@@ -1,11 +1,11 @@
 use crate::schema::answers;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
-/*
-* User models begin from here
-*/
 
-#[derive(Debug, Queryable, Serialize, Identifiable)]
+use super::question::Question;
+
+#[derive(Debug, Queryable, Serialize, Identifiable, Associations, Selectable)]
+#[diesel(belongs_to(Question, foreign_key = question))]
 #[diesel(table_name=answers)]
 pub struct Answer {
     pub id: i32,

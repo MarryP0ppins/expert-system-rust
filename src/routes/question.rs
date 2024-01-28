@@ -1,7 +1,7 @@
 use crate::{
-    models::answer::{Answer, NewAnswer, UpdateAnswer},
-    services::answer::{
-        create_answer, get_answers, multiple_delete_answers, multiple_update_answers,
+    models::question::{NewQuestionWithAnswersBody, Question, QuestionWithAnswers, UpdateQuestion},
+    services::question::{
+        create_question, get_questions, multiple_delete_questions, multiple_update_questions,
     },
     AppState,
 };
@@ -13,16 +13,16 @@ use rocket::{
 };
 use rocket_contrib::json;
 
-#[post("/", format = "json", data = "<answer_info>")]
-pub fn answer_create(
+#[post("/", format = "json", data = "<question_info>")]
+pub fn question_create(
     state: &State<AppState>,
-    answer_info: Json<NewAnswer>,
-) -> Result<Json<Answer>, Custom<Value>> {
+    question_info: Json<NewQuestionWithAnswersBody>,
+) -> Result<Json<QuestionWithAnswers>, Custom<Value>> {
     let mut connection = state
         .db_pool
         .get()
         .expect("Failed to get a database connection");
-    let result = create_answer(&mut connection, answer_info.0);
+    let result = create_question(&mut connection, question_info.0);
 
     match result {
         Ok(result) => Ok(Json(result)),
@@ -33,16 +33,16 @@ pub fn answer_create(
     }
 }
 
-#[get("/?<question>")]
-pub fn answer_list(
+#[get("/?<system>")]
+pub fn question_list(
     state: &State<AppState>,
-    question: i32,
-) -> Result<Json<Vec<Answer>>, Custom<Value>> {
+    system: i32,
+) -> Result<Json<Vec<QuestionWithAnswers>>, Custom<Value>> {
     let mut connection = state
         .db_pool
         .get()
         .expect("Failed to get a database connection");
-    let result = get_answers(&mut connection, question);
+    let result = get_questions(&mut connection, system);
 
     match result {
         Ok(result) => Ok(Json(result)),
@@ -53,16 +53,16 @@ pub fn answer_list(
     }
 }
 
-#[post("/multiple_delete", format = "json", data = "<answer_info>")]
-pub fn answer_multiple_delete(
+#[post("/multiple_delete", format = "json", data = "<question_info>")]
+pub fn questions_multiple_delete(
     state: &State<AppState>,
-    answer_info: Json<Vec<i32>>,
+    question_info: Json<Vec<i32>>,
 ) -> Result<Value, Custom<Value>> {
     let mut connection = state
         .db_pool
         .get()
         .expect("Failed to get a database connection");
-    let result = multiple_delete_answers(&mut connection, answer_info.0);
+    let result = multiple_delete_questions(&mut connection, question_info.0);
 
     match result {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
@@ -73,16 +73,16 @@ pub fn answer_multiple_delete(
     }
 }
 
-#[post("/multiple_patch", format = "json", data = "<answer_info>")]
-pub fn answer_multiple_update(
+#[post("/multiple_patch", format = "json", data = "<question_info>")]
+pub fn question_multiple_update(
     state: &State<AppState>,
-    answer_info: Json<Vec<UpdateAnswer>>,
-) -> Result<Json<Vec<Answer>>, Custom<Value>> {
+    question_info: Json<Vec<UpdateQuestion>>,
+) -> Result<Json<Vec<Question>>, Custom<Value>> {
     let mut connection = state
         .db_pool
         .get()
         .expect("Failed to get a database connection");
-    let result = multiple_update_answers(&mut connection, answer_info.0);
+    let result = multiple_update_questions(&mut connection, question_info.0);
 
     match result {
         Ok(result) => Ok(Json(result)),

@@ -1,6 +1,7 @@
 use crate::{
     models::user::{NewUser, User},
-    {services, AppState},
+    services::user::{create_user, get_user, get_users},
+    AppState,
 };
 use rocket::{
     http::Status,
@@ -9,7 +10,6 @@ use rocket::{
     State,
 };
 use rocket_contrib::json;
-use services::user::{create_user, get_user, get_users};
 
 #[get("/")]
 pub fn index(state: &State<AppState>) -> Result<Json<Vec<User>>, Custom<Value>> {
@@ -54,7 +54,7 @@ pub fn create(
         .db_pool
         .get()
         .expect("Failed to get a database connection");
-    let result = create_user(&mut connection, user_info);
+    let result = create_user(&mut connection, user_info.0);
 
     match result {
         Ok(result) => Ok(Json(result)),

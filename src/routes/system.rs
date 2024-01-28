@@ -1,6 +1,7 @@
 use crate::{
     models::system::{NewSystem, System, UpdateSystem},
-    {services, AppState},
+    services::system::{create_system, delete_system, get_system, get_systems, update_system},
+    AppState,
 };
 use rocket::{
     http::Status,
@@ -9,7 +10,6 @@ use rocket::{
     State,
 };
 use rocket_contrib::json;
-use services::system::{create_system, delete_system, get_system, get_systems, update_system};
 
 #[post("/", format = "json", data = "<system_info>")]
 pub fn system_create(
@@ -20,7 +20,7 @@ pub fn system_create(
         .db_pool
         .get()
         .expect("Failed to get a database connection");
-    let result = create_system(&mut connection, system_info);
+    let result = create_system(&mut connection, system_info.0);
 
     match result {
         Ok(result) => Ok(Json(result)),
@@ -81,7 +81,7 @@ pub fn system_partial_update(
         .db_pool
         .get()
         .expect("Failed to get a database connection");
-    let result = update_system(&mut connection, system_id, system_info);
+    let result = update_system(&mut connection, system_id, system_info.0);
 
     match result {
         Ok(result) => Ok(Json(result)),

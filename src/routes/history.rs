@@ -1,6 +1,7 @@
 use crate::{
     models::history::{HistoryWithSystemAndUser, NewHistory},
-    {services, AppState},
+    services::history::{create_history, delete_history, get_histories},
+    AppState,
 };
 use rocket::{
     http::Status,
@@ -9,7 +10,6 @@ use rocket::{
     State,
 };
 use rocket_contrib::json;
-use services::history::{create_history, delete_history, get_histories};
 
 #[post("/", format = "json", data = "<history_info>")]
 pub fn history_create(
@@ -20,7 +20,7 @@ pub fn history_create(
         .db_pool
         .get()
         .expect("Failed to get a database connection");
-    let result = create_history(&mut connection, history_info);
+    let result = create_history(&mut connection, history_info.0);
 
     match result {
         Ok(result) => Ok(Json(result)),

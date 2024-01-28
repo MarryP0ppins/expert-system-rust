@@ -16,7 +16,7 @@ mod routes;
 mod schema;
 mod services;
 
-use routes::{answer, history, system, user as user_routes};
+use routes::{answer, history, question, system, user as user_routes};
 
 type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -71,6 +71,15 @@ fn rocket() -> _ {
                 history::history_create,
                 history::history_list,
                 history::history_delete
+            ],
+        )
+        .mount(
+            "/question",
+            routes![
+                question::question_create,
+                question::question_list,
+                question::questions_multiple_delete,
+                question::question_multiple_update
             ],
         )
         .mount(

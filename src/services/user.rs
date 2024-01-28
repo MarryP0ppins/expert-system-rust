@@ -3,7 +3,6 @@ use crate::{
     schema::users::dsl::*,
 };
 use diesel::{insert_into, prelude::*, result::Error};
-use rocket::serde::json::Json;
 
 pub fn get_users(connection: &mut PgConnection) -> Result<Vec<User>, Error> {
     let result = users.load::<User>(connection);
@@ -23,18 +22,9 @@ pub fn get_user(connection: &mut PgConnection, user_id: i32) -> Result<User, Err
     }
 }
 
-pub fn create_user(connection: &mut PgConnection, user_info: Json<NewUser>) -> Result<User, Error> {
-    let new_system = NewUser {
-        email: user_info.email.clone(),
-        username: user_info.username.clone(),
-        first_name: user_info.first_name.clone(),
-        last_name: user_info.last_name.clone(),
-        is_superuser: user_info.is_superuser,
-        password: user_info.password.clone(),
-    };
-
+pub fn create_user(connection: &mut PgConnection, user_info: NewUser) -> Result<User, Error> {
     let result = insert_into(users)
-        .values::<NewUser>(new_system)
+        .values::<NewUser>(user_info)
         .get_result(connection);
 
     match result {

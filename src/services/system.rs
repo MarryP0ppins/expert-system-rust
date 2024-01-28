@@ -3,7 +3,6 @@ use crate::{
     schema::systems::dsl::*,
 };
 use diesel::{delete, insert_into, prelude::*, result::Error, update};
-use rocket::serde::json::Json;
 
 pub fn get_systems(
     connection: &mut PgConnection,
@@ -34,16 +33,10 @@ pub fn get_system(connection: &mut PgConnection, system_id: i32) -> Result<Syste
 
 pub fn create_system(
     connection: &mut PgConnection,
-    system_info: Json<NewSystem>,
+    system_info: NewSystem,
 ) -> Result<System, Error> {
-    let new_system = NewSystem {
-        about: system_info.about.to_owned(),
-        name: system_info.name.to_owned(),
-        ..system_info.0
-    };
-
     let result = insert_into(systems)
-        .values::<NewSystem>(new_system)
+        .values::<NewSystem>(system_info)
         .get_result::<System>(connection);
 
     match result {
@@ -55,16 +48,10 @@ pub fn create_system(
 pub fn update_system(
     connection: &mut PgConnection,
     system_id: i32,
-    system_info: Json<UpdateSystem>,
+    system_info: UpdateSystem,
 ) -> Result<System, Error> {
-    let update_system = UpdateSystem {
-        about: system_info.about.to_owned(),
-        name: system_info.name.to_owned(),
-        ..system_info.0
-    };
-
     let result = update(systems.find(system_id))
-        .set::<UpdateSystem>(update_system)
+        .set::<UpdateSystem>(system_info)
         .get_result::<System>(connection);
 
     match result {

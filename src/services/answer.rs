@@ -3,7 +3,6 @@ use crate::{
     schema::answers::dsl::*,
 };
 use diesel::{delete, insert_into, prelude::*, result::Error, update};
-use rocket::serde::json::Json;
 
 pub fn get_answers(connection: &mut PgConnection, _question: i32) -> Result<Vec<Answer>, Error> {
     let result = answers
@@ -18,15 +17,10 @@ pub fn get_answers(connection: &mut PgConnection, _question: i32) -> Result<Vec<
 
 pub fn create_answer(
     connection: &mut PgConnection,
-    answer_info: Json<NewAnswer>,
+    answer_info: NewAnswer,
 ) -> Result<Answer, Error> {
-    let new_answer = NewAnswer {
-        body: answer_info.body.to_owned(),
-        ..answer_info.0
-    };
-
     let result = insert_into(answers)
-        .values::<NewAnswer>(new_answer)
+        .values::<NewAnswer>(answer_info)
         .get_result::<Answer>(connection);
 
     match result {
@@ -39,9 +33,7 @@ pub fn multiple_delete_answers(
     connection: &mut PgConnection,
     answers_ids: Vec<i32>,
 ) -> Result<usize, Error> {
-    let result = delete(answers)
-        .filter(id.eq_any(answers_ids))
-        .execute(connection);
+    let result = delete(answers.filter(id.eq_any(answers_ids))).execute(connection);
 
     match result {
         Ok(result) => Ok(result),
