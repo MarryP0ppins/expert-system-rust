@@ -33,6 +33,8 @@ pub fn get_histories(
             (users::all_columns),
             answered_questions,
             results,
+            started_at,
+            finished_at,
         ))
         .load::<HistoryWithSystemAndUser>(connection);
 
@@ -71,6 +73,8 @@ pub fn create_history(
                 user: history_user,
                 answered_questions: raw.answered_questions,
                 results: raw.results,
+                started_at: raw.started_at,
+                finish_at: raw.finish_at,
             };
             Ok(result)
         }

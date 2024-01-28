@@ -1,6 +1,15 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    answers (id) {
+        id -> Int4,
+        question -> Int4,
+        #[max_length = 128]
+        body -> Varchar,
+    }
+}
+
+diesel::table! {
     histories (id) {
         id -> Int4,
         system -> Int4,
@@ -8,6 +17,8 @@ diesel::table! {
         #[max_length = 8]
         answered_questions -> Varchar,
         results -> Json,
+        started_at -> Timestamp,
+        finished_at -> Timestamp,
     }
 }
 
@@ -52,12 +63,14 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(answers -> questions (question));
 diesel::joinable!(histories -> systems (system));
 diesel::joinable!(histories -> users (user));
 diesel::joinable!(questions -> systems (system));
 diesel::joinable!(systems -> users (user));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    answers,
     histories,
     questions,
     systems,

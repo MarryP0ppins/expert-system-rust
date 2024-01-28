@@ -23,7 +23,7 @@ pub fn system_create(
     let result = create_system(&mut connection, system_info);
 
     match result {
-        Ok(system) => Ok(Json(system)),
+        Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
             json!({"error":err.to_string()}).into(),

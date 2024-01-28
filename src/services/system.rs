@@ -63,8 +63,7 @@ pub fn update_system(
         ..system_info.0
     };
 
-    let result = update(systems)
-        .filter(id.eq(system_id))
+    let result = update(systems.find(system_id))
         .set::<UpdateSystem>(update_system)
         .get_result::<System>(connection);
 
@@ -75,7 +74,7 @@ pub fn update_system(
 }
 
 pub fn delete_system(connection: &mut PgConnection, system_id: i32) -> Result<usize, Error> {
-    let result = delete(systems).filter(id.eq(system_id)).execute(connection);
+    let result = delete(systems.find(system_id)).execute(connection);
 
     match result {
         Ok(result) => Ok(result),

@@ -1,5 +1,6 @@
 use super::{system::System, user::User};
 use crate::schema::histories;
+use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use rocket::serde::json::Value;
 use serde::{Deserialize, Serialize};
@@ -12,6 +13,8 @@ pub struct History {
     pub user: i32,
     pub answered_questions: String,
     pub results: Value,
+    pub started_at: NaiveDateTime,
+    pub finish_at: NaiveDateTime,
 }
 
 #[derive(Debug, Queryable, Insertable, Serialize, Deserialize, Clone)]
@@ -30,4 +33,6 @@ pub struct HistoryWithSystemAndUser {
     pub user: User,
     pub answered_questions: String,
     pub results: Value,
+    pub started_at: NaiveDateTime,
+    pub finish_at: NaiveDateTime,
 }

@@ -20,7 +20,7 @@ pub fn index(state: &State<AppState>) -> Result<Json<Vec<User>>, Custom<Value>> 
     let result = get_users(&mut connection);
 
     match result {
-        Ok(user) => Ok(Json(user)),
+        Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
             json!({"error":err.to_string()}).into(),
@@ -37,7 +37,7 @@ pub fn user(state: &State<AppState>, id: i32) -> Result<Json<User>, Custom<Value
     let result = get_user(&mut connection, id);
 
     match result {
-        Ok(user) => Ok(Json(user)),
+        Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
             json!({"error":err.to_string()}).into(),
@@ -57,25 +57,10 @@ pub fn create(
     let result = create_user(&mut connection, user_info);
 
     match result {
-        Ok(user) => Ok(Json(user)),
+        Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
             json!({"error":err.to_string()}).into(),
         )),
     }
 }
-/*
-#[post("/users/add-role", format = "json", data = "<role_info>")]
-pub fn create_role(role_info: Json<NewSystem>) -> Value {
-    services::users::add_role(&role_info.role_name)
-}
-
-#[post("/users/create-user", format = "json", data = "<user_info>")]
-pub fn create_user(user_info: Json<UserInputUser>) -> Value {
-    services::users::create_user(&user_info)
-}
-
-#[put("/users/update", format = "json", data = "<user_info>")]
-pub fn update_user(user_info: Json<UserInputUpdateUser>) -> Value {
-    services::users::update_user(&user_info)
-} */

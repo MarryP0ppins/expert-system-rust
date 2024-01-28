@@ -86,3 +86,18 @@ CREATE TABLE questions (
         ON DELETE CASCADE
         NOT VALID
 );
+
+----ANSWER_MODEL----
+
+CREATE TABLE answers
+(
+    id serial NOT NULL,
+    question integer NOT NULL,
+    body character varying(128) NOT NULL,
+    CONSTRAINT id_answers_pkey PRIMARY KEY (id),
+    CONSTRAINT questions_answers_fkey FOREIGN KEY (question)
+        REFERENCES public.questions (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE
+        NOT VALID
+);
