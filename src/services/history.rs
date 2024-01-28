@@ -1,5 +1,9 @@
 use crate::{
-    models::history::{History, HistoryWithSystemAndUser, NewHistory},
+    models::{
+        history::{History, HistoryWithSystemAndUser, NewHistory},
+        system::System,
+        user::User,
+    },
     schema::{histories::dsl::*, systems, users},
 };
 use diesel::{delete, insert_into, prelude::*, result::Error};
@@ -41,19 +45,35 @@ pub fn get_histories(
 pub fn create_history(
     connection: &mut PgConnection,
     history_info: Json<NewHistory>,
-) -> Result<History, Error> {
-    let new_system = NewHistory {
+) -> Result<HistoryWithSystemAndUser, Error> {
+    let new_history = NewHistory {
         answered_questions: history_info.answered_questions.to_owned(),
         results: history_info.results.to_owned(),
         ..history_info.0
     };
 
-    let result = insert_into(histories)
-        .values::<NewHistory>(new_system)
+    let raw = insert_into(histories)
+        .values::<NewHistory>(new_history.clone())
         .get_result::<History>(connection);
 
-    match result {
-        Ok(result) => Ok(result),
+    match raw {
+        Ok(raw) => {
+            let history_system = systems::table
+                .find(new_history.system)
+                .first::<System>(connection)?;
+            let history_user = users::table
+                .find(new_history.user)
+                .first::<User>(connection)?;
+
+            let result = HistoryWithSystemAndUser {
+                id: raw.id,
+                system: history_system,
+                user: history_user,
+                answered_questions: raw.answered_questions,
+                results: raw.results,
+            };
+            Ok(result)
+        }
         Err(err) => Err(err),
     }
 }

@@ -14,7 +14,7 @@ pub struct History {
     pub results: Value,
 }
 
-#[derive(Debug, Queryable, Insertable, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Insertable, Serialize, Deserialize, Clone)]
 #[diesel(table_name=histories)]
 pub struct NewHistory {
     pub system: i32,

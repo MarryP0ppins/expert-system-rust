@@ -1,5 +1,5 @@
 use crate::{
-    models::history::{History, HistoryWithSystemAndUser, NewHistory},
+    models::history::{HistoryWithSystemAndUser, NewHistory},
     {services, AppState},
 };
 use rocket::{
@@ -15,7 +15,7 @@ use services::history::{create_history, delete_history, get_histories};
 pub fn history_create(
     state: &State<AppState>,
     history_info: Json<NewHistory>,
-) -> Result<Json<History>, Custom<Value>> {
+) -> Result<Json<HistoryWithSystemAndUser>, Custom<Value>> {
     let mut connection = state
         .db_pool
         .get()
