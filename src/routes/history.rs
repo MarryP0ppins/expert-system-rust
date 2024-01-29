@@ -3,6 +3,10 @@ use crate::{
     services::history::{create_history, delete_history, get_histories},
     AppState,
 };
+use diesel::{
+    prelude::PgConnection,
+    r2d2::{ConnectionManager, PooledConnection},
+};
 use rocket::{
     http::Status,
     response::status::Custom,
@@ -16,13 +20,19 @@ pub fn history_create(
     state: &State<AppState>,
     history_info: Json<NewHistory>,
 ) -> Result<Json<HistoryWithSystemAndUser>, Custom<Value>> {
-    let mut connection = state
-        .db_pool
-        .get()
-        .expect("Failed to get a database connection");
-    let result = create_history(&mut connection, history_info.0);
+    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
+    match state.db_pool.get() {
+        Ok(ok) => connection = ok,
+        Err(err) => {
+            return Err(Custom(
+                Status::InternalServerError,
+                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
+                    .into(),
+            ))
+        }
+    };
 
-    match result {
+    match create_history(&mut connection, history_info.0) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -37,13 +47,19 @@ pub fn history_list(
     system: Option<i32>,
     user: Option<i32>,
 ) -> Result<Json<Vec<HistoryWithSystemAndUser>>, Custom<Value>> {
-    let mut connection = state
-        .db_pool
-        .get()
-        .expect("Failed to get a database connection");
-    let result = get_histories(&mut connection, system, user);
+    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
+    match state.db_pool.get() {
+        Ok(ok) => connection = ok,
+        Err(err) => {
+            return Err(Custom(
+                Status::InternalServerError,
+                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
+                    .into(),
+            ))
+        }
+    };
 
-    match result {
+    match get_histories(&mut connection, system, user) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -54,13 +70,19 @@ pub fn history_list(
 
 #[delete("/<history_id>")]
 pub fn history_delete(state: &State<AppState>, history_id: i32) -> Result<Value, Custom<Value>> {
-    let mut connection = state
-        .db_pool
-        .get()
-        .expect("Failed to get a database connection");
-    let result = delete_history(&mut connection, history_id);
+    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
+    match state.db_pool.get() {
+        Ok(ok) => connection = ok,
+        Err(err) => {
+            return Err(Custom(
+                Status::InternalServerError,
+                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
+                    .into(),
+            ))
+        }
+    };
 
-    match result {
+    match delete_history(&mut connection, history_id) {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(Custom(
             Status::BadRequest,

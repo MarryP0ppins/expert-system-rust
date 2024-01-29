@@ -20,7 +20,7 @@ CREATE TABLE users (
 
 CREATE TABLE systems (
     id serial NOT NULL,
-    "user" integer NOT NULL,
+    user_id integer NOT NULL,
     about text,
     created_at timestamp NOT NULL DEFAULT NOW(),
     updated_at timestamp NOT NULL DEFAULT NOW(),
@@ -29,7 +29,7 @@ CREATE TABLE systems (
     CONSTRAINT id_systems_pkey PRIMARY KEY (id),
     CONSTRAINT name_systems_unique UNIQUE (name)
         INCLUDE(name),
-    CONSTRAINT users_systems_fkey FOREIGN KEY ("user")
+    CONSTRAINT users_systems_fkey FOREIGN KEY (user_id)
         REFERENCES public.users (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE CASCADE
@@ -53,19 +53,19 @@ EXECUTE PROCEDURE trigger_set_timestamp();
 
 CREATE TABLE histories (
     id serial NOT NULL,
-    system integer NOT NULL,
-    "user" integer NOT NULL,
+    system_id integer NOT NULL,
+    user_id integer NOT NULL,
     started_at timestamp NOT NULL DEFAULT NOW(),
     finished_at timestamp NOT NULL DEFAULT NOW(),
     answered_questions character varying(8) NOT NULL DEFAULT '0/0',
     results json NOT NULL,
     CONSTRAINT id_histories_pkey PRIMARY KEY (id),
-    CONSTRAINT users_histories_fkey FOREIGN KEY ("user")
+    CONSTRAINT users_histories_fkey FOREIGN KEY (user_id)
         REFERENCES public."users" (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE CASCADE
         NOT VALID,
-    CONSTRAINT systems_histories_fkey FOREIGN KEY (system)
+    CONSTRAINT systems_histories_fkey FOREIGN KEY (system_id)
         REFERENCES public.systems (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE CASCADE
@@ -76,11 +76,11 @@ CREATE TABLE histories (
 
 CREATE TABLE questions (
     id serial NOT NULL,
-    system integer NOT NULL, 
+    system_id integer NOT NULL, 
     body character varying(64) NOT NULL,
     with_chooses boolean NOT NULL DEFAULT False,
     CONSTRAINT id_questions_pkey PRIMARY KEY (id),
-    CONSTRAINT systems_questions_fkey FOREIGN KEY (system)
+    CONSTRAINT systems_questions_fkey FOREIGN KEY (system_id)
         REFERENCES public.systems (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE CASCADE
@@ -92,10 +92,10 @@ CREATE TABLE questions (
 CREATE TABLE answers
 (
     id serial NOT NULL,
-    question integer NOT NULL,
+    question_id integer NOT NULL,
     body character varying(128) NOT NULL,
     CONSTRAINT id_answers_pkey PRIMARY KEY (id),
-    CONSTRAINT questions_answers_fkey FOREIGN KEY (question)
+    CONSTRAINT questions_answers_fkey FOREIGN KEY (question_id)
         REFERENCES public.questions (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE CASCADE

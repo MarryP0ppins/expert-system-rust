@@ -25,7 +25,7 @@ pub fn get_histories(
         query = query.or_filter(users::id.eq(param));
     }
 
-    let result = query
+    match query
         .select((
             id,
             (systems::all_columns),
@@ -35,9 +35,8 @@ pub fn get_histories(
             started_at,
             finished_at,
         ))
-        .load::<HistoryWithSystemAndUser>(connection);
-
-    match result {
+        .load::<HistoryWithSystemAndUser>(connection)
+    {
         Ok(result) => Ok(result),
         Err(err) => Err(err),
     }
@@ -47,38 +46,48 @@ pub fn create_history(
     connection: &mut PgConnection,
     history_info: NewHistory,
 ) -> Result<HistoryWithSystemAndUser, Error> {
-    let raw = insert_into(histories)
+    let raw: History;
+
+    match insert_into(histories)
         .values::<NewHistory>(history_info.clone())
-        .get_result::<History>(connection);
+        .get_result::<History>(connection)
+    {
+        Ok(ok) => raw = ok,
+        Err(err) => return Err(err),
+    };
 
-    match raw {
-        Ok(raw) => {
-            let history_system = systems::table
-                .find(history_info.system)
-                .first::<System>(connection)?;
-            let history_user = users::table
-                .find(history_info.user)
-                .first::<User>(connection)?;
+    let history_system: System;
+    match systems::table
+        .find(history_info.system_id)
+        .first::<System>(connection)
+    {
+        Ok(ok) => history_system = ok,
+        Err(err) => return Err(err),
+    };
 
-            let result = HistoryWithSystemAndUser {
-                id: raw.id,
-                system: history_system,
-                user: history_user,
-                answered_questions: raw.answered_questions,
-                results: raw.results,
-                started_at: raw.started_at,
-                finish_at: raw.finish_at,
-            };
-            Ok(result)
-        }
-        Err(err) => Err(err),
-    }
+    let history_user: User;
+    match users::table
+        .find(history_info.user_id)
+        .first::<User>(connection)
+    {
+        Ok(ok) => history_user = ok,
+        Err(err) => return Err(err),
+    };
+
+    let result = HistoryWithSystemAndUser {
+        id: raw.id,
+        system_id: history_system,
+        user_id: history_user,
+        answered_questions: raw.answered_questions,
+        results: raw.results,
+        started_at: raw.started_at,
+        finish_at: raw.finish_at,
+    };
+    Ok(result)
 }
 
 pub fn delete_history(connection: &mut PgConnection, history_id: i32) -> Result<usize, Error> {
-    let result = delete(histories.find(history_id)).execute(connection);
-
-    match result {
+    match delete(histories.find(history_id)).execute(connection) {
         Ok(result) => Ok(result),
         Err(err) => Err(err),
     }

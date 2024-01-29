@@ -33,6 +33,14 @@ fn not_found() -> Value {
     })
 }
 
+#[catch(422)]
+fn unprocessable_entity() -> Value {
+    json!({
+        "status": "Unprocessable Entity",
+        "reason": "Invalid JSON payload"
+    })
+}
+
 #[catch(500)]
 fn server_error() -> Value {
     json!({
@@ -91,6 +99,9 @@ fn rocket() -> _ {
                 answer::answer_multiple_update
             ],
         )
-        .register("/", catchers![not_found, server_error])
+        .register(
+            "/",
+            catchers![not_found, server_error, unprocessable_entity],
+        )
         .manage(AppState { db_pool: pool })
 }

@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 #[diesel(table_name=systems)]
 pub struct System {
     pub id: i32,
-    pub user: i32,
+    pub user_id: i32,
     pub about: Option<String>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
@@ -21,7 +21,7 @@ pub struct System {
 #[derive(Debug, Queryable, Insertable, Serialize, Deserialize)]
 #[diesel(table_name=systems)]
 pub struct NewSystem {
-    pub user: i32,
+    pub user_id: i32,
     pub about: Option<String>,
     pub name: String,
     pub private: bool,
@@ -30,7 +30,7 @@ pub struct NewSystem {
 #[derive(Debug, Deserialize, AsChangeset)]
 #[diesel(table_name=systems)]
 pub struct UpdateSystem {
-    pub user: Option<i32>,
+    pub user_id: Option<i32>,
     pub about: Option<String>,
     pub name: Option<String>,
     pub private: Option<bool>,

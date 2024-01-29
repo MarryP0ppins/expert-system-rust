@@ -8,7 +8,7 @@ use super::answer::Answer;
 #[diesel(table_name=questions)]
 pub struct Question {
     pub id: i32,
-    pub system: i32,
+    pub system_id: i32,
     pub body: String,
     pub with_chooses: bool,
 }
@@ -16,7 +16,7 @@ pub struct Question {
 #[derive(Debug, Queryable, Insertable, Serialize, Deserialize)]
 #[diesel(table_name=questions)]
 pub struct NewQuestion {
-    pub system: i32,
+    pub system_id: i32,
     pub body: String,
     pub with_chooses: bool,
 }
@@ -24,7 +24,7 @@ pub struct NewQuestion {
 #[derive(Debug, Queryable, Serialize, Deserialize)]
 #[diesel(table_name=questions)]
 pub struct NewQuestionWithAnswersBody {
-    pub system: i32,
+    pub system_id: i32,
     pub body: String,
     pub with_chooses: bool,
     pub answers_body: Option<Vec<String>>,
@@ -41,7 +41,7 @@ pub struct UpdateQuestion {
 #[derive(Debug, Queryable, Serialize)]
 pub struct QuestionWithAnswers {
     pub id: i32,
-    pub system: i32,
+    pub system_id: i32,
     pub body: String,
     pub with_chooses: bool,
     pub answers: Vec<Answer>,

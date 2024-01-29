@@ -3,6 +3,10 @@ use crate::{
     services::system::{create_system, delete_system, get_system, get_systems, update_system},
     AppState,
 };
+use diesel::{
+    prelude::PgConnection,
+    r2d2::{ConnectionManager, PooledConnection},
+};
 use rocket::{
     http::Status,
     response::status::Custom,
@@ -16,13 +20,19 @@ pub fn system_create(
     state: &State<AppState>,
     system_info: Json<NewSystem>,
 ) -> Result<Json<System>, Custom<Value>> {
-    let mut connection = state
-        .db_pool
-        .get()
-        .expect("Failed to get a database connection");
-    let result = create_system(&mut connection, system_info.0);
+    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
+    match state.db_pool.get() {
+        Ok(ok) => connection = ok,
+        Err(err) => {
+            return Err(Custom(
+                Status::InternalServerError,
+                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
+                    .into(),
+            ))
+        }
+    };
 
-    match result {
+    match create_system(&mut connection, system_info.0) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -36,13 +46,19 @@ pub fn system_list(
     state: &State<AppState>,
     name: Option<String>,
 ) -> Result<Json<Vec<System>>, Custom<Value>> {
-    let mut connection = state
-        .db_pool
-        .get()
-        .expect("Failed to get a database connection");
-    let result = get_systems(&mut connection, name);
+    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
+    match state.db_pool.get() {
+        Ok(ok) => connection = ok,
+        Err(err) => {
+            return Err(Custom(
+                Status::InternalServerError,
+                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
+                    .into(),
+            ))
+        }
+    };
 
-    match result {
+    match get_systems(&mut connection, name) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -56,13 +72,19 @@ pub fn system_retrieve(
     state: &State<AppState>,
     system_id: i32,
 ) -> Result<Json<System>, Custom<Value>> {
-    let mut connection = state
-        .db_pool
-        .get()
-        .expect("Failed to get a database connection");
-    let result = get_system(&mut connection, system_id);
+    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
+    match state.db_pool.get() {
+        Ok(ok) => connection = ok,
+        Err(err) => {
+            return Err(Custom(
+                Status::InternalServerError,
+                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
+                    .into(),
+            ))
+        }
+    };
 
-    match result {
+    match get_system(&mut connection, system_id) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -77,13 +99,19 @@ pub fn system_partial_update(
     system_id: i32,
     system_info: Json<UpdateSystem>,
 ) -> Result<Json<System>, Custom<Value>> {
-    let mut connection = state
-        .db_pool
-        .get()
-        .expect("Failed to get a database connection");
-    let result = update_system(&mut connection, system_id, system_info.0);
+    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
+    match state.db_pool.get() {
+        Ok(ok) => connection = ok,
+        Err(err) => {
+            return Err(Custom(
+                Status::InternalServerError,
+                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
+                    .into(),
+            ))
+        }
+    };
 
-    match result {
+    match update_system(&mut connection, system_id, system_info.0) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -94,13 +122,19 @@ pub fn system_partial_update(
 
 #[delete("/<system_id>")]
 pub fn system_delete(state: &State<AppState>, system_id: i32) -> Result<Value, Custom<Value>> {
-    let mut connection = state
-        .db_pool
-        .get()
-        .expect("Failed to get a database connection");
-    let result = delete_system(&mut connection, system_id);
+    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
+    match state.db_pool.get() {
+        Ok(ok) => connection = ok,
+        Err(err) => {
+            return Err(Custom(
+                Status::InternalServerError,
+                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
+                    .into(),
+            ))
+        }
+    };
 
-    match result {
+    match delete_system(&mut connection, system_id) {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(Custom(
             Status::BadRequest,

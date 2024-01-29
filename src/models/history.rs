@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 #[diesel(table_name=histories)]
 pub struct History {
     pub id: i32,
-    pub system: i32,
-    pub user: i32,
+    pub system_id: i32,
+    pub user_id: i32,
     pub answered_questions: String,
     pub results: Value,
     pub started_at: NaiveDateTime,
@@ -20,8 +20,8 @@ pub struct History {
 #[derive(Debug, Queryable, Insertable, Serialize, Deserialize, Clone)]
 #[diesel(table_name=histories)]
 pub struct NewHistory {
-    pub system: i32,
-    pub user: i32,
+    pub system_id: i32,
+    pub user_id: i32,
     pub answered_questions: String,
     pub results: Value,
 }
@@ -29,8 +29,8 @@ pub struct NewHistory {
 #[derive(Debug, Queryable, Serialize)]
 pub struct HistoryWithSystemAndUser {
     pub id: i32,
-    pub system: System,
-    pub user: User,
+    pub system_id: System,
+    pub user_id: User,
     pub answered_questions: String,
     pub results: Value,
     pub started_at: NaiveDateTime,

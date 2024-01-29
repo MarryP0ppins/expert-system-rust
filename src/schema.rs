@@ -3,7 +3,7 @@
 diesel::table! {
     answers (id) {
         id -> Int4,
-        question -> Int4,
+        question_id -> Int4,
         #[max_length = 128]
         body -> Varchar,
     }
@@ -12,8 +12,8 @@ diesel::table! {
 diesel::table! {
     histories (id) {
         id -> Int4,
-        system -> Int4,
-        user -> Int4,
+        system_id -> Int4,
+        user_id -> Int4,
         #[max_length = 8]
         answered_questions -> Varchar,
         results -> Json,
@@ -25,7 +25,7 @@ diesel::table! {
 diesel::table! {
     questions (id) {
         id -> Int4,
-        system -> Int4,
+        system_id -> Int4,
         #[max_length = 64]
         body -> Varchar,
         with_chooses -> Bool,
@@ -35,7 +35,7 @@ diesel::table! {
 diesel::table! {
     systems (id) {
         id -> Int4,
-        user -> Int4,
+        user_id -> Int4,
         about -> Nullable<Text>,
         created_at -> Timestamp,
         updated_at -> Timestamp,
@@ -63,11 +63,11 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(answers -> questions (question));
-diesel::joinable!(histories -> systems (system));
-diesel::joinable!(histories -> users (user));
-diesel::joinable!(questions -> systems (system));
-diesel::joinable!(systems -> users (user));
+diesel::joinable!(answers -> questions (question_id));
+diesel::joinable!(histories -> systems (system_id));
+diesel::joinable!(histories -> users (user_id));
+diesel::joinable!(questions -> systems (system_id));
+diesel::joinable!(systems -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     answers,
