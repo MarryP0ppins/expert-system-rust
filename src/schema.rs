@@ -23,6 +23,21 @@ diesel::table! {
 }
 
 diesel::table! {
+    questionrulegroup_answer (answer_id, question_rule_group_id) {
+        id -> Int4,
+        answer_id -> Int4,
+        question_rule_group_id -> Int4,
+    }
+}
+
+diesel::table! {
+    questionrulegroups (id) {
+        id -> Int4,
+        system_id -> Int4,
+    }
+}
+
+diesel::table! {
     questions (id) {
         id -> Int4,
         system_id -> Int4,
@@ -66,12 +81,16 @@ diesel::table! {
 diesel::joinable!(answers -> questions (question_id));
 diesel::joinable!(histories -> systems (system_id));
 diesel::joinable!(histories -> users (user_id));
+diesel::joinable!(questionrulegroup_answer -> answers (answer_id));
+diesel::joinable!(questionrulegroup_answer -> questionrulegroups (question_rule_group_id));
 diesel::joinable!(questions -> systems (system_id));
 diesel::joinable!(systems -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     answers,
     histories,
+    questionrulegroup_answer,
+    questionrulegroups,
     questions,
     systems,
     users,
