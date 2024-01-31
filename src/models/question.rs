@@ -27,7 +27,7 @@ pub struct NewQuestionWithAnswersBody {
     pub system_id: i32,
     pub body: String,
     pub with_chooses: bool,
-    pub answers_body: Option<Vec<String>>,
+    pub answers_body: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, AsChangeset, Clone)]

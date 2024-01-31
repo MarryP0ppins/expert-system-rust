@@ -62,21 +62,22 @@ pub fn create_question(
         Err(err) => return Err(err),
     };
 
-    let mut question_answers: Vec<Answer> = vec![];
-    if let Some(values) = answers_body {
-        question_answers = values
-            .iter()
-            .map(|answer_body| {
-                insert_into(answers::table)
-                    .values::<NewAnswer>(NewAnswer {
-                        question_id: new_question.id,
-                        body: answer_body.to_string(),
-                    })
-                    .get_result::<Answer>(connection)
-                    .expect("Answer create failure")
-            })
-            .collect()
-    }
+    let question_answers: Vec<Answer>;
+    match insert_into(answers::table)
+        .values::<Vec<NewAnswer>>(
+            answers_body
+                .iter()
+                .map(|answer_body| NewAnswer {
+                    question_id: new_question.id,
+                    body: answer_body.to_string(),
+                })
+                .collect(),
+        )
+        .get_results::<Answer>(connection)
+    {
+        Ok(ok) => question_answers = ok,
+        Err(err) => return Err(err),
+    };
 
     let result = QuestionWithAnswers {
         id: new_question.id,

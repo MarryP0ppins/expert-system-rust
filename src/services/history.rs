@@ -1,9 +1,5 @@
 use crate::{
-    models::{
-        history::{History, HistoryWithSystemAndUser, NewHistory},
-        system::System,
-        user::User,
-    },
+    models::history::{HistoryWithSystemAndUser, NewHistory},
     schema::{histories::dsl::*, systems, users},
 };
 use diesel::{delete, insert_into, prelude::*, result::Error};
@@ -46,44 +42,35 @@ pub fn create_history(
     connection: &mut PgConnection,
     history_info: NewHistory,
 ) -> Result<HistoryWithSystemAndUser, Error> {
-    let raw: History;
+    let insert_raw_id: i32;
 
     match insert_into(histories)
         .values::<NewHistory>(history_info.clone())
-        .get_result::<History>(connection)
+        .returning(id)
+        .get_result(connection)
     {
-        Ok(ok) => raw = ok,
+        Ok(ok) => insert_raw_id = ok,
         Err(err) => return Err(err),
     };
 
-    let history_system: System;
-    match systems::table
-        .find(history_info.system_id)
-        .first::<System>(connection)
+    match histories
+        .find(insert_raw_id)
+        .inner_join(systems::table)
+        .inner_join(users::table)
+        .select((
+            id,
+            (systems::all_columns),
+            (users::all_columns),
+            answered_questions,
+            results,
+            started_at,
+            finished_at,
+        ))
+        .first::<HistoryWithSystemAndUser>(connection)
     {
-        Ok(ok) => history_system = ok,
-        Err(err) => return Err(err),
-    };
-
-    let history_user: User;
-    match users::table
-        .find(history_info.user_id)
-        .first::<User>(connection)
-    {
-        Ok(ok) => history_user = ok,
-        Err(err) => return Err(err),
-    };
-
-    let result = HistoryWithSystemAndUser {
-        id: raw.id,
-        system_id: history_system,
-        user_id: history_user,
-        answered_questions: raw.answered_questions,
-        results: raw.results,
-        started_at: raw.started_at,
-        finish_at: raw.finish_at,
-    };
-    Ok(result)
+        Ok(ok) => Ok(ok),
+        Err(err) => Err(err),
+    }
 }
 
 pub fn delete_history(connection: &mut PgConnection, history_id: i32) -> Result<usize, Error> {

@@ -1,7 +1,9 @@
 use crate::{
-    models::question::{NewQuestionWithAnswersBody, Question, QuestionWithAnswers, UpdateQuestion},
-    services::question::{
-        create_question, get_questions, multiple_delete_questions, multiple_update_questions,
+    models::question_rule_group::{
+        NewQuestionRuleGroupWithRulesAndAnswers, QuestionRuleGroupWithRulesAndAnswers,
+    },
+    services::question_rule_group::{
+        create_question_rule_group, get_question_rule_groups, multiple_delete_question_rule_groups,
     },
     AppState,
 };
@@ -17,11 +19,11 @@ use rocket::{
 };
 use rocket_contrib::json;
 
-#[post("/", format = "json", data = "<question_info>")]
-pub fn question_create(
+#[post("/", format = "json", data = "<question_rule_group_info>")]
+pub fn question_rule_group_create(
     state: &State<AppState>,
-    question_info: Json<NewQuestionWithAnswersBody>,
-) -> Result<Json<QuestionWithAnswers>, Custom<Value>> {
+    question_rule_group_info: Json<NewQuestionRuleGroupWithRulesAndAnswers>,
+) -> Result<Json<QuestionRuleGroupWithRulesAndAnswers>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
         Ok(ok) => connection = ok,
@@ -34,7 +36,7 @@ pub fn question_create(
         }
     };
 
-    match create_question(&mut connection, question_info.0) {
+    match create_question_rule_group(&mut connection, question_rule_group_info.0) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -44,10 +46,10 @@ pub fn question_create(
 }
 
 #[get("/?<system>")]
-pub fn question_list(
+pub fn question_rule_group_list(
     state: &State<AppState>,
     system: i32,
-) -> Result<Json<Vec<QuestionWithAnswers>>, Custom<Value>> {
+) -> Result<Json<Vec<QuestionRuleGroupWithRulesAndAnswers>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
         Ok(ok) => connection = ok,
@@ -60,7 +62,7 @@ pub fn question_list(
         }
     };
 
-    match get_questions(&mut connection, system) {
+    match get_question_rule_groups(&mut connection, system) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -69,10 +71,14 @@ pub fn question_list(
     }
 }
 
-#[post("/multiple_delete", format = "json", data = "<question_info>")]
-pub fn question_multiple_delete(
+#[post(
+    "/multiple_delete",
+    format = "json",
+    data = "<question_rule_group_info>"
+)]
+pub fn question_rule_group_multiple_delete(
     state: &State<AppState>,
-    question_info: Json<Vec<i32>>,
+    question_rule_group_info: Json<Vec<i32>>,
 ) -> Result<Value, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -86,34 +92,8 @@ pub fn question_multiple_delete(
         }
     };
 
-    match multiple_delete_questions(&mut connection, question_info.0) {
+    match multiple_delete_question_rule_groups(&mut connection, question_rule_group_info.0) {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
-            json!({"error":err.to_string()}).into(),
-        )),
-    }
-}
-
-#[post("/multiple_patch", format = "json", data = "<question_info>")]
-pub fn question_multiple_update(
-    state: &State<AppState>,
-    question_info: Json<Vec<UpdateQuestion>>,
-) -> Result<Json<Vec<Question>>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
-        Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
-    };
-
-    match multiple_update_questions(&mut connection, question_info.0) {
-        Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
             json!({"error":err.to_string()}).into(),

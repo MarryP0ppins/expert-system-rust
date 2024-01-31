@@ -5,6 +5,7 @@ use diesel::prelude::*;
 use rocket::serde::json::Value;
 use serde::{Deserialize, Serialize};
 
+/*
 #[derive(Debug, Queryable, Serialize, Identifiable)]
 #[diesel(table_name=histories)]
 pub struct History {
@@ -16,8 +17,9 @@ pub struct History {
     pub started_at: NaiveDateTime,
     pub finish_at: NaiveDateTime,
 }
+ */
 
-#[derive(Debug, Queryable, Insertable, Serialize, Deserialize, Clone)]
+#[derive(Debug, Queryable, Insertable, Deserialize, Clone)]
 #[diesel(table_name=histories)]
 pub struct NewHistory {
     pub system_id: i32,

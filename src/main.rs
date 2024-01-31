@@ -16,7 +16,7 @@ mod routes;
 mod schema;
 mod services;
 
-use routes::{answer, history, question, system, user as user_routes};
+use routes::{answer, history, question, question_rule_group, system, user as user_routes};
 
 type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -86,7 +86,7 @@ fn rocket() -> _ {
             routes![
                 question::question_create,
                 question::question_list,
-                question::questions_multiple_delete,
+                question::question_multiple_delete,
                 question::question_multiple_update
             ],
         )
@@ -97,6 +97,14 @@ fn rocket() -> _ {
                 answer::answer_list,
                 answer::answer_multiple_delete,
                 answer::answer_multiple_update
+            ],
+        )
+        .mount(
+            "/question-rule-group",
+            routes![
+                question_rule_group::question_rule_group_create,
+                question_rule_group::question_rule_group_list,
+                question_rule_group::question_rule_group_multiple_delete
             ],
         )
         .register(

@@ -13,7 +13,7 @@ pub struct Answer {
     pub body: String,
 }
 
-#[derive(Debug, Queryable, Insertable, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Insertable, Deserialize)]
 #[diesel(table_name=answers)]
 pub struct NewAnswer {
     pub question_id: i32,
