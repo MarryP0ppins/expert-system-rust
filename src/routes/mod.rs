@@ -1,4 +1,5 @@
 pub mod answer;
+pub mod attribute;
 pub mod history;
 pub mod question;
 pub mod question_rule_group;

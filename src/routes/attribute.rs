@@ -1,7 +1,9 @@
 use crate::{
-    models::question::{NewQuestionWithAnswersBody, QuestionWithAnswers, UpdateQuestion},
-    services::question::{
-        create_question, get_questions, multiple_delete_questions, multiple_update_questions,
+    models::attribute::{
+        AttributeWithAttributeValues, NewAttributeWithAttributeValuesName, UpdateAttribute,
+    },
+    services::attribute::{
+        create_attribute, get_attributes, multiple_delete_attributes, multiple_update_attributes,
     },
     AppState,
 };
@@ -17,11 +19,11 @@ use rocket::{
 };
 use rocket_contrib::json;
 
-#[post("/", format = "json", data = "<question_info>")]
-pub fn question_create(
+#[post("/", format = "json", data = "<attribute_info>")]
+pub fn attribute_create(
     state: &State<AppState>,
-    question_info: Json<NewQuestionWithAnswersBody>,
-) -> Result<Json<QuestionWithAnswers>, Custom<Value>> {
+    attribute_info: Json<NewAttributeWithAttributeValuesName>,
+) -> Result<Json<AttributeWithAttributeValues>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
         Ok(ok) => connection = ok,
@@ -34,7 +36,7 @@ pub fn question_create(
         }
     };
 
-    match create_question(&mut connection, question_info.0) {
+    match create_attribute(&mut connection, attribute_info.0) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -44,10 +46,10 @@ pub fn question_create(
 }
 
 #[get("/?<system>")]
-pub fn question_list(
+pub fn attribute_list(
     state: &State<AppState>,
     system: i32,
-) -> Result<Json<Vec<QuestionWithAnswers>>, Custom<Value>> {
+) -> Result<Json<Vec<AttributeWithAttributeValues>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
         Ok(ok) => connection = ok,
@@ -60,7 +62,7 @@ pub fn question_list(
         }
     };
 
-    match get_questions(&mut connection, system) {
+    match get_attributes(&mut connection, system) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -69,10 +71,10 @@ pub fn question_list(
     }
 }
 
-#[post("/multiple_delete", format = "json", data = "<question_info>")]
-pub fn question_multiple_delete(
+#[post("/multiple_delete", format = "json", data = "<attribute_info>")]
+pub fn attribute_multiple_delete(
     state: &State<AppState>,
-    question_info: Json<Vec<i32>>,
+    attribute_info: Json<Vec<i32>>,
 ) -> Result<Value, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -86,7 +88,7 @@ pub fn question_multiple_delete(
         }
     };
 
-    match multiple_delete_questions(&mut connection, question_info.0) {
+    match multiple_delete_attributes(&mut connection, attribute_info.0) {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -95,11 +97,11 @@ pub fn question_multiple_delete(
     }
 }
 
-#[post("/multiple_patch", format = "json", data = "<question_info>")]
-pub fn question_multiple_update(
+#[post("/multiple_patch", format = "json", data = "<attribute_info>")]
+pub fn attribute_multiple_update(
     state: &State<AppState>,
-    question_info: Json<Vec<UpdateQuestion>>,
-) -> Result<Json<Vec<QuestionWithAnswers>>, Custom<Value>> {
+    attribute_info: Json<Vec<UpdateAttribute>>,
+) -> Result<Json<Vec<AttributeWithAttributeValues>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
         Ok(ok) => connection = ok,
@@ -112,7 +114,7 @@ pub fn question_multiple_update(
         }
     };
 
-    match multiple_update_questions(&mut connection, question_info.0) {
+    match multiple_update_attributes(&mut connection, attribute_info.0) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,

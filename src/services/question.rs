@@ -102,7 +102,8 @@ pub fn multiple_delete_questions(
 pub fn multiple_update_questions(
     connection: &mut PgConnection,
     questions_info: Vec<UpdateQuestion>,
-) -> Result<Vec<Question>, Error> {
+) -> Result<Vec<QuestionWithAnswers>, Error> {
+    let _questions: Vec<Question>;
     match questions_info
         .iter()
         .map(|question_raw| {
@@ -112,7 +113,28 @@ pub fn multiple_update_questions(
         })
         .collect()
     {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
+        Ok(result) => _questions = result,
+        Err(err) => return Err(err),
     }
+
+    let _answers: Vec<Answer>;
+    match Answer::belonging_to(&_questions).load::<Answer>(connection) {
+        Ok(ok) => _answers = ok,
+        Err(_) => _answers = vec![],
+    };
+
+    let result = _answers
+        .grouped_by(&_questions)
+        .into_iter()
+        .zip(_questions)
+        .map(|(answers, question)| QuestionWithAnswers {
+            id: question.id,
+            answers,
+            system_id: question.system_id,
+            body: question.body,
+            with_chooses: question.with_chooses,
+        })
+        .collect::<Vec<QuestionWithAnswers>>();
+
+    Ok(result)
 }
