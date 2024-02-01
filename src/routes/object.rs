@@ -1,6 +1,8 @@
 use crate::{
-    models::user::{NewUser, UserLogin, UserWithoutPassword},
-    services::user::{create_user, get_user, login_user},
+    models::object::{NewObjectWithAttributesValueIds, ObjectWithAttributesValues, UpdateObject},
+    services::object::{
+        create_object, get_objects, multiple_delete_objects, multiple_update_objects,
+    },
     AppState,
 };
 use diesel::{
@@ -8,20 +10,18 @@ use diesel::{
     r2d2::{ConnectionManager, PooledConnection},
 };
 use rocket::{
-    http::{CookieJar, Status},
+    http::Status,
     response::status::Custom,
     serde::json::{Json, Value},
     State,
 };
-
 use rocket_contrib::json;
 
-#[post("/login", format = "json", data = "<user_info>")]
-pub fn user_login(
+#[post("/", format = "json", data = "<object_info>")]
+pub fn object_create(
     state: &State<AppState>,
-    user_info: Json<UserLogin>,
-    cookie: &CookieJar<'_>,
-) -> Result<Json<UserWithoutPassword>, Custom<Value>> {
+    object_info: Json<NewObjectWithAttributesValueIds>,
+) -> Result<Json<ObjectWithAttributesValues>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
         Ok(ok) => connection = ok,
@@ -34,39 +34,7 @@ pub fn user_login(
         }
     };
 
-    match login_user(&mut connection, user_info.0, &cookie) {
-        Ok(result) => Ok(Json(result)),
-        Err(err) => Err(err),
-    }
-}
-
-#[post("/logout")]
-pub fn user_logout(
-    cookie: &CookieJar<'_>,
-) -> Result<Value, Custom<Value>> {
-    cookie.remove_private("session_id");
-
-    Ok(json!({"messege":"you are logout"}).into())
-}
-
-#[post("/registration", format = "json", data = "<user_info>")]
-pub fn user_registration(
-    state: &State<AppState>,
-    user_info: Json<NewUser>,
-) -> Result<Json<UserWithoutPassword>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
-        Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
-    };
-
-    match create_user(&mut connection, user_info.0) {
+    match create_object(&mut connection, object_info.0) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -75,25 +43,11 @@ pub fn user_registration(
     }
 }
 
-#[get("/")]
-pub fn user_get(
+#[get("/?<system>")]
+pub fn object_list(
     state: &State<AppState>,
-    cookie: &CookieJar<'_>,
-) -> Result<Json<UserWithoutPassword>, Custom<Value>> {
-    let user_id: i32;
-    match cookie
-        .get_private("session_id")
-        .map(|res| res.value().to_owned())
-    {
-        Some(res) => user_id = res.parse::<i32>().expect("Server Error"),
-        None => {
-            return Err(Custom(
-                Status::Unauthorized,
-                json!({"error":"Not authorized"}).into(),
-            ))
-        }
-    };
-
+    system: i32,
+) -> Result<Json<Vec<ObjectWithAttributesValues>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
         Ok(ok) => connection = ok,
@@ -106,7 +60,59 @@ pub fn user_get(
         }
     };
 
-    match get_user(&mut connection, user_id) {
+    match get_objects(&mut connection, system) {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(Custom(
+            Status::BadRequest,
+            json!({"error":err.to_string()}).into(),
+        )),
+    }
+}
+
+#[post("/multiple_delete", format = "json", data = "<object_info>")]
+pub fn object_multiple_delete(
+    state: &State<AppState>,
+    object_info: Json<Vec<i32>>,
+) -> Result<Value, Custom<Value>> {
+    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
+    match state.db_pool.get() {
+        Ok(ok) => connection = ok,
+        Err(err) => {
+            return Err(Custom(
+                Status::InternalServerError,
+                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
+                    .into(),
+            ))
+        }
+    };
+
+    match multiple_delete_objects(&mut connection, object_info.0) {
+        Ok(_) => Ok(json!({"delete":"successful"}).into()),
+        Err(err) => Err(Custom(
+            Status::BadRequest,
+            json!({"error":err.to_string()}).into(),
+        )),
+    }
+}
+
+#[post("/multiple_patch", format = "json", data = "<object_info>")]
+pub fn object_multiple_update(
+    state: &State<AppState>,
+    object_info: Json<Vec<UpdateObject>>,
+) -> Result<Json<Vec<ObjectWithAttributesValues>>, Custom<Value>> {
+    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
+    match state.db_pool.get() {
+        Ok(ok) => connection = ok,
+        Err(err) => {
+            return Err(Custom(
+                Status::InternalServerError,
+                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
+                    .into(),
+            ))
+        }
+    };
+
+    match multiple_update_objects(&mut connection, object_info.0) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,

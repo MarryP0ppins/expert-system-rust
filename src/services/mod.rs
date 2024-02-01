@@ -1,6 +1,9 @@
 pub mod answer;
 pub mod attribute;
+pub mod attribute_rule_group;
+pub mod attribute_value;
 pub mod history;
+pub mod object;
 pub mod question;
 pub mod question_rule_group;
 pub mod system;

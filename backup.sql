@@ -8,7 +8,7 @@ CREATE TABLE users (
     first_name character varying(16) NOT NULL,
     last_name character varying(16) NOT NULL,
     is_superuser boolean NOT NULL DEFAULT false,
-    password character varying(16) NOT NULL,
+    password character varying(256) NOT NULL,
     CONSTRAINT id_users_pkey PRIMARY KEY (id),
     CONSTRAINT email_users_unique UNIQUE (email)
         INCLUDE(email),

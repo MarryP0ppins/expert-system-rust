@@ -46,6 +46,7 @@ pub struct NewRule {
 #[derive(Debug, Deserialize, AsChangeset)]
 #[diesel(table_name=rules)]
 pub struct UpdateRule {
+    pub id: i32,
     pub compared_value: Option<String>,
     pub logical_group: Option<i32>,
     pub operator: Option<RuleOperator>,

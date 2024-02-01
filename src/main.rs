@@ -17,7 +17,8 @@ mod schema;
 mod services;
 
 use routes::{
-    answer, attribute, history, question, question_rule_group, system, user as user_routes,
+    answer, attribute, attribute_rule_group, attribute_value, history, object, question,
+    question_rule_group, system, user,
 };
 
 type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
@@ -73,7 +74,12 @@ fn rocket() -> _ {
         )
         .mount(
             "/user",
-            routes![user_routes::index, user_routes::create, user_routes::user],
+            routes![
+                user::user_get,
+                user::user_registration,
+                user::user_logout,
+                user::user_login,
+            ],
         )
         .mount(
             "/history",
@@ -116,6 +122,32 @@ fn rocket() -> _ {
                 attribute::attribute_list,
                 attribute::attribute_multiple_delete,
                 attribute::attribute_multiple_update
+            ],
+        )
+        .mount(
+            "/attribute-value",
+            routes![
+                attribute_value::attribute_value_create,
+                attribute_value::attribute_value_list,
+                attribute_value::attribute_value_multiple_delete,
+                attribute_value::attribute_value_multiple_update
+            ],
+        )
+        .mount(
+            "/attribute-rule-group",
+            routes![
+                attribute_rule_group::attribute_rule_group_create,
+                attribute_rule_group::attribute_rule_group_list,
+                attribute_rule_group::attribute_rule_group_multiple_delete
+            ],
+        )
+        .mount(
+            "/object",
+            routes![
+                object::object_create,
+                object::object_list,
+                object::object_multiple_delete,
+                object::object_multiple_update
             ],
         )
         .register(

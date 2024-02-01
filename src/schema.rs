@@ -144,7 +144,7 @@ diesel::table! {
         #[max_length = 16]
         last_name -> Varchar,
         is_superuser -> Bool,
-        #[max_length = 16]
+        #[max_length = 256]
         password -> Varchar,
     }
 }

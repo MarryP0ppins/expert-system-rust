@@ -2,13 +2,28 @@ use crate::schema::users;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 /*
 * User models begin from here
 */
 
 #[derive(Debug, Queryable, Serialize)]
+#[diesel(table_name=users)]
+pub struct UserWithoutPassword {
+    pub id: i32,
+    pub email: String,
+    pub username: String,
+    pub created_at: NaiveDateTime,
+    pub first_name: String,
+    pub last_name: String,
+    pub is_superuser: bool,
+}
+
+#[derive(Debug, Queryable, Serialize, Validate)]
+#[diesel(table_name=users)]
 pub struct User {
     pub id: i32,
+    #[validate(email)]
     pub email: String,
     pub username: String,
     pub created_at: NaiveDateTime,
@@ -26,6 +41,13 @@ pub struct NewUser {
     pub first_name: String,
     pub last_name: String,
     pub is_superuser: bool,
+    pub password: String,
+}
+
+#[derive(Debug, Queryable, Serialize, Deserialize)]
+#[diesel(table_name=users)]
+pub struct UserLogin {
+    pub email: String,
     pub password: String,
 }
 
