@@ -1,6 +1,7 @@
 use crate::{
     models::system::{NewSystem, System, UpdateSystem},
     services::system::{create_system, delete_system, get_system, get_systems, update_system},
+    utils::auth::cookie_check,
     AppState,
 };
 use diesel::{
@@ -8,7 +9,7 @@ use diesel::{
     r2d2::{ConnectionManager, PooledConnection},
 };
 use rocket::{
-    http::Status,
+    http::{CookieJar, Status},
     response::status::Custom,
     serde::json::{Json, Value},
     State,
@@ -19,6 +20,7 @@ use rocket_contrib::json;
 pub fn system_create(
     state: &State<AppState>,
     system_info: Json<NewSystem>,
+    cookie: &CookieJar<'_>,
 ) -> Result<Json<System>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -30,6 +32,11 @@ pub fn system_create(
                     .into(),
             ))
         }
+    };
+
+    match cookie_check(&mut connection, cookie) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
     };
 
     match create_system(&mut connection, system_info.0) {
@@ -98,6 +105,7 @@ pub fn system_partial_update(
     state: &State<AppState>,
     system_id: i32,
     system_info: Json<UpdateSystem>,
+    cookie: &CookieJar<'_>,
 ) -> Result<Json<System>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -111,6 +119,11 @@ pub fn system_partial_update(
         }
     };
 
+    match cookie_check(&mut connection, cookie) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
+    };
+
     match update_system(&mut connection, system_id, system_info.0) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
@@ -121,7 +134,11 @@ pub fn system_partial_update(
 }
 
 #[delete("/<system_id>")]
-pub fn system_delete(state: &State<AppState>, system_id: i32) -> Result<Value, Custom<Value>> {
+pub fn system_delete(
+    state: &State<AppState>,
+    system_id: i32,
+    cookie: &CookieJar<'_>,
+) -> Result<Value, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
         Ok(ok) => connection = ok,
@@ -132,6 +149,11 @@ pub fn system_delete(state: &State<AppState>, system_id: i32) -> Result<Value, C
                     .into(),
             ))
         }
+    };
+
+    match cookie_check(&mut connection, cookie) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
     };
 
     match delete_system(&mut connection, system_id) {

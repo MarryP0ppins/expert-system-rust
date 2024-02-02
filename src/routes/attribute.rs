@@ -5,6 +5,7 @@ use crate::{
     services::attribute::{
         create_attribute, get_attributes, multiple_delete_attributes, multiple_update_attributes,
     },
+    utils::auth::cookie_check,
     AppState,
 };
 use diesel::{
@@ -12,7 +13,7 @@ use diesel::{
     r2d2::{ConnectionManager, PooledConnection},
 };
 use rocket::{
-    http::Status,
+    http::{CookieJar, Status},
     response::status::Custom,
     serde::json::{Json, Value},
     State,
@@ -23,6 +24,7 @@ use rocket_contrib::json;
 pub fn attribute_create(
     state: &State<AppState>,
     attribute_info: Json<Vec<NewAttributeWithAttributeValuesName>>,
+    cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<AttributeWithAttributeValues>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -34,6 +36,11 @@ pub fn attribute_create(
                     .into(),
             ))
         }
+    };
+
+    match cookie_check(&mut connection, cookie) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
     };
 
     match attribute_info
@@ -54,6 +61,7 @@ pub fn attribute_create(
 pub fn attribute_list(
     state: &State<AppState>,
     system: i32,
+    cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<AttributeWithAttributeValues>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -65,6 +73,11 @@ pub fn attribute_list(
                     .into(),
             ))
         }
+    };
+
+    match cookie_check(&mut connection, cookie) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
     };
 
     match get_attributes(&mut connection, system) {
@@ -80,6 +93,7 @@ pub fn attribute_list(
 pub fn attribute_multiple_delete(
     state: &State<AppState>,
     attribute_info: Json<Vec<i32>>,
+    cookie: &CookieJar<'_>,
 ) -> Result<Value, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -91,6 +105,11 @@ pub fn attribute_multiple_delete(
                     .into(),
             ))
         }
+    };
+
+    match cookie_check(&mut connection, cookie) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
     };
 
     match multiple_delete_attributes(&mut connection, attribute_info.0) {
@@ -106,6 +125,7 @@ pub fn attribute_multiple_delete(
 pub fn attribute_multiple_update(
     state: &State<AppState>,
     attribute_info: Json<Vec<UpdateAttribute>>,
+    cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<AttributeWithAttributeValues>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -117,6 +137,11 @@ pub fn attribute_multiple_update(
                     .into(),
             ))
         }
+    };
+
+    match cookie_check(&mut connection, cookie) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
     };
 
     match multiple_update_attributes(&mut connection, attribute_info.0) {

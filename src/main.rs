@@ -15,6 +15,7 @@ mod models;
 mod routes;
 mod schema;
 mod services;
+mod utils;
 
 use routes::{
     answer, attribute, attribute_rule_group, attribute_value, history, object, question,

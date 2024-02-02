@@ -3,6 +3,7 @@ use crate::{
     services::answer::{
         create_answer, get_answers, multiple_delete_answers, multiple_update_answers,
     },
+    utils::auth::cookie_check,
     AppState,
 };
 use diesel::{
@@ -10,7 +11,7 @@ use diesel::{
     r2d2::{ConnectionManager, PooledConnection},
 };
 use rocket::{
-    http::Status,
+    http::{CookieJar, Status},
     response::status::Custom,
     serde::json::{Json, Value},
     State,
@@ -21,6 +22,7 @@ use rocket_contrib::json;
 pub fn answer_create(
     state: &State<AppState>,
     answer_info: Json<Vec<NewAnswer>>,
+    cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<Answer>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -32,6 +34,11 @@ pub fn answer_create(
                     .into(),
             ))
         }
+    };
+
+    match cookie_check(&mut connection, cookie) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
     };
 
     match create_answer(&mut connection, answer_info.0) {
@@ -47,6 +54,7 @@ pub fn answer_create(
 pub fn answer_list(
     state: &State<AppState>,
     question: i32,
+    cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<Answer>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -58,6 +66,11 @@ pub fn answer_list(
                     .into(),
             ))
         }
+    };
+
+    match cookie_check(&mut connection, cookie) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
     };
 
     match get_answers(&mut connection, question) {
@@ -73,6 +86,7 @@ pub fn answer_list(
 pub fn answer_multiple_delete(
     state: &State<AppState>,
     answer_info: Json<Vec<i32>>,
+    cookie: &CookieJar<'_>,
 ) -> Result<Value, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -84,6 +98,11 @@ pub fn answer_multiple_delete(
                     .into(),
             ))
         }
+    };
+
+    match cookie_check(&mut connection, cookie) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
     };
 
     match multiple_delete_answers(&mut connection, answer_info.0) {
@@ -99,6 +118,7 @@ pub fn answer_multiple_delete(
 pub fn answer_multiple_update(
     state: &State<AppState>,
     answer_info: Json<Vec<UpdateAnswer>>,
+    cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<Answer>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -110,6 +130,11 @@ pub fn answer_multiple_update(
                     .into(),
             ))
         }
+    };
+
+    match cookie_check(&mut connection, cookie) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
     };
 
     match multiple_update_answers(&mut connection, answer_info.0) {

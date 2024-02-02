@@ -1,17 +1,15 @@
 use crate::{
-    models::attribute_value::{AttributeValue, NewAttributeValue, UpdateAttributeValue},
-    services::attribute_value::{
+    models::attribute_value::{AttributeValue, NewAttributeValue, UpdateAttributeValue}, services::attribute_value::{
         create_attributes_values, get_attribute_values, multiple_delete_attributes_values,
         multiple_update_attributes_values,
-    },
-    AppState,
+    }, utils::auth::cookie_check, AppState
 };
 use diesel::{
     prelude::PgConnection,
     r2d2::{ConnectionManager, PooledConnection},
 };
 use rocket::{
-    http::Status,
+    http::{CookieJar, Status},
     response::status::Custom,
     serde::json::{Json, Value},
     State,
@@ -22,6 +20,7 @@ use rocket_contrib::json;
 pub fn attribute_value_create(
     state: &State<AppState>,
     attribute_value_info: Json<Vec<NewAttributeValue>>,
+    cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<AttributeValue>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -33,6 +32,11 @@ pub fn attribute_value_create(
                     .into(),
             ))
         }
+    };
+
+    match cookie_check(&mut connection, cookie) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
     };
 
     match create_attributes_values(&mut connection, attribute_value_info.0) {
@@ -48,6 +52,7 @@ pub fn attribute_value_create(
 pub fn attribute_value_list(
     state: &State<AppState>,
     attribute: i32,
+    cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<AttributeValue>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -59,6 +64,11 @@ pub fn attribute_value_list(
                     .into(),
             ))
         }
+    };
+
+    match cookie_check(&mut connection, cookie) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
     };
 
     match get_attribute_values(&mut connection, attribute) {
@@ -74,6 +84,7 @@ pub fn attribute_value_list(
 pub fn attribute_value_multiple_delete(
     state: &State<AppState>,
     attribute_value_info: Json<Vec<i32>>,
+    cookie: &CookieJar<'_>,
 ) -> Result<Value, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -85,6 +96,11 @@ pub fn attribute_value_multiple_delete(
                     .into(),
             ))
         }
+    };
+
+    match cookie_check(&mut connection, cookie) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
     };
 
     match multiple_delete_attributes_values(&mut connection, attribute_value_info.0) {
@@ -100,6 +116,7 @@ pub fn attribute_value_multiple_delete(
 pub fn attribute_value_multiple_update(
     state: &State<AppState>,
     attribute_value_info: Json<Vec<UpdateAttributeValue>>,
+    cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<AttributeValue>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -111,6 +128,11 @@ pub fn attribute_value_multiple_update(
                     .into(),
             ))
         }
+    };
+
+    match cookie_check(&mut connection, cookie) {
+        Ok(_) => (),
+        Err(err) => return Err(err),
     };
 
     match multiple_update_attributes_values(&mut connection, attribute_value_info.0) {
