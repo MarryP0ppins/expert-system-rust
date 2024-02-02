@@ -24,8 +24,8 @@ use rocket_contrib::json;
 #[post("/", format = "json", data = "<attribute_rule_group_info>")]
 pub fn attribute_rule_group_create(
     state: &State<AppState>,
-    attribute_rule_group_info: Json<NewAttributeRuleGroupWithRulesAndAttributesValues>,
-) -> Result<Json<AttributeRuleGroupWithRulesAndAttributesValues>, Custom<Value>> {
+    attribute_rule_group_info: Json<Vec<NewAttributeRuleGroupWithRulesAndAttributesValues>>,
+) -> Result<Json<Vec<AttributeRuleGroupWithRulesAndAttributesValues>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
         Ok(ok) => connection = ok,
@@ -38,7 +38,12 @@ pub fn attribute_rule_group_create(
         }
     };
 
-    match create_attribute_rule_group(&mut connection, attribute_rule_group_info.0) {
+    match attribute_rule_group_info
+        .0
+        .into_iter()
+        .map(|raw| create_attribute_rule_group(&mut connection, raw))
+        .collect()
+    {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,

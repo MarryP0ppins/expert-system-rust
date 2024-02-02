@@ -22,8 +22,8 @@ use rocket_contrib::json;
 #[post("/", format = "json", data = "<question_rule_group_info>")]
 pub fn question_rule_group_create(
     state: &State<AppState>,
-    question_rule_group_info: Json<NewQuestionRuleGroupWithRulesAndAnswers>,
-) -> Result<Json<QuestionRuleGroupWithRulesAndAnswers>, Custom<Value>> {
+    question_rule_group_info: Json<Vec<NewQuestionRuleGroupWithRulesAndAnswers>>,
+) -> Result<Json<Vec<QuestionRuleGroupWithRulesAndAnswers>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
         Ok(ok) => connection = ok,
@@ -35,8 +35,13 @@ pub fn question_rule_group_create(
             ))
         }
     };
-
-    match create_question_rule_group(&mut connection, question_rule_group_info.0) {
+    
+    match question_rule_group_info
+        .0
+        .into_iter()
+        .map(|raw| create_question_rule_group(&mut connection, raw))
+        .collect()
+    {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,

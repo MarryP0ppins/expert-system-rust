@@ -22,8 +22,8 @@ use rocket_contrib::json;
 #[post("/", format = "json", data = "<attribute_info>")]
 pub fn attribute_create(
     state: &State<AppState>,
-    attribute_info: Json<NewAttributeWithAttributeValuesName>,
-) -> Result<Json<AttributeWithAttributeValues>, Custom<Value>> {
+    attribute_info: Json<Vec<NewAttributeWithAttributeValuesName>>,
+) -> Result<Json<Vec<AttributeWithAttributeValues>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
         Ok(ok) => connection = ok,
@@ -36,7 +36,12 @@ pub fn attribute_create(
         }
     };
 
-    match create_attribute(&mut connection, attribute_info.0) {
+    match attribute_info
+        .0
+        .into_iter()
+        .map(|raw| create_attribute(&mut connection, raw))
+        .collect()
+    {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,

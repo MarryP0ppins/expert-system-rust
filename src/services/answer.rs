@@ -16,11 +16,11 @@ pub fn get_answers(connection: &mut PgConnection, question: i32) -> Result<Vec<A
 
 pub fn create_answer(
     connection: &mut PgConnection,
-    answer_info: NewAnswer,
-) -> Result<Answer, Error> {
+    answer_info: Vec<NewAnswer>,
+) -> Result<Vec<Answer>, Error> {
     match insert_into(answers)
-        .values::<NewAnswer>(answer_info)
-        .get_result::<Answer>(connection)
+        .values::<Vec<NewAnswer>>(answer_info)
+        .get_results::<Answer>(connection)
     {
         Ok(result) => Ok(result),
         Err(err) => Err(err),

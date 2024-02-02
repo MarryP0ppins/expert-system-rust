@@ -20,8 +20,8 @@ use rocket_contrib::json;
 #[post("/", format = "json", data = "<question_info>")]
 pub fn question_create(
     state: &State<AppState>,
-    question_info: Json<NewQuestionWithAnswersBody>,
-) -> Result<Json<QuestionWithAnswers>, Custom<Value>> {
+    question_info: Json<Vec<NewQuestionWithAnswersBody>>,
+) -> Result<Json<Vec<QuestionWithAnswers>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
         Ok(ok) => connection = ok,
@@ -34,7 +34,12 @@ pub fn question_create(
         }
     };
 
-    match create_question(&mut connection, question_info.0) {
+    match question_info
+        .0
+        .into_iter()
+        .map(|raw| create_question(&mut connection, raw))
+        .collect()
+    {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
