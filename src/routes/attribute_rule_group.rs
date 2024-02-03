@@ -4,7 +4,7 @@ use crate::{
         NewAttributeRuleGroupWithRulesAndAttributesValues,
     },
     services::attribute_rule_group::{
-        create_attribute_rule_group, get_attribute_rule_groups,
+        create_attribute_rule_groups, get_attribute_rule_groups,
         multiple_delete_attribute_rule_groups,
     },
     utils::auth::cookie_check,
@@ -45,12 +45,7 @@ pub fn attribute_rule_group_create(
         Err(err) => return Err(err),
     };
 
-    match attribute_rule_group_info
-        .0
-        .into_iter()
-        .map(|raw| create_attribute_rule_group(&mut connection, raw))
-        .collect()
-    {
+    match create_attribute_rule_groups(&mut connection, attribute_rule_group_info.0) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,

@@ -3,7 +3,7 @@ use crate::{
         NewQuestionRuleGroupWithRulesAndAnswers, QuestionRuleGroupWithRulesAndAnswers,
     },
     services::question_rule_group::{
-        create_question_rule_group, get_question_rule_groups, multiple_delete_question_rule_groups,
+        create_question_rule_groups, get_question_rule_groups, multiple_delete_question_rule_groups,
     },
     utils::auth::cookie_check,
     AppState,
@@ -43,12 +43,7 @@ pub fn question_rule_group_create(
         Err(err) => return Err(err),
     };
 
-    match question_rule_group_info
-        .0
-        .into_iter()
-        .map(|raw| create_question_rule_group(&mut connection, raw))
-        .collect()
-    {
+    match create_question_rule_groups(&mut connection, question_rule_group_info.0) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,

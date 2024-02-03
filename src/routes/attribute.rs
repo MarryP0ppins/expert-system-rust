@@ -3,7 +3,7 @@ use crate::{
         AttributeWithAttributeValues, NewAttributeWithAttributeValuesName, UpdateAttribute,
     },
     services::attribute::{
-        create_attribute, get_attributes, multiple_delete_attributes, multiple_update_attributes,
+        create_attributes, get_attributes, multiple_delete_attributes, multiple_update_attributes,
     },
     utils::auth::cookie_check,
     AppState,
@@ -43,12 +43,7 @@ pub fn attribute_create(
         Err(err) => return Err(err),
     };
 
-    match attribute_info
-        .0
-        .into_iter()
-        .map(|raw| create_attribute(&mut connection, raw))
-        .collect()
-    {
+    match create_attributes(&mut connection, attribute_info.0) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,

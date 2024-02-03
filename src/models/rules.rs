@@ -20,7 +20,9 @@ pub enum RuleOperator {
     NoLessThan,
 }
 
-#[derive(Debug, Queryable, Serialize, Deserialize, Identifiable, Associations, Selectable)]
+#[derive(
+    Debug, Queryable, Serialize, Deserialize, Identifiable, Associations, Selectable, Clone,
+)]
 #[diesel(belongs_to(QuestionRuleGroup))]
 #[diesel(belongs_to(AttributeRuleGroup))]
 #[diesel(table_name=rules)]

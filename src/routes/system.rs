@@ -48,10 +48,11 @@ pub fn system_create(
     }
 }
 
-#[get("/?<name>")]
+#[get("/?<name>&<user_id>")]
 pub fn system_list(
     state: &State<AppState>,
     name: Option<String>,
+    user_id: Option<i32>,
 ) -> Result<Json<Vec<System>>, Custom<Value>> {
     let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
     match state.db_pool.get() {
@@ -65,7 +66,7 @@ pub fn system_list(
         }
     };
 
-    match get_systems(&mut connection, name) {
+    match get_systems(&mut connection, name, user_id) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,

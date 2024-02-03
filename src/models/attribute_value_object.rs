@@ -1,5 +1,6 @@
 use crate::schema::attributesvalue_object;
 use diesel::prelude::*;
+use serde::Deserialize;
 
 use super::attribute_value::AttributeValue;
 use super::object::Object;
@@ -10,6 +11,13 @@ use super::object::Object;
 #[diesel(table_name=attributesvalue_object)]
 pub struct AttributeValueObject {
     pub id: i32,
+    pub object_id: i32,
+    pub attribute_value_id: i32,
+}
+
+#[derive(Debug, Queryable, Deserialize, Insertable)]
+#[diesel(table_name=attributesvalue_object)]
+pub struct NewAttributeValueObject {
     pub object_id: i32,
     pub attribute_value_id: i32,
 }

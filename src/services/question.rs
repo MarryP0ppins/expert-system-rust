@@ -44,48 +44,64 @@ pub fn get_questions(
     Ok(result)
 }
 
-pub fn create_question(
+pub fn create_questions(
     connection: &mut PgConnection,
-    question_info: NewQuestionWithAnswersBody,
-) -> Result<QuestionWithAnswers, Error> {
-    let answers_body = question_info.answers_body;
-    let new_question: Question;
+    question_info: Vec<NewQuestionWithAnswersBody>,
+) -> Result<Vec<QuestionWithAnswers>, Error> {
+    let (answers_bodies, questions_raws) =
+        question_info
+            .into_iter()
+            .fold((vec![], vec![]), |mut acc, raw| {
+                acc.0.push(raw.answers_body);
+                acc.1.push(NewQuestion {
+                    system_id: raw.system_id,
+                    body: raw.body,
+                    with_chooses: raw.with_chooses,
+                });
+                acc
+            });
+
+    let new_questions: Vec<Question>;
     match insert_into(questions)
-        .values::<NewQuestion>(NewQuestion {
-            system_id: question_info.system_id,
-            body: question_info.body,
-            with_chooses: question_info.with_chooses,
-        })
-        .get_result::<Question>(connection)
+        .values::<Vec<NewQuestion>>(questions_raws)
+        .get_results::<Question>(connection)
     {
-        Ok(ok) => new_question = ok,
+        Ok(ok) => new_questions = ok,
         Err(err) => return Err(err),
     };
 
-    let question_answers: Vec<Answer>;
+    let _answers: Vec<Vec<Answer>>;
     match insert_into(answers::table)
         .values::<Vec<NewAnswer>>(
-            answers_body
-                .iter()
-                .map(|answer_body| NewAnswer {
-                    question_id: new_question.id,
-                    body: answer_body.to_string(),
+            answers_bodies
+                .into_iter()
+                .zip(&new_questions)
+                .flat_map(|(answer_bodies, question)| {
+                    answer_bodies.into_iter().map(|value| NewAnswer {
+                        question_id: question.id,
+                        body: value,
+                    })
                 })
                 .collect(),
         )
         .get_results::<Answer>(connection)
     {
-        Ok(ok) => question_answers = ok,
+        Ok(ok) => _answers = ok.grouped_by(&new_questions),
         Err(err) => return Err(err),
     };
 
-    let result = QuestionWithAnswers {
-        id: new_question.id,
-        system_id: new_question.system_id,
-        body: new_question.body,
-        with_chooses: new_question.with_chooses,
-        answers: question_answers,
-    };
+    let result = new_questions
+        .into_iter()
+        .zip(_answers)
+        .map(|(question, answers)| QuestionWithAnswers {
+            id: question.id,
+            system_id: question.system_id,
+            body: question.body,
+            with_chooses: question.with_chooses,
+            answers,
+        })
+        .collect();
+
     Ok(result)
 }
 

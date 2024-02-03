@@ -1,7 +1,7 @@
 use crate::{
     models::question::{NewQuestionWithAnswersBody, QuestionWithAnswers, UpdateQuestion},
     services::question::{
-        create_question, get_questions, multiple_delete_questions, multiple_update_questions,
+        create_questions, get_questions, multiple_delete_questions, multiple_update_questions,
     },
     utils::auth::cookie_check,
     AppState,
@@ -41,12 +41,7 @@ pub fn question_create(
         Err(err) => return Err(err),
     };
 
-    match question_info
-        .0
-        .into_iter()
-        .map(|raw| create_question(&mut connection, raw))
-        .collect()
-    {
+    match create_questions(&mut connection, question_info.0) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,

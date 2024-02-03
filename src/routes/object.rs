@@ -1,7 +1,7 @@
 use crate::{
     models::object::{NewObjectWithAttributesValueIds, ObjectWithAttributesValues, UpdateObject},
     services::object::{
-        create_object, get_objects, multiple_delete_objects, multiple_update_objects,
+        create_objects, get_objects, multiple_delete_objects, multiple_update_objects,
     },
     utils::auth::cookie_check,
     AppState,
@@ -41,12 +41,7 @@ pub fn object_create(
         Err(err) => return Err(err),
     };
 
-    match object_info
-        .0
-        .into_iter()
-        .map(|raw| create_object(&mut connection, raw))
-        .collect()
-    {
+    match create_objects(&mut connection, object_info.0) {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,

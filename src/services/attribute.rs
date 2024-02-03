@@ -47,46 +47,66 @@ pub fn get_attributes(
     Ok(result)
 }
 
-pub fn create_attribute(
+pub fn create_attributes(
     connection: &mut PgConnection,
-    attribute_info: NewAttributeWithAttributeValuesName,
-) -> Result<AttributeWithAttributeValues, Error> {
-    let attributes_values_bodies = attribute_info.values_name;
-    let new_attribute: Attribute;
+    attribute_info: Vec<NewAttributeWithAttributeValuesName>,
+) -> Result<Vec<AttributeWithAttributeValues>, Error> {
+    let (attributes_values_bodies, attributes_raws) =
+        attribute_info
+            .into_iter()
+            .fold((vec![], vec![]), |mut acc, raw| {
+                acc.0.push(raw.values_name);
+                acc.1.push(NewAttribute {
+                    system_id: raw.system_id,
+                    name: raw.name,
+                });
+                acc
+            });
+
+    let new_attributes: Vec<Attribute>;
     match insert_into(attributes)
-        .values::<NewAttribute>(NewAttribute {
-            system_id: attribute_info.system_id,
-            name: attribute_info.name,
-        })
-        .get_result::<Attribute>(connection)
+        .values::<Vec<NewAttribute>>(attributes_raws)
+        .get_results::<Attribute>(connection)
     {
-        Ok(ok) => new_attribute = ok,
+        Ok(ok) => new_attributes = ok,
         Err(err) => return Err(err),
     };
 
-    let attributes_values: Vec<AttributeValue>;
+    let attributes_values: Vec<Vec<AttributeValue>>;
     match insert_into(attributesvalues::table)
         .values::<Vec<NewAttributeValue>>(
             attributes_values_bodies
                 .into_iter()
-                .map(|attribute_value_body| NewAttributeValue {
-                    attribute_id: new_attribute.id,
-                    value: attribute_value_body,
+                .zip(&new_attributes)
+                .flat_map(|(attribute_value_bodies, attribute)| {
+                    attribute_value_bodies
+                        .into_iter()
+                        .map(|value| NewAttributeValue {
+                            attribute_id: attribute.id,
+                            value,
+                        })
                 })
                 .collect(),
         )
         .get_results::<AttributeValue>(connection)
     {
-        Ok(ok) => attributes_values = ok,
+        Ok(ok) => attributes_values = ok.grouped_by(&new_attributes),
         Err(err) => return Err(err),
     };
 
-    let result = AttributeWithAttributeValues {
-        id: new_attribute.id,
-        system_id: new_attribute.system_id,
-        name: new_attribute.name,
-        values: attributes_values,
-    };
+    let result = new_attributes
+        .into_iter()
+        .zip(attributes_values)
+        .map(
+            |(attribute, attribute_values)| AttributeWithAttributeValues {
+                id: attribute.id,
+                system_id: attribute.system_id,
+                name: attribute.name,
+                values: attribute_values,
+            },
+        )
+        .collect();
+
     Ok(result)
 }
 
@@ -138,6 +158,6 @@ pub fn multiple_update_attributes(
             },
         )
         .collect::<Vec<AttributeWithAttributeValues>>();
-    
+
     Ok(result)
 }

@@ -7,11 +7,16 @@ use diesel::{delete, insert_into, prelude::*, result::Error, update};
 pub fn get_systems(
     connection: &mut PgConnection,
     _name: Option<String>,
+    _user_id: Option<i32>,
 ) -> Result<Vec<System>, Error> {
     let mut query = systems.into_boxed();
 
     if let Some(param) = _name {
         query = query.filter(name.like(format!("%{}%", param)));
+    }
+
+    if let Some(_user_id) = _user_id {
+        query = query.filter(user_id.eq(_user_id));
     }
 
     match query.load::<System>(connection) {

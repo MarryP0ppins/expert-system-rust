@@ -1,7 +1,7 @@
 use crate::{
     models::{
         attribute_value::AttributeValue,
-        attribute_value_object::AttributeValueObject,
+        attribute_value_object::{AttributeValueObject, NewAttributeValueObject},
         object::{
             NewObject, NewObjectWithAttributesValueIds, Object, ObjectWithAttributesValues,
             UpdateObject,
@@ -56,39 +56,78 @@ pub fn get_objects(
     Ok(result)
 }
 
-pub fn create_object(
+pub fn create_objects(
     connection: &mut PgConnection,
-    object_info: NewObjectWithAttributesValueIds,
-) -> Result<ObjectWithAttributesValues, Error> {
-    let attributes_values_ids = object_info.attributes_values_ids;
+    object_info: Vec<NewObjectWithAttributesValueIds>,
+) -> Result<Vec<ObjectWithAttributesValues>, Error> {
+    let (attributes_values_ids, new_objects) =
+        object_info
+            .into_iter()
+            .fold((vec![], vec![]), |mut acc, raw| {
+                acc.0.push(raw.attributes_values_ids);
+                acc.1.push(NewObject {
+                    system_id: raw.system_id,
+                    name: raw.name,
+                });
+                acc
+            });
 
-    let _object: Object;
+    let _objects: Vec<Object>;
     match insert_into(objects)
-        .values::<NewObject>(NewObject {
-            system_id: object_info.system_id,
-            name: object_info.name,
+        .values::<Vec<NewObject>>(new_objects)
+        .get_results::<Object>(connection)
+    {
+        Ok(ok) => _objects = ok,
+        Err(err) => return Err(err),
+    };
+
+    match insert_into(attributesvalue_object::table)
+        .values::<Vec<NewAttributeValueObject>>(
+            attributes_values_ids
+                .into_iter()
+                .zip(&_objects)
+                .flat_map(|(attributes_values, object)| {
+                    attributes_values
+                        .into_iter()
+                        .map(|value| NewAttributeValueObject {
+                            attribute_value_id: value,
+                            object_id: object.id,
+                        })
+                })
+                .collect(),
+        )
+        .execute(connection)
+    {
+        Ok(_) => (),
+        Err(err) => return Err(err),
+    };
+
+    let _attributes_values: Vec<Vec<(AttributeValueObject, AttributeValue)>>;
+    match AttributeValueObject::belonging_to(&_objects)
+        .inner_join(attributesvalues::table)
+        .select((
+            attributesvalue_object::all_columns,
+            attributesvalues::all_columns,
+        ))
+        .load::<(AttributeValueObject, AttributeValue)>(connection)
+    {
+        Ok(ok) => _attributes_values = ok.grouped_by(&_objects),
+        Err(_) => _attributes_values = vec![],
+    };
+
+    let result = _objects
+        .into_iter()
+        .zip(_attributes_values)
+        .map(|(object, attribute_values)| ObjectWithAttributesValues {
+            id: object.id,
+            system_id: object.system_id,
+            name: object.name,
+            attributes_values: attribute_values
+                .into_iter()
+                .map(|(_, value)| value)
+                .collect(),
         })
-        .get_result::<Object>(connection)
-    {
-        Ok(ok) => _object = ok,
-        Err(err) => return Err(err),
-    };
-
-    let _attributes_values: Vec<AttributeValue>;
-    match attributesvalues::table
-        .filter(attributesvalues::id.eq_any(attributes_values_ids))
-        .load::<AttributeValue>(connection)
-    {
-        Ok(ok) => _attributes_values = ok,
-        Err(err) => return Err(err),
-    };
-
-    let result = ObjectWithAttributesValues {
-        id: _object.id,
-        system_id: _object.system_id,
-        name: _object.name,
-        attributes_values: _attributes_values,
-    };
+        .collect();
 
     Ok(result)
 }
