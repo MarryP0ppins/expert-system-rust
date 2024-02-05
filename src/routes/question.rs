@@ -6,10 +6,7 @@ use crate::{
     utils::auth::cookie_check,
     AppState,
 };
-use diesel::{
-    prelude::PgConnection,
-    r2d2::{ConnectionManager, PooledConnection},
-};
+use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use rocket::{
     http::{CookieJar, Status},
     response::status::Custom,
@@ -19,13 +16,13 @@ use rocket::{
 use rocket_contrib::json;
 
 #[post("/", format = "json", data = "<question_info>")]
-pub fn question_create(
+pub async fn question_create(
     state: &State<AppState>,
     question_info: Json<Vec<NewQuestionWithAnswersBody>>,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<QuestionWithAnswers>>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -36,12 +33,12 @@ pub fn question_create(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match create_questions(&mut connection, question_info.0) {
+    match create_questions(&mut connection, question_info.0).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -51,13 +48,13 @@ pub fn question_create(
 }
 
 #[get("/?<system>")]
-pub fn question_list(
+pub async fn question_list(
     state: &State<AppState>,
     system: i32,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<QuestionWithAnswers>>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -68,12 +65,12 @@ pub fn question_list(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match get_questions(&mut connection, system) {
+    match get_questions(&mut connection, system).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -83,13 +80,13 @@ pub fn question_list(
 }
 
 #[post("/multiple_delete", format = "json", data = "<question_info>")]
-pub fn question_multiple_delete(
+pub async fn question_multiple_delete(
     state: &State<AppState>,
     question_info: Json<Vec<i32>>,
     cookie: &CookieJar<'_>,
 ) -> Result<Value, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -100,12 +97,12 @@ pub fn question_multiple_delete(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match multiple_delete_questions(&mut connection, question_info.0) {
+    match multiple_delete_questions(&mut connection, question_info.0).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -115,13 +112,13 @@ pub fn question_multiple_delete(
 }
 
 #[post("/multiple_patch", format = "json", data = "<question_info>")]
-pub fn question_multiple_update(
+pub async fn question_multiple_update(
     state: &State<AppState>,
     question_info: Json<Vec<UpdateQuestion>>,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<QuestionWithAnswers>>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -132,12 +129,12 @@ pub fn question_multiple_update(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match multiple_update_questions(&mut connection, question_info.0) {
+    match multiple_update_questions(&mut connection, question_info.0).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,

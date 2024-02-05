@@ -3,9 +3,10 @@ use crate::{
     schema::{histories::dsl::*, systems, users},
 };
 use diesel::{delete, insert_into, prelude::*, result::Error};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-pub fn get_histories(
-    connection: &mut PgConnection,
+pub async fn get_histories(
+    connection: &mut AsyncPgConnection,
     _system: Option<i32>,
     _user: Option<i32>,
 ) -> Result<Vec<HistoryWithSystemAndUser>, Error> {
@@ -32,14 +33,15 @@ pub fn get_histories(
             finished_at,
         ))
         .load::<HistoryWithSystemAndUser>(connection)
+        .await
     {
         Ok(result) => Ok(result),
         Err(err) => Err(err),
     }
 }
 
-pub fn create_history(
-    connection: &mut PgConnection,
+pub async fn create_history(
+    connection: &mut AsyncPgConnection,
     history_info: NewHistory,
 ) -> Result<HistoryWithSystemAndUser, Error> {
     let insert_raw_id: i32;
@@ -48,6 +50,7 @@ pub fn create_history(
         .values::<NewHistory>(history_info.clone())
         .returning(id)
         .get_result(connection)
+        .await
     {
         Ok(ok) => insert_raw_id = ok,
         Err(err) => return Err(err),
@@ -67,14 +70,18 @@ pub fn create_history(
             finished_at,
         ))
         .first::<HistoryWithSystemAndUser>(connection)
+        .await
     {
         Ok(ok) => Ok(ok),
         Err(err) => Err(err),
     }
 }
 
-pub fn delete_history(connection: &mut PgConnection, history_id: i32) -> Result<usize, Error> {
-    match delete(histories.find(history_id)).execute(connection) {
+pub async fn delete_history(
+    connection: &mut AsyncPgConnection,
+    history_id: i32,
+) -> Result<usize, Error> {
+    match delete(histories.find(history_id)).execute(connection).await {
         Ok(result) => Ok(result),
         Err(err) => Err(err),
     }

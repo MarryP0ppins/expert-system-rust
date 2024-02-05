@@ -10,10 +10,8 @@ use crate::{
     utils::auth::cookie_check,
     AppState,
 };
-use diesel::{
-    prelude::PgConnection,
-    r2d2::{ConnectionManager, PooledConnection},
-};
+use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
+
 use rocket::{
     http::{CookieJar, Status},
     response::status::Custom,
@@ -23,13 +21,13 @@ use rocket::{
 use rocket_contrib::json;
 
 #[post("/", format = "json", data = "<attribute_rule_group_info>")]
-pub fn attribute_rule_group_create(
+pub async fn attribute_rule_group_create(
     state: &State<AppState>,
     attribute_rule_group_info: Json<Vec<NewAttributeRuleGroupWithRulesAndAttributesValues>>,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<AttributeRuleGroupWithRulesAndAttributesValues>>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -40,12 +38,12 @@ pub fn attribute_rule_group_create(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match create_attribute_rule_groups(&mut connection, attribute_rule_group_info.0) {
+    match create_attribute_rule_groups(&mut connection, attribute_rule_group_info.0).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -55,13 +53,13 @@ pub fn attribute_rule_group_create(
 }
 
 #[get("/?<system>")]
-pub fn attribute_rule_group_list(
+pub async fn attribute_rule_group_list(
     state: &State<AppState>,
     system: i32,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<AttributeRuleGroupWithRulesAndAttributesValues>>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -72,12 +70,12 @@ pub fn attribute_rule_group_list(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match get_attribute_rule_groups(&mut connection, system) {
+    match get_attribute_rule_groups(&mut connection, system).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -91,13 +89,13 @@ pub fn attribute_rule_group_list(
     format = "json",
     data = "<attribute_rule_group_info>"
 )]
-pub fn attribute_rule_group_multiple_delete(
+pub async fn attribute_rule_group_multiple_delete(
     state: &State<AppState>,
     attribute_rule_group_info: Json<Vec<i32>>,
     cookie: &CookieJar<'_>,
 ) -> Result<Value, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -108,12 +106,13 @@ pub fn attribute_rule_group_multiple_delete(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match multiple_delete_attribute_rule_groups(&mut connection, attribute_rule_group_info.0) {
+    match multiple_delete_attribute_rule_groups(&mut connection, attribute_rule_group_info.0).await
+    {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(Custom(
             Status::BadRequest,

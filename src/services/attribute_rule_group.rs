@@ -15,15 +15,19 @@ use crate::{
     },
 };
 use diesel::{delete, insert_into, prelude::*, result::Error};
+use diesel_async::{
+    scoped_futures::ScopedFutureExt, AsyncConnection, AsyncPgConnection, RunQueryDsl,
+};
 
-pub fn get_attribute_rule_groups(
-    connection: &mut PgConnection,
+pub async fn get_attribute_rule_groups(
+    connection: &mut AsyncPgConnection,
     system: i32,
 ) -> Result<Vec<AttributeRuleGroupWithRulesAndAttributesValues>, Error> {
     let _attribute_rule_group: Vec<AttributeRuleGroup>;
     match attributerulegroups
         .filter(system_id.eq(system))
         .load::<AttributeRuleGroup>(connection)
+        .await
     {
         Ok(ok) => _attribute_rule_group = ok,
         Err(err) => return Err(err),
@@ -37,13 +41,17 @@ pub fn get_attribute_rule_groups(
             attributesvalues::all_columns,
         ))
         .load::<(AttributeRuleGroupAttributeValue, AttributeValue)>(connection)
+        .await
     {
         Ok(ok) => _grouped_attributes_values = ok.grouped_by(&_attribute_rule_group),
         Err(_) => _grouped_attributes_values = vec![],
     };
 
     let _grouped_rules: Vec<Vec<Rule>>;
-    match Rule::belonging_to(&_attribute_rule_group).load::<Rule>(connection) {
+    match Rule::belonging_to(&_attribute_rule_group)
+        .load::<Rule>(connection)
+        .await
+    {
         Ok(ok) => _grouped_rules = ok.grouped_by(&_attribute_rule_group),
         Err(_) => _grouped_rules = vec![],
     };
@@ -68,8 +76,8 @@ pub fn get_attribute_rule_groups(
     Ok(result)
 }
 
-pub fn create_attribute_rule_groups(
-    connection: &mut PgConnection,
+pub async fn create_attribute_rule_groups(
+    connection: &mut AsyncPgConnection,
     attribute_rule_group_info: Vec<NewAttributeRuleGroupWithRulesAndAttributesValues>,
 ) -> Result<Vec<AttributeRuleGroupWithRulesAndAttributesValues>, Error> {
     let (new_rules, attributes_values_ids, attribute_rule_group_system_ids) =
@@ -84,54 +92,71 @@ pub fn create_attribute_rule_groups(
                 acc
             });
 
-    let _attribute_rule_group: Vec<AttributeRuleGroup>;
-    match insert_into(attributerulegroups)
-        .values::<Vec<NewAttributeRuleGroup>>(attribute_rule_group_system_ids)
-        .get_results::<AttributeRuleGroup>(connection)
-    {
-        Ok(ok) => _attribute_rule_group = ok,
-        Err(err) => return Err(err),
-    };
+    let mut _attribute_rule_group: Vec<AttributeRuleGroup> = vec![];
+    let mut _grouped_rules: Vec<Vec<Rule>> = vec![];
 
-    let _grouped_rules: Vec<Vec<Rule>>;
-    match insert_into(rules::table)
-        .values::<Vec<NewRule>>(
-            new_rules
-                .into_iter()
-                .zip(&_attribute_rule_group)
-                .flat_map(|(rules, group)| {
-                    rules.into_iter().map(|rule| NewRule {
-                        attribute_rule_group_id: Some(group.id),
-                        question_rule_group_id: None,
-                        compared_value: rule.compared_value.clone(),
-                        logical_group: rule.logical_group,
-                        operator: rule.operator.clone(),
-                    })
-                })
-                .collect(),
-        )
-        .get_results::<Rule>(connection)
-    {
-        Ok(ok) => _grouped_rules = ok.grouped_by(&_attribute_rule_group),
-        Err(err) => return Err(err),
-    };
+    match connection
+        .transaction(|connection| {
+            async {
+                match insert_into(attributerulegroups)
+                    .values::<Vec<NewAttributeRuleGroup>>(attribute_rule_group_system_ids)
+                    .get_results::<AttributeRuleGroup>(connection)
+                    .await
+                {
+                    Ok(ok) => _attribute_rule_group = ok,
+                    Err(err) => return Err(err),
+                };
 
-    match insert_into(attributerulegroup_atributevalue::table)
-        .values::<Vec<NewAttributeRuleGroupAttributeValue>>(
-            attributes_values_ids
-                .into_iter()
-                .zip(&_attribute_rule_group)
-                .flat_map(|(attributes_values, group)| {
-                    attributes_values
-                        .into_iter()
-                        .map(|value| NewAttributeRuleGroupAttributeValue {
-                            attribute_value_id: value,
-                            attribute_rule_group_id: group.id,
-                        })
-                })
-                .collect(),
-        )
-        .execute(connection)
+                match insert_into(rules::table)
+                    .values::<Vec<NewRule>>(
+                        new_rules
+                            .into_iter()
+                            .zip(&_attribute_rule_group)
+                            .flat_map(|(rules, group)| {
+                                rules.into_iter().map(|rule| NewRule {
+                                    attribute_rule_group_id: Some(group.id),
+                                    question_rule_group_id: None,
+                                    compared_value: rule.compared_value.clone(),
+                                    logical_group: rule.logical_group,
+                                    operator: rule.operator.clone(),
+                                })
+                            })
+                            .collect(),
+                    )
+                    .get_results::<Rule>(connection)
+                    .await
+                {
+                    Ok(ok) => _grouped_rules = ok.grouped_by(&_attribute_rule_group),
+                    Err(err) => return Err(err),
+                };
+
+                match insert_into(attributerulegroup_atributevalue::table)
+                    .values::<Vec<NewAttributeRuleGroupAttributeValue>>(
+                        attributes_values_ids
+                            .into_iter()
+                            .zip(&_attribute_rule_group)
+                            .flat_map(|(attributes_values, group)| {
+                                attributes_values.into_iter().map(|value| {
+                                    NewAttributeRuleGroupAttributeValue {
+                                        attribute_value_id: value,
+                                        attribute_rule_group_id: group.id,
+                                    }
+                                })
+                            })
+                            .collect(),
+                    )
+                    .execute(connection)
+                    .await
+                {
+                    Ok(_) => (),
+                    Err(err) => return Err(err),
+                };
+
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await
     {
         Ok(_) => (),
         Err(err) => return Err(err),
@@ -145,6 +170,7 @@ pub fn create_attribute_rule_groups(
             attributesvalues::all_columns,
         ))
         .load::<(AttributeRuleGroupAttributeValue, AttributeValue)>(connection)
+        .await
     {
         Ok(ok) => _grouped_attributes_values = ok.grouped_by(&_attribute_rule_group),
         Err(_) => _grouped_attributes_values = vec![],
@@ -170,12 +196,13 @@ pub fn create_attribute_rule_groups(
     Ok(result)
 }
 
-pub fn multiple_delete_attribute_rule_groups(
-    connection: &mut PgConnection,
+pub async fn multiple_delete_attribute_rule_groups(
+    connection: &mut AsyncPgConnection,
     attribute_rule_groups_ids: Vec<i32>,
 ) -> Result<usize, Error> {
     match delete(attributerulegroups.filter(id.eq_any(attribute_rule_groups_ids)))
         .execute(connection)
+        .await
     {
         Ok(result) => Ok(result),
         Err(err) => Err(err),

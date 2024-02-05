@@ -6,10 +6,8 @@ use crate::{
     utils::auth::cookie_check,
     AppState,
 };
-use diesel::{
-    prelude::PgConnection,
-    r2d2::{ConnectionManager, PooledConnection},
-};
+use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
+
 use rocket::{
     http::{CookieJar, Status},
     response::status::Custom,
@@ -19,13 +17,13 @@ use rocket::{
 use rocket_contrib::json;
 
 #[post("/", format = "json", data = "<answer_info>")]
-pub fn answer_create(
+pub async fn answer_create(
     state: &State<AppState>,
     answer_info: Json<Vec<NewAnswer>>,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<Answer>>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -36,12 +34,12 @@ pub fn answer_create(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match create_answer(&mut connection, answer_info.0) {
+    match create_answer(&mut connection, answer_info.0).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -51,13 +49,13 @@ pub fn answer_create(
 }
 
 #[get("/?<question>")]
-pub fn answer_list(
+pub async fn answer_list(
     state: &State<AppState>,
     question: i32,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<Answer>>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -68,12 +66,12 @@ pub fn answer_list(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match get_answers(&mut connection, question) {
+    match get_answers(&mut connection, question).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -83,13 +81,13 @@ pub fn answer_list(
 }
 
 #[post("/multiple_delete", format = "json", data = "<answer_info>")]
-pub fn answer_multiple_delete(
+pub async fn answer_multiple_delete(
     state: &State<AppState>,
     answer_info: Json<Vec<i32>>,
     cookie: &CookieJar<'_>,
 ) -> Result<Value, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -100,12 +98,12 @@ pub fn answer_multiple_delete(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match multiple_delete_answers(&mut connection, answer_info.0) {
+    match multiple_delete_answers(&mut connection, answer_info.0).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -115,13 +113,13 @@ pub fn answer_multiple_delete(
 }
 
 #[post("/multiple_patch", format = "json", data = "<answer_info>")]
-pub fn answer_multiple_update(
+pub async fn answer_multiple_update(
     state: &State<AppState>,
     answer_info: Json<Vec<UpdateAnswer>>,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<Answer>>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -132,12 +130,12 @@ pub fn answer_multiple_update(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match multiple_update_answers(&mut connection, answer_info.0) {
+    match multiple_update_answers(&mut connection, answer_info.0).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,

@@ -3,6 +3,7 @@ use crate::{
     schema::users::dsl::*,
 };
 use diesel::{insert_into, prelude::*, result::Error};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rocket::{
     http::{CookieJar, Status},
     response::status::Custom,
@@ -10,7 +11,10 @@ use rocket::{
 };
 use rocket_contrib::json;
 
-pub fn get_user(connection: &mut PgConnection, user_id: i32) -> Result<UserWithoutPassword, Error> {
+pub async fn get_user(
+    connection: &mut AsyncPgConnection,
+    user_id: i32,
+) -> Result<UserWithoutPassword, Error> {
     match users
         .find(user_id)
         .select((
@@ -23,14 +27,15 @@ pub fn get_user(connection: &mut PgConnection, user_id: i32) -> Result<UserWitho
             is_superuser,
         ))
         .first::<UserWithoutPassword>(connection)
+        .await
     {
         Ok(result) => Ok(result),
         Err(err) => Err(err),
     }
 }
 
-pub fn create_user(
-    connection: &mut PgConnection,
+pub async fn create_user(
+    connection: &mut AsyncPgConnection,
     user_info: NewUser,
 ) -> Result<UserWithoutPassword, Error> {
     match insert_into(users)
@@ -45,14 +50,15 @@ pub fn create_user(
             is_superuser,
         ))
         .get_result(connection)
+        .await
     {
         Ok(system) => Ok(system),
         Err(err) => Err(err),
     }
 }
 
-pub fn login_user(
-    connection: &mut PgConnection,
+pub async fn login_user(
+    connection: &mut AsyncPgConnection,
     user_info: UserLogin,
     cookie: &CookieJar<'_>,
 ) -> Result<UserWithoutPassword, Custom<Value>> {
@@ -60,6 +66,7 @@ pub fn login_user(
     match users
         .filter(email.eq(user_info.email))
         .first::<User>(connection)
+        .await
     {
         Ok(result) => _user = result,
         Err(err) => {

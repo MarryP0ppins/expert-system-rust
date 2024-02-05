@@ -3,10 +3,7 @@ use crate::{
     services::user::{create_user, get_user, login_user},
     AppState,
 };
-use diesel::{
-    prelude::PgConnection,
-    r2d2::{ConnectionManager, PooledConnection},
-};
+use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use rocket::{
     http::{CookieJar, Status},
     response::status::Custom,
@@ -17,13 +14,13 @@ use rocket::{
 use rocket_contrib::json;
 
 #[post("/login", format = "json", data = "<user_info>")]
-pub fn user_login(
+pub async fn user_login(
     state: &State<AppState>,
     user_info: Json<UserLogin>,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<UserWithoutPassword>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -34,28 +31,26 @@ pub fn user_login(
         }
     };
 
-    match login_user(&mut connection, user_info.0, &cookie) {
+    match login_user(&mut connection, user_info.0, &cookie).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(err),
     }
 }
 
 #[post("/logout")]
-pub fn user_logout(
-    cookie: &CookieJar<'_>,
-) -> Result<Value, Custom<Value>> {
+pub async fn user_logout(cookie: &CookieJar<'_>) -> Result<Value, Custom<Value>> {
     cookie.remove_private("session_id");
 
     Ok(json!({"messege":"you are logout"}).into())
 }
 
 #[post("/registration", format = "json", data = "<user_info>")]
-pub fn user_registration(
+pub async fn user_registration(
     state: &State<AppState>,
     user_info: Json<NewUser>,
 ) -> Result<Json<UserWithoutPassword>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -66,7 +61,7 @@ pub fn user_registration(
         }
     };
 
-    match create_user(&mut connection, user_info.0) {
+    match create_user(&mut connection, user_info.0).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -76,7 +71,7 @@ pub fn user_registration(
 }
 
 #[get("/")]
-pub fn user_get(
+pub async fn user_get(
     state: &State<AppState>,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<UserWithoutPassword>, Custom<Value>> {
@@ -94,8 +89,8 @@ pub fn user_get(
         }
     };
 
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -106,7 +101,7 @@ pub fn user_get(
         }
     };
 
-    match get_user(&mut connection, user_id) {
+    match get_user(&mut connection, user_id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,

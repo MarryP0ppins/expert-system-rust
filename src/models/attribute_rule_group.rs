@@ -2,7 +2,10 @@ use crate::schema::attributerulegroups;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use super::{attribute_value::AttributeValue, rules::{NewRule, Rule}};
+use super::{
+    attribute_value::AttributeValue,
+    rules::{NewRule, Rule},
+};
 
 #[derive(Debug, Queryable, Serialize, Identifiable, Selectable)]
 #[diesel(table_name=attributerulegroups)]

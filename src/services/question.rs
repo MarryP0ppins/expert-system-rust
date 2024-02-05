@@ -8,22 +8,29 @@ use crate::{
     schema::{answers, questions::dsl::*},
 };
 use diesel::{delete, insert_into, prelude::*, result::Error, update};
+use diesel_async::{
+    scoped_futures::ScopedFutureExt, AsyncConnection, AsyncPgConnection, RunQueryDsl,
+};
 
-pub fn get_questions(
-    connection: &mut PgConnection,
+pub async fn get_questions(
+    connection: &mut AsyncPgConnection,
     system: i32,
 ) -> Result<Vec<QuestionWithAnswers>, Error> {
     let _questions: Vec<Question>;
     match questions
         .filter(system_id.eq(system))
         .load::<Question>(connection)
+        .await
     {
         Ok(ok) => _questions = ok,
         Err(err) => return Err(err),
     };
 
     let _answers: Vec<Answer>;
-    match Answer::belonging_to(&_questions).load::<Answer>(connection) {
+    match Answer::belonging_to(&_questions)
+        .load::<Answer>(connection)
+        .await
+    {
         Ok(ok) => _answers = ok,
         Err(_) => _answers = vec![],
     };
@@ -44,8 +51,8 @@ pub fn get_questions(
     Ok(result)
 }
 
-pub fn create_questions(
-    connection: &mut PgConnection,
+pub async fn create_questions(
+    connection: &mut AsyncPgConnection,
     question_info: Vec<NewQuestionWithAnswersBody>,
 ) -> Result<Vec<QuestionWithAnswers>, Error> {
     let (answers_bodies, questions_raws) =
@@ -61,32 +68,47 @@ pub fn create_questions(
                 acc
             });
 
-    let new_questions: Vec<Question>;
-    match insert_into(questions)
-        .values::<Vec<NewQuestion>>(questions_raws)
-        .get_results::<Question>(connection)
-    {
-        Ok(ok) => new_questions = ok,
-        Err(err) => return Err(err),
-    };
+    let mut new_questions: Vec<Question> = vec![];
+    let mut _answers: Vec<Vec<Answer>> = vec![];
 
-    let _answers: Vec<Vec<Answer>>;
-    match insert_into(answers::table)
-        .values::<Vec<NewAnswer>>(
-            answers_bodies
-                .into_iter()
-                .zip(&new_questions)
-                .flat_map(|(answer_bodies, question)| {
-                    answer_bodies.into_iter().map(|value| NewAnswer {
-                        question_id: question.id,
-                        body: value,
-                    })
-                })
-                .collect(),
-        )
-        .get_results::<Answer>(connection)
+    match connection
+        .transaction(|connection| {
+            async {
+                match insert_into(questions)
+                    .values::<Vec<NewQuestion>>(questions_raws)
+                    .get_results::<Question>(connection)
+                    .await
+                {
+                    Ok(ok) => new_questions = ok,
+                    Err(err) => return Err(err),
+                };
+                match insert_into(answers::table)
+                    .values::<Vec<NewAnswer>>(
+                        answers_bodies
+                            .into_iter()
+                            .zip(&new_questions)
+                            .flat_map(|(answer_bodies, question)| {
+                                answer_bodies.into_iter().map(|value| NewAnswer {
+                                    question_id: question.id,
+                                    body: value,
+                                })
+                            })
+                            .collect(),
+                    )
+                    .get_results::<Answer>(connection)
+                    .await
+                {
+                    Ok(ok) => _answers = ok.grouped_by(&new_questions),
+                    Err(err) => return Err(err),
+                };
+
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await
     {
-        Ok(ok) => _answers = ok.grouped_by(&new_questions),
+        Ok(_) => (),
         Err(err) => return Err(err),
     };
 
@@ -105,36 +127,39 @@ pub fn create_questions(
     Ok(result)
 }
 
-pub fn multiple_delete_questions(
-    connection: &mut PgConnection,
+pub async fn multiple_delete_questions(
+    connection: &mut AsyncPgConnection,
     questions_ids: Vec<i32>,
 ) -> Result<usize, Error> {
-    match delete(questions.filter(id.eq_any(questions_ids))).execute(connection) {
+    match delete(questions.filter(id.eq_any(questions_ids)))
+        .execute(connection)
+        .await
+    {
         Ok(result) => Ok(result),
         Err(err) => Err(err),
     }
 }
 
-pub fn multiple_update_questions(
-    connection: &mut PgConnection,
+pub async fn multiple_update_questions(
+    connection: &mut AsyncPgConnection,
     questions_info: Vec<UpdateQuestion>,
 ) -> Result<Vec<QuestionWithAnswers>, Error> {
-    let _questions: Vec<Question>;
-    match questions_info
-        .iter()
-        .map(|question_raw| {
-            update(questions.find(question_raw.id))
-                .set::<UpdateQuestion>(question_raw.clone())
-                .get_result::<Question>(connection)
-        })
-        .collect()
-    {
-        Ok(result) => _questions = result,
-        Err(err) => return Err(err),
+    let mut _questions: Vec<Question> = vec![];
+    for question_raw in questions_info.into_iter() {
+        match update(questions.find(question_raw.id))
+            .set::<UpdateQuestion>(question_raw.clone())
+            .get_result::<Question>(connection)
+            .await
+        {
+            Ok(result) => _questions.push(result),
+            Err(err) => return Err(err),
+        }
     }
-
     let _answers: Vec<Answer>;
-    match Answer::belonging_to(&_questions).load::<Answer>(connection) {
+    match Answer::belonging_to(&_questions)
+        .load::<Answer>(connection)
+        .await
+    {
         Ok(ok) => _answers = ok,
         Err(_) => _answers = vec![],
     };

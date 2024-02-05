@@ -4,10 +4,7 @@ use crate::{
     utils::auth::cookie_check,
     AppState,
 };
-use diesel::{
-    prelude::PgConnection,
-    r2d2::{ConnectionManager, PooledConnection},
-};
+use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use rocket::{
     http::{CookieJar, Status},
     response::status::Custom,
@@ -17,13 +14,13 @@ use rocket::{
 use rocket_contrib::json;
 
 #[post("/", format = "json", data = "<history_info>")]
-pub fn history_create(
+pub async fn history_create(
     state: &State<AppState>,
     history_info: Json<NewHistory>,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<HistoryWithSystemAndUser>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -34,12 +31,12 @@ pub fn history_create(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match create_history(&mut connection, history_info.0) {
+    match create_history(&mut connection, history_info.0).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -49,14 +46,14 @@ pub fn history_create(
 }
 
 #[get("/?<system>&<user>")]
-pub fn history_list(
+pub async fn history_list(
     state: &State<AppState>,
     system: Option<i32>,
     user: Option<i32>,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<HistoryWithSystemAndUser>>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -67,12 +64,12 @@ pub fn history_list(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match get_histories(&mut connection, system, user) {
+    match get_histories(&mut connection, system, user).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -82,13 +79,13 @@ pub fn history_list(
 }
 
 #[delete("/<history_id>")]
-pub fn history_delete(
+pub async fn history_delete(
     state: &State<AppState>,
     history_id: i32,
     cookie: &CookieJar<'_>,
 ) -> Result<Value, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -99,12 +96,12 @@ pub fn history_delete(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match delete_history(&mut connection, history_id) {
+    match delete_history(&mut connection, history_id).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(Custom(
             Status::BadRequest,

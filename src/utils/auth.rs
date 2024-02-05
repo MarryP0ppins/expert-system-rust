@@ -1,4 +1,4 @@
-use diesel::PgConnection;
+use diesel_async::AsyncPgConnection;
 use rocket::{
     http::{CookieJar, Status},
     response::status::Custom,
@@ -8,15 +8,15 @@ use rocket_contrib::json;
 
 use crate::services::user::get_user;
 
-pub fn cookie_check(
-    connection: &mut PgConnection,
+pub async fn cookie_check(
+    connection: &mut AsyncPgConnection,
     cookie: &CookieJar<'_>,
 ) -> Result<(), Custom<Value>> {
     match cookie
         .get_private("session_id")
         .map(|res| res.value().to_owned())
     {
-        Some(res) => match get_user(connection, res.parse::<i32>().expect("Server Error")) {
+        Some(res) => match get_user(connection, res.parse::<i32>().expect("Server Error")).await {
             Ok(_) => Ok(()),
             Err(err) => Err(Custom(
                 Status::BadRequest,

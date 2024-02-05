@@ -8,10 +8,7 @@ use crate::{
     utils::auth::cookie_check,
     AppState,
 };
-use diesel::{
-    prelude::PgConnection,
-    r2d2::{ConnectionManager, PooledConnection},
-};
+use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use rocket::{
     http::{CookieJar, Status},
     response::status::Custom,
@@ -21,13 +18,13 @@ use rocket::{
 use rocket_contrib::json;
 
 #[post("/", format = "json", data = "<attribute_info>")]
-pub fn attribute_create(
+pub async fn attribute_create(
     state: &State<AppState>,
     attribute_info: Json<Vec<NewAttributeWithAttributeValuesName>>,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<AttributeWithAttributeValues>>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -38,12 +35,12 @@ pub fn attribute_create(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match create_attributes(&mut connection, attribute_info.0) {
+    match create_attributes(&mut connection, attribute_info.0).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -53,13 +50,13 @@ pub fn attribute_create(
 }
 
 #[get("/?<system>")]
-pub fn attribute_list(
+pub async fn attribute_list(
     state: &State<AppState>,
     system: i32,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<AttributeWithAttributeValues>>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -70,12 +67,12 @@ pub fn attribute_list(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match get_attributes(&mut connection, system) {
+    match get_attributes(&mut connection, system).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -85,13 +82,13 @@ pub fn attribute_list(
 }
 
 #[post("/multiple_delete", format = "json", data = "<attribute_info>")]
-pub fn attribute_multiple_delete(
+pub async fn attribute_multiple_delete(
     state: &State<AppState>,
     attribute_info: Json<Vec<i32>>,
     cookie: &CookieJar<'_>,
 ) -> Result<Value, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -102,12 +99,12 @@ pub fn attribute_multiple_delete(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match multiple_delete_attributes(&mut connection, attribute_info.0) {
+    match multiple_delete_attributes(&mut connection, attribute_info.0).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -117,13 +114,13 @@ pub fn attribute_multiple_delete(
 }
 
 #[post("/multiple_patch", format = "json", data = "<attribute_info>")]
-pub fn attribute_multiple_update(
+pub async fn attribute_multiple_update(
     state: &State<AppState>,
     attribute_info: Json<Vec<UpdateAttribute>>,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<Vec<AttributeWithAttributeValues>>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -134,12 +131,12 @@ pub fn attribute_multiple_update(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match multiple_update_attributes(&mut connection, attribute_info.0) {
+    match multiple_update_attributes(&mut connection, attribute_info.0).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,

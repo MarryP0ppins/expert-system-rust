@@ -4,10 +4,7 @@ use crate::{
     utils::auth::cookie_check,
     AppState,
 };
-use diesel::{
-    prelude::PgConnection,
-    r2d2::{ConnectionManager, PooledConnection},
-};
+use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use rocket::{
     http::{CookieJar, Status},
     response::status::Custom,
@@ -17,13 +14,13 @@ use rocket::{
 use rocket_contrib::json;
 
 #[post("/", format = "json", data = "<system_info>")]
-pub fn system_create(
+pub async fn system_create(
     state: &State<AppState>,
     system_info: Json<NewSystem>,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<System>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -34,12 +31,12 @@ pub fn system_create(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match create_system(&mut connection, system_info.0) {
+    match create_system(&mut connection, system_info.0).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -49,13 +46,13 @@ pub fn system_create(
 }
 
 #[get("/?<name>&<user_id>")]
-pub fn system_list(
+pub async fn system_list(
     state: &State<AppState>,
     name: Option<String>,
     user_id: Option<i32>,
 ) -> Result<Json<Vec<System>>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -66,7 +63,7 @@ pub fn system_list(
         }
     };
 
-    match get_systems(&mut connection, name, user_id) {
+    match get_systems(&mut connection, name, user_id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -76,12 +73,12 @@ pub fn system_list(
 }
 
 #[get("/<system_id>")]
-pub fn system_retrieve(
+pub async fn system_retrieve(
     state: &State<AppState>,
     system_id: i32,
 ) -> Result<Json<System>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -92,7 +89,7 @@ pub fn system_retrieve(
         }
     };
 
-    match get_system(&mut connection, system_id) {
+    match get_system(&mut connection, system_id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -102,14 +99,14 @@ pub fn system_retrieve(
 }
 
 #[patch("/<system_id>", format = "json", data = "<system_info>")]
-pub fn system_partial_update(
+pub async fn system_partial_update(
     state: &State<AppState>,
     system_id: i32,
     system_info: Json<UpdateSystem>,
     cookie: &CookieJar<'_>,
 ) -> Result<Json<System>, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -120,12 +117,12 @@ pub fn system_partial_update(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match update_system(&mut connection, system_id, system_info.0) {
+    match update_system(&mut connection, system_id, system_info.0).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(Custom(
             Status::BadRequest,
@@ -135,13 +132,13 @@ pub fn system_partial_update(
 }
 
 #[delete("/<system_id>")]
-pub fn system_delete(
+pub async fn system_delete(
     state: &State<AppState>,
     system_id: i32,
     cookie: &CookieJar<'_>,
 ) -> Result<Value, Custom<Value>> {
-    let mut connection: PooledConnection<ConnectionManager<PgConnection>>;
-    match state.db_pool.get() {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => {
             return Err(Custom(
@@ -152,12 +149,12 @@ pub fn system_delete(
         }
     };
 
-    match cookie_check(&mut connection, cookie) {
+    match cookie_check(&mut connection, cookie).await {
         Ok(_) => (),
         Err(err) => return Err(err),
     };
 
-    match delete_system(&mut connection, system_id) {
+    match delete_system(&mut connection, system_id).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(Custom(
             Status::BadRequest,

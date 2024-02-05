@@ -9,22 +9,29 @@ use crate::{
     schema::{attributes::dsl::*, attributesvalues},
 };
 use diesel::{delete, insert_into, prelude::*, result::Error, update};
+use diesel_async::{
+    scoped_futures::ScopedFutureExt, AsyncConnection, AsyncPgConnection, RunQueryDsl,
+};
 
-pub fn get_attributes(
-    connection: &mut PgConnection,
+pub async fn get_attributes(
+    connection: &mut AsyncPgConnection,
     system: i32,
 ) -> Result<Vec<AttributeWithAttributeValues>, Error> {
     let _attributes: Vec<Attribute>;
     match attributes
         .filter(system_id.eq(system))
         .load::<Attribute>(connection)
+        .await
     {
         Ok(ok) => _attributes = ok,
         Err(err) => return Err(err),
     };
 
     let _attributes_values: Vec<AttributeValue>;
-    match AttributeValue::belonging_to(&_attributes).load::<AttributeValue>(connection) {
+    match AttributeValue::belonging_to(&_attributes)
+        .load::<AttributeValue>(connection)
+        .await
+    {
         Ok(ok) => _attributes_values = ok,
         Err(_) => _attributes_values = vec![],
     };
@@ -47,8 +54,8 @@ pub fn get_attributes(
     Ok(result)
 }
 
-pub fn create_attributes(
-    connection: &mut PgConnection,
+pub async fn create_attributes(
+    connection: &mut AsyncPgConnection,
     attribute_info: Vec<NewAttributeWithAttributeValuesName>,
 ) -> Result<Vec<AttributeWithAttributeValues>, Error> {
     let (attributes_values_bodies, attributes_raws) =
@@ -63,34 +70,50 @@ pub fn create_attributes(
                 acc
             });
 
-    let new_attributes: Vec<Attribute>;
-    match insert_into(attributes)
-        .values::<Vec<NewAttribute>>(attributes_raws)
-        .get_results::<Attribute>(connection)
-    {
-        Ok(ok) => new_attributes = ok,
-        Err(err) => return Err(err),
-    };
+    let mut new_attributes: Vec<Attribute> = vec![];
+    let mut attributes_values: Vec<Vec<AttributeValue>> = vec![];
 
-    let attributes_values: Vec<Vec<AttributeValue>>;
-    match insert_into(attributesvalues::table)
-        .values::<Vec<NewAttributeValue>>(
-            attributes_values_bodies
-                .into_iter()
-                .zip(&new_attributes)
-                .flat_map(|(attribute_value_bodies, attribute)| {
-                    attribute_value_bodies
-                        .into_iter()
-                        .map(|value| NewAttributeValue {
-                            attribute_id: attribute.id,
-                            value,
-                        })
-                })
-                .collect(),
-        )
-        .get_results::<AttributeValue>(connection)
+    match connection
+        .transaction(|connection| {
+            async {
+                match insert_into(attributes)
+                    .values::<Vec<NewAttribute>>(attributes_raws)
+                    .get_results::<Attribute>(connection)
+                    .await
+                {
+                    Ok(ok) => new_attributes = ok,
+                    Err(err) => return Err(err),
+                };
+
+                match insert_into(attributesvalues::table)
+                    .values::<Vec<NewAttributeValue>>(
+                        attributes_values_bodies
+                            .into_iter()
+                            .zip(&new_attributes)
+                            .flat_map(|(attribute_value_bodies, attribute)| {
+                                attribute_value_bodies
+                                    .into_iter()
+                                    .map(|value| NewAttributeValue {
+                                        attribute_id: attribute.id,
+                                        value,
+                                    })
+                            })
+                            .collect(),
+                    )
+                    .get_results::<AttributeValue>(connection)
+                    .await
+                {
+                    Ok(ok) => attributes_values = ok.grouped_by(&new_attributes),
+                    Err(err) => return Err(err),
+                };
+
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await
     {
-        Ok(ok) => attributes_values = ok.grouped_by(&new_attributes),
+        Ok(_) => (),
         Err(err) => return Err(err),
     };
 
@@ -110,36 +133,41 @@ pub fn create_attributes(
     Ok(result)
 }
 
-pub fn multiple_delete_attributes(
-    connection: &mut PgConnection,
+pub async fn multiple_delete_attributes(
+    connection: &mut AsyncPgConnection,
     attributes_ids: Vec<i32>,
 ) -> Result<usize, Error> {
-    match delete(attributes.filter(id.eq_any(attributes_ids))).execute(connection) {
+    match delete(attributes.filter(id.eq_any(attributes_ids)))
+        .execute(connection)
+        .await
+    {
         Ok(result) => Ok(result),
         Err(err) => Err(err),
     }
 }
 
-pub fn multiple_update_attributes(
-    connection: &mut PgConnection,
+pub async fn multiple_update_attributes(
+    connection: &mut AsyncPgConnection,
     attributes_info: Vec<UpdateAttribute>,
 ) -> Result<Vec<AttributeWithAttributeValues>, Error> {
-    let _attributes: Vec<Attribute>;
-    match attributes_info
-        .into_iter()
-        .map(|attribute_raw| {
-            update(attributes.find(attribute_raw.id))
-                .set::<UpdateAttribute>(attribute_raw.clone())
-                .get_result::<Attribute>(connection)
-        })
-        .collect()
-    {
-        Ok(result) => _attributes = result,
-        Err(err) => return Err(err),
-    };
+    let mut _attributes: Vec<Attribute> = vec![];
+
+    for attribute_raw in attributes_info.into_iter() {
+        match update(attributes.find(attribute_raw.id))
+            .set::<UpdateAttribute>(attribute_raw.clone())
+            .get_result::<Attribute>(connection)
+            .await
+        {
+            Ok(result) => _attributes.push(result),
+            Err(err) => return Err(err),
+        }
+    }
 
     let _attributes_values: Vec<AttributeValue>;
-    match AttributeValue::belonging_to(&_attributes).load::<AttributeValue>(connection) {
+    match AttributeValue::belonging_to(&_attributes)
+        .load::<AttributeValue>(connection)
+        .await
+    {
         Ok(ok) => _attributes_values = ok,
         Err(_) => _attributes_values = vec![],
     };

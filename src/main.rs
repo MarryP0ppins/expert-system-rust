@@ -3,9 +3,9 @@ extern crate rocket;
 extern crate diesel;
 extern crate rocket_contrib;
 
-use diesel::{
-    r2d2::{self, ConnectionManager},
-    PgConnection,
+use diesel_async::{
+    pooled_connection::{bb8, AsyncDieselConnectionManager},
+    AsyncPgConnection,
 };
 use dotenvy::dotenv;
 use rocket::serde::json::{json, Value};
@@ -22,11 +22,12 @@ use routes::{
     question_rule_group, system, user,
 };
 
-type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
+type AsyncPool = bb8::Pool<AsyncPgConnection>;
 
 #[derive(Debug)]
 struct AppState {
-    db_pool: Pool,
+    //db_pool: Pool,
+    db_pool: AsyncPool,
 }
 
 #[catch(404)]
@@ -54,12 +55,13 @@ fn server_error() -> Value {
 }
 
 #[launch]
-fn rocket() -> _ {
+async fn rocket() -> _ {
     dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let manager = ConnectionManager::<PgConnection>::new(database_url);
-    let pool = r2d2::Pool::builder()
+    let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&database_url);
+    let pool = bb8::Pool::builder()
         .build(manager)
+        .await
         .expect("Failed to create pool");
 
     rocket::build()
