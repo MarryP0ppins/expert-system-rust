@@ -14,6 +14,9 @@ dotenvy = "0.15"
 serde = { version = "1.0", features = ["derive"] }
 diesel-derive-enum = { version = "2.1", features = ["postgres"] }
 validator = { version = "0.16", features = ["derive"] }
+sha3 = { version = "0.11.0-pre.3" }
+argon2 = { version = "0.5" }
+
 
 [dependencies.rocket_dyn_templates]
 features = ["handlebars"]

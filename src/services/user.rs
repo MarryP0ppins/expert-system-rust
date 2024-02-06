@@ -1,6 +1,7 @@
 use crate::{
     models::user::{NewUser, User, UserLogin, UserWithoutPassword},
     schema::users::dsl::*,
+    utils::auth::{check_password, hash_password},
 };
 use diesel::{insert_into, prelude::*, result::Error};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
@@ -39,7 +40,10 @@ pub async fn create_user(
     user_info: NewUser,
 ) -> Result<UserWithoutPassword, Error> {
     match insert_into(users)
-        .values::<NewUser>(user_info)
+        .values::<NewUser>(NewUser {
+            password: hash_password(&user_info.password),
+            ..user_info
+        })
         .returning((
             id,
             email,
@@ -77,7 +81,7 @@ pub async fn login_user(
         }
     }
 
-    if _user.password == user_info.password {
+    if check_password(&user_info.password, &_user.password).is_ok() {
         cookie.remove_private("session_id");
         cookie.add_private(("session_id", _user.id.to_string()));
     }

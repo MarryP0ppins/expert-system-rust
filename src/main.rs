@@ -26,7 +26,6 @@ type AsyncPool = bb8::Pool<AsyncPgConnection>;
 
 #[derive(Debug)]
 struct AppState {
-    //db_pool: Pool,
     db_pool: AsyncPool,
 }
 
