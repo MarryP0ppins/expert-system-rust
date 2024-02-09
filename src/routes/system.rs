@@ -1,164 +1,156 @@
 use crate::{
-    models::system::{NewSystem, System, UpdateSystem},
+    models::{
+        error::CustomErrors,
+        system::{NewSystem, System, UpdateSystem},
+    },
+    pagination::SystemListPagination,
     services::system::{create_system, delete_system, get_system, get_systems, update_system},
     utils::auth::cookie_check,
-    AppState,
+    AppState, HandlerResult,
+};
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    routing::{get, post},
+    Json, Router,
 };
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
-use rocket::{
-    http::{CookieJar, Status},
-    response::status::Custom,
-    serde::json::{Json, Value},
-    State,
-};
-use rocket_contrib::json;
+use serde_json::{json, Value};
+use tower_cookies::Cookies;
 
-#[post("/", format = "json", data = "<system_info>")]
+#[debug_handler]
 pub async fn system_create(
-    state: &State<AppState>,
-    system_info: Json<NewSystem>,
-    cookie: &CookieJar<'_>,
-) -> Result<Json<System>, Custom<Value>> {
+    State(state): State<AppState>,
+    cookie: Cookies,
+    Json(system_info): Json<NewSystem>,
+) -> HandlerResult<System> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
-    match create_system(&mut connection, system_info.0).await {
+    match create_system(&mut connection, system_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
+        Err(err) => Err((
+            StatusCode::BAD_REQUEST,
             json!({"error":err.to_string()}).into(),
         )),
     }
 }
 
-#[get("/?<name>&<user_id>")]
+#[debug_handler]
 pub async fn system_list(
-    state: &State<AppState>,
-    name: Option<String>,
-    user_id: Option<i32>,
-) -> Result<Json<Vec<System>>, Custom<Value>> {
+    State(state): State<AppState>,
+    Query(pagination): Query<SystemListPagination>,
+) -> HandlerResult<Vec<System>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match get_systems(&mut connection, name, user_id).await {
+    let pagination: SystemListPagination = pagination;
+    match get_systems(
+        &mut connection,
+        pagination.name.as_deref(),
+        pagination.user_id,
+    )
+    .await
+    {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
+        Err(err) => Err((
+            StatusCode::BAD_REQUEST,
             json!({"error":err.to_string()}).into(),
         )),
     }
 }
 
-#[get("/<system_id>")]
+#[debug_handler]
 pub async fn system_retrieve(
-    state: &State<AppState>,
-    system_id: i32,
-) -> Result<Json<System>, Custom<Value>> {
+    State(state): State<AppState>,
+    Path(system_id): Path<i32>,
+) -> HandlerResult<System> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
     match get_system(&mut connection, system_id).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
+        Err(err) => Err((
+            StatusCode::BAD_REQUEST,
             json!({"error":err.to_string()}).into(),
         )),
     }
 }
 
-#[patch("/<system_id>", format = "json", data = "<system_info>")]
+#[debug_handler]
 pub async fn system_partial_update(
-    state: &State<AppState>,
-    system_id: i32,
+    State(state): State<AppState>,
+    Path(system_id): Path<i32>,
+    cookie: Cookies,
     system_info: Json<UpdateSystem>,
-    cookie: &CookieJar<'_>,
-) -> Result<Json<System>, Custom<Value>> {
+) -> HandlerResult<System> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
     match update_system(&mut connection, system_id, system_info.0).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
+        Err(err) => Err((
+            StatusCode::BAD_REQUEST,
             json!({"error":err.to_string()}).into(),
         )),
     }
 }
 
-#[delete("/<system_id>")]
+#[debug_handler]
 pub async fn system_delete(
-    state: &State<AppState>,
-    system_id: i32,
-    cookie: &CookieJar<'_>,
-) -> Result<Value, Custom<Value>> {
+    State(state): State<AppState>,
+    Path(system_id): Path<i32>,
+    cookie: Cookies,
+) -> HandlerResult<Value> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
     match delete_system(&mut connection, system_id).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
+        Err(err) => Err((
+            StatusCode::BAD_REQUEST,
             json!({"error":err.to_string()}).into(),
         )),
     }
+}
+
+pub fn system_routes() -> Router<AppState> {
+    Router::new()
+        .route("/", post(system_create).get(system_list))
+        .route(
+            "/:system_id",
+            get(system_retrieve)
+                .patch(system_partial_update)
+                .delete(system_delete),
+        )
 }

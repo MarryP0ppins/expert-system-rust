@@ -2,9 +2,8 @@ use super::{system::System, user::User};
 use crate::schema::histories;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
-use rocket::serde::json::Value;
 use serde::{Deserialize, Serialize};
-
+use serde_json::Value;
 /*
 #[derive(Debug, Queryable, Serialize, Identifiable)]
 #[diesel(table_name=histories)]

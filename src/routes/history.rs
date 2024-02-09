@@ -1,111 +1,105 @@
 use crate::{
-    models::history::{HistoryWithSystemAndUser, NewHistory},
+    models::{
+        error::CustomErrors,
+        history::{HistoryWithSystemAndUser, NewHistory},
+    },
+    pagination::HistoryListPagination,
     services::history::{create_history, delete_history, get_histories},
     utils::auth::cookie_check,
-    AppState,
+    AppState, HandlerResult,
+};
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    routing::{delete, post},
+    Json, Router,
 };
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
-use rocket::{
-    http::{CookieJar, Status},
-    response::status::Custom,
-    serde::json::{Json, Value},
-    State,
-};
-use rocket_contrib::json;
+use serde_json::{json, Value};
+use tower_cookies::Cookies;
 
-#[post("/", format = "json", data = "<history_info>")]
+#[debug_handler]
 pub async fn history_create(
-    state: &State<AppState>,
-    history_info: Json<NewHistory>,
-    cookie: &CookieJar<'_>,
-) -> Result<Json<HistoryWithSystemAndUser>, Custom<Value>> {
+    State(state): State<AppState>,
+    cookie: Cookies,
+    Json(history_info): Json<NewHistory>,
+) -> HandlerResult<HistoryWithSystemAndUser> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
-    match create_history(&mut connection, history_info.0).await {
+    match create_history(&mut connection, history_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
+        Err(err) => Err((
+            StatusCode::BAD_REQUEST,
             json!({"error":err.to_string()}).into(),
         )),
     }
 }
 
-#[get("/?<system>&<user>")]
+#[debug_handler]
 pub async fn history_list(
-    state: &State<AppState>,
-    system: Option<i32>,
-    user: Option<i32>,
-    cookie: &CookieJar<'_>,
-) -> Result<Json<Vec<HistoryWithSystemAndUser>>, Custom<Value>> {
+    State(state): State<AppState>,
+    Query(pagination): Query<HistoryListPagination>,
+    cookie: Cookies,
+) -> HandlerResult<Vec<HistoryWithSystemAndUser>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
-    match get_histories(&mut connection, system, user).await {
+    let pagination: HistoryListPagination = pagination;
+
+    match get_histories(&mut connection, pagination.system, pagination.user).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
+        Err(err) => Err((
+            StatusCode::BAD_REQUEST,
             json!({"error":err.to_string()}).into(),
         )),
     }
 }
 
-#[delete("/<history_id>")]
+#[debug_handler]
 pub async fn history_delete(
-    state: &State<AppState>,
-    history_id: i32,
-    cookie: &CookieJar<'_>,
-) -> Result<Value, Custom<Value>> {
+    State(state): State<AppState>,
+    Path(history_id): Path<i32>,
+    cookie: Cookies,
+) -> HandlerResult<Value> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
     match delete_history(&mut connection, history_id).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
+        Err(err) => Err((
+            StatusCode::BAD_REQUEST,
             json!({"error":err.to_string()}).into(),
         )),
     }
+}
+
+pub fn history_routes() -> Router<AppState> {
+    Router::new()
+        .route("/", post(history_create).get(history_list))
+        .route("/:system_id", delete(history_delete))
 }

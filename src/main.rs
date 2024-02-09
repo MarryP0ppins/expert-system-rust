@@ -1,34 +1,38 @@
 #[macro_use]
-extern crate rocket;
+extern crate axum_macros;
 extern crate diesel;
-extern crate rocket_contrib;
 
+use axum::{http::StatusCode, response::Json, Router};
 use diesel_async::{
     pooled_connection::{bb8, AsyncDieselConnectionManager},
     AsyncPgConnection,
 };
 use dotenvy::dotenv;
-use rocket::serde::json::{json, Value};
-use std::env;
+use rand::{rngs::StdRng, Rng, SeedableRng};
+use routes::{history::history_routes, system::system_routes, user::user_routes};
+use serde_json::Value;
+use std::{env, net::SocketAddr};
+use tower_cookies::{cookie::Key, CookieManagerLayer};
 
 mod models;
+mod pagination;
 mod routes;
 mod schema;
 mod services;
 mod utils;
 
-use routes::{
-    answer, attribute, attribute_rule_group, attribute_value, history, object, question,
-    question_rule_group, system, user,
-};
+pub const COOKIE_NAME: &str = "session_id";
 
+type HandlerResult<T> = Result<Json<T>, (StatusCode, Json<Value>)>;
 type AsyncPool = bb8::Pool<AsyncPgConnection>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct AppState {
     db_pool: AsyncPool,
+    cookie_key: Key,
 }
 
+/*
 #[catch(404)]
 fn not_found() -> Value {
     json!({
@@ -52,9 +56,10 @@ fn server_error() -> Value {
         "reason": "Something went wrong. Please try again later"
     })
 }
+ */
 
-#[launch]
-async fn rocket() -> _ {
+#[tokio::main]
+async fn main() {
     dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&database_url);
@@ -63,26 +68,26 @@ async fn rocket() -> _ {
         .await
         .expect("Failed to create pool");
 
+    let mut secret_key = [0u8; 64];
+    StdRng::from_entropy().fill(&mut secret_key);
+    let secret_key = Key::from(&secret_key);
+
+    let app = Router::new()
+        .nest("/user", user_routes())
+        .nest("/system", system_routes())
+        .nest("/history", history_routes())
+        .with_state(AppState {
+            db_pool: pool,
+            cookie_key: secret_key,
+        })
+        .layer(CookieManagerLayer::new());
+
+    let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
+
+    /*
     rocket::build()
-        .mount(
-            "/system",
-            routes![
-                system::system_create,
-                system::system_list,
-                system::system_retrieve,
-                system::system_partial_update,
-                system::system_delete
-            ],
-        )
-        .mount(
-            "/user",
-            routes![
-                user::user_get,
-                user::user_registration,
-                user::user_logout,
-                user::user_login,
-            ],
-        )
         .mount(
             "/history",
             routes![
@@ -156,5 +161,5 @@ async fn rocket() -> _ {
             "/",
             catchers![not_found, server_error, unprocessable_entity],
         )
-        .manage(AppState { db_pool: pool })
+        .manage(AppState { db_pool: pool })*/
 }

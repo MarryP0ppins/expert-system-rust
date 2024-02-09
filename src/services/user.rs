@@ -1,16 +1,19 @@
 use crate::{
-    models::user::{NewUser, User, UserLogin, UserWithoutPassword},
+    models::{
+        error::CustomErrors,
+        user::{NewUser, User, UserLogin, UserWithoutPassword},
+    },
     schema::users::dsl::*,
     utils::auth::{check_password, hash_password},
+    COOKIE_NAME,
 };
+use axum::http::StatusCode;
 use diesel::{insert_into, prelude::*, result::Error};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use rocket::{
-    http::{CookieJar, Status},
-    response::status::Custom,
-    serde::json::Value,
+use tower_cookies::{
+    cookie::time::{Duration, OffsetDateTime},
+    Cookie, Cookies, Key,
 };
-use rocket_contrib::json;
 
 pub async fn get_user(
     connection: &mut AsyncPgConnection,
@@ -61,11 +64,12 @@ pub async fn create_user(
     }
 }
 
-pub async fn login_user(
-    connection: &mut AsyncPgConnection,
+pub async fn login_user<'a>(
+    connection: &'a mut AsyncPgConnection,
     user_info: UserLogin,
-    cookie: &CookieJar<'_>,
-) -> Result<UserWithoutPassword, Custom<Value>> {
+    cookie: Cookies,
+    cookie_key: &'a Key,
+) -> Result<UserWithoutPassword, CustomErrors<'a>> {
     let _user: User;
     match users
         .filter(email.eq(user_info.email))
@@ -74,25 +78,43 @@ pub async fn login_user(
     {
         Ok(result) => _user = result,
         Err(err) => {
-            return Err(Custom(
-                Status::BadRequest,
-                json!({"error":err.to_string(), "message":"Invalid credentials provided"}).into(),
-            ))
+            return Err(CustomErrors::DieselError {
+                status: StatusCode::BAD_REQUEST,
+                error: err,
+                message: Some("Invalid credantials provided"),
+            })
         }
     }
 
-    if check_password(&user_info.password, &_user.password).is_ok() {
-        cookie.remove_private("session_id");
-        cookie.add_private(("session_id", _user.id.to_string()));
-    }
+    let null_cookie = Cookie::build((COOKIE_NAME, ""))
+        .path("/")
+        .expires(OffsetDateTime::now_utc());
+    cookie.private(cookie_key).add(null_cookie.into());
 
-    Ok(UserWithoutPassword {
-        id: _user.id,
-        email: _user.email,
-        username: _user.username,
-        created_at: _user.created_at,
-        first_name: _user.first_name,
-        last_name: _user.last_name,
-        is_superuser: _user.is_superuser,
-    })
+    match check_password(&user_info.password, &_user.password) {
+        Ok(_) => {
+            cookie.private(cookie_key).add(
+                Cookie::build((COOKIE_NAME, _user.id.to_string()))
+                    .path("/")
+                    .secure(true)
+                    .http_only(true)
+                    .expires(OffsetDateTime::now_utc() + Duration::weeks(1))
+                    .into(),
+            );
+            Ok(UserWithoutPassword {
+                id: _user.id,
+                email: _user.email,
+                username: _user.username,
+                created_at: _user.created_at,
+                first_name: _user.first_name,
+                last_name: _user.last_name,
+                is_superuser: _user.is_superuser,
+            })
+        }
+        Err(err) => Err(CustomErrors::Argon2Error {
+            status: StatusCode::BAD_REQUEST,
+            error: err,
+            message: Some("Invalid credantials provided"),
+        }),
+    }
 }

@@ -7,7 +7,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 pub async fn get_systems(
     connection: &mut AsyncPgConnection,
-    _name: Option<String>,
+    _name: Option<&str>,
     _user_id: Option<i32>,
 ) -> Result<Vec<System>, Error> {
     let mut query = systems.into_boxed();

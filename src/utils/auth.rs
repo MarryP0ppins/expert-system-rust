@@ -2,35 +2,34 @@ use argon2::{
     password_hash::{rand_core::OsRng, Error, PasswordHasher, SaltString},
     Argon2, PasswordHash, PasswordVerifier,
 };
+use axum::http::StatusCode;
 use diesel_async::AsyncPgConnection;
-use rocket::{
-    http::{CookieJar, Status},
-    response::status::Custom,
-    serde::json::Value,
-};
-use rocket_contrib::json;
+use tower_cookies::{Cookies, Key};
 
-use crate::services::user::get_user;
+use crate::{models::error::CustomErrors, services::user::get_user, COOKIE_NAME};
 
-pub async fn cookie_check(
-    connection: &mut AsyncPgConnection,
-    cookie: &CookieJar<'_>,
-) -> Result<(), Custom<Value>> {
+pub async fn cookie_check<'a>(
+    connection: &'a mut AsyncPgConnection,
+    cookie: Cookies,
+    cookie_key: &'a Key,
+) -> Result<(), CustomErrors<'a>> {
     match cookie
-        .get_private("session_id")
+        .private(&cookie_key)
+        .get(COOKIE_NAME)
         .map(|res| res.value().to_owned())
     {
         Some(res) => match get_user(connection, res.parse::<i32>().expect("Server Error")).await {
             Ok(_) => Ok(()),
-            Err(err) => Err(Custom(
-                Status::BadRequest,
-                json!({"error":err.to_string(), "message":"Invalid credentials provided"}).into(),
-            )),
+            Err(err) => Err(CustomErrors::DieselError {
+                status: StatusCode::BAD_REQUEST,
+                error: err,
+                message: Some("Invalid credentials provided"),
+            }),
         },
-        None => Err(Custom(
-            Status::Unauthorized,
-            json!({"error":"Not authorized"}).into(),
-        )),
+        None => Err(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        }),
     }
 }
 
