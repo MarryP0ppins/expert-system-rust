@@ -1,118 +1,111 @@
 use crate::{
-    models::question_rule_group::{
-        NewQuestionRuleGroupWithRulesAndAnswers, QuestionRuleGroupWithRulesAndAnswers,
+    models::{
+        error::CustomErrors,
+        question_rule_group::{
+            NewQuestionRuleGroupWithRulesAndAnswers, QuestionRuleGroupWithRulesAndAnswers,
+        },
     },
     services::question_rule_group::{
         create_question_rule_groups, get_question_rule_groups, multiple_delete_question_rule_groups,
     },
     utils::auth::cookie_check,
-    AppState,
+    AppState, HandlerResult,
+};
+use axum::{
+    extract::{Query, State},
+    routing::post,
+    Json, Router,
 };
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
-use rocket::{
-    http::{CookieJar, Status},
-    response::status::Custom,
-    serde::json::{Json, Value},
-    State,
-};
-use rocket_contrib::json;
+use serde_json::{json, Value};
+use tower_cookies::Cookies;
 
-#[post("/", format = "json", data = "<question_rule_group_info>")]
 pub async fn question_rule_group_create(
-    state: &State<AppState>,
-    question_rule_group_info: Json<Vec<NewQuestionRuleGroupWithRulesAndAnswers>>,
-    cookie: &CookieJar<'_>,
-) -> Result<Json<Vec<QuestionRuleGroupWithRulesAndAnswers>>, Custom<Value>> {
+    State(state): State<AppState>,
+    cookie: Cookies,
+    Json(question_rule_group_info): Json<Vec<NewQuestionRuleGroupWithRulesAndAnswers>>,
+) -> HandlerResult<Vec<QuestionRuleGroupWithRulesAndAnswers>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
-    match create_question_rule_groups(&mut connection, question_rule_group_info.0).await {
+    match create_question_rule_groups(&mut connection, question_rule_group_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
-#[get("/?<system>")]
 pub async fn question_rule_group_list(
-    state: &State<AppState>,
-    system: i32,
-    cookie: &CookieJar<'_>,
-) -> Result<Json<Vec<QuestionRuleGroupWithRulesAndAnswers>>, Custom<Value>> {
+    State(state): State<AppState>,
+    Query(system): Query<i32>,
+    cookie: Cookies,
+) -> HandlerResult<Vec<QuestionRuleGroupWithRulesAndAnswers>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
     match get_question_rule_groups(&mut connection, system).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
-#[post(
-    "/multiple_delete",
-    format = "json",
-    data = "<question_rule_group_info>"
-)]
 pub async fn question_rule_group_multiple_delete(
-    state: &State<AppState>,
-    question_rule_group_info: Json<Vec<i32>>,
-    cookie: &CookieJar<'_>,
-) -> Result<Value, Custom<Value>> {
+    State(state): State<AppState>,
+    cookie: Cookies,
+    Json(question_rule_group_info): Json<Vec<i32>>,
+) -> HandlerResult<Value> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
-    match multiple_delete_question_rule_groups(&mut connection, question_rule_group_info.0).await {
+    match multiple_delete_question_rule_groups(&mut connection, question_rule_group_info).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
+}
+
+pub fn question_rule_group_routes() -> Router<AppState> {
+    Router::new()
+        .route(
+            "/",
+            post(question_rule_group_create).get(question_rule_group_list),
+        )
+        .route(
+            "/multiple_delete",
+            post(question_rule_group_multiple_delete),
+        )
 }

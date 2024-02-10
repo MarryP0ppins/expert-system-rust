@@ -10,7 +10,6 @@ use crate::{
 };
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
     routing::{delete, post},
     Json, Router,
 };
@@ -18,7 +17,6 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
 use tower_cookies::Cookies;
 
-#[debug_handler]
 pub async fn history_create(
     State(state): State<AppState>,
     cookie: Cookies,
@@ -37,14 +35,14 @@ pub async fn history_create(
 
     match create_history(&mut connection, history_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err((
-            StatusCode::BAD_REQUEST,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
-#[debug_handler]
 pub async fn history_list(
     State(state): State<AppState>,
     Query(pagination): Query<HistoryListPagination>,
@@ -65,14 +63,14 @@ pub async fn history_list(
 
     match get_histories(&mut connection, pagination.system, pagination.user).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err((
-            StatusCode::BAD_REQUEST,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
-#[debug_handler]
 pub async fn history_delete(
     State(state): State<AppState>,
     Path(history_id): Path<i32>,
@@ -91,10 +89,11 @@ pub async fn history_delete(
 
     match delete_history(&mut connection, history_id).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
-        Err(err) => Err((
-            StatusCode::BAD_REQUEST,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 

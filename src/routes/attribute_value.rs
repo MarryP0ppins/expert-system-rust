@@ -1,146 +1,131 @@
 use crate::{
-    models::attribute_value::{AttributeValue, NewAttributeValue, UpdateAttributeValue},
+    models::{
+        attribute_value::{AttributeValue, NewAttributeValue, UpdateAttributeValue},
+        error::CustomErrors,
+    },
     services::attribute_value::{
         create_attributes_values, get_attribute_values, multiple_delete_attributes_values,
         multiple_update_attributes_values,
     },
     utils::auth::cookie_check,
-    AppState,
+    AppState, HandlerResult,
+};
+use axum::{
+    extract::{Query, State},
+    routing::post,
+    Json, Router,
 };
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
+use serde_json::{json, Value};
+use tower_cookies::Cookies;
 
-use rocket::{
-    http::{CookieJar, Status},
-    response::status::Custom,
-    serde::json::{Json, Value},
-    State,
-};
-use rocket_contrib::json;
-
-#[post("/", format = "json", data = "<attribute_value_info>")]
 pub async fn attribute_value_create(
-    state: &State<AppState>,
-    attribute_value_info: Json<Vec<NewAttributeValue>>,
-    cookie: &CookieJar<'_>,
-) -> Result<Json<Vec<AttributeValue>>, Custom<Value>> {
+    State(state): State<AppState>,
+    cookie: Cookies,
+    Json(attribute_value_info): Json<Vec<NewAttributeValue>>,
+) -> HandlerResult<Vec<AttributeValue>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
-    match create_attributes_values(&mut connection, attribute_value_info.0).await {
+    match create_attributes_values(&mut connection, attribute_value_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
-#[get("/?<attribute>")]
 pub async fn attribute_value_list(
-    state: &State<AppState>,
-    attribute: i32,
-    cookie: &CookieJar<'_>,
-) -> Result<Json<Vec<AttributeValue>>, Custom<Value>> {
+    State(state): State<AppState>,
+    Query(attribute): Query<i32>,
+    cookie: Cookies,
+) -> HandlerResult<Vec<AttributeValue>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
     match get_attribute_values(&mut connection, attribute).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
-#[post("/multiple_delete", format = "json", data = "<attribute_value_info>")]
 pub async fn attribute_value_multiple_delete(
-    state: &State<AppState>,
-    attribute_value_info: Json<Vec<i32>>,
-    cookie: &CookieJar<'_>,
-) -> Result<Value, Custom<Value>> {
+    State(state): State<AppState>,
+    cookie: Cookies,
+    Json(attribute_value_info): Json<Vec<i32>>,
+) -> HandlerResult<Value> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
-    match multiple_delete_attributes_values(&mut connection, attribute_value_info.0).await {
+    match multiple_delete_attributes_values(&mut connection, attribute_value_info).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
-#[post("/multiple_patch", format = "json", data = "<attribute_value_info>")]
 pub async fn attribute_value_multiple_update(
-    state: &State<AppState>,
-    attribute_value_info: Json<Vec<UpdateAttributeValue>>,
-    cookie: &CookieJar<'_>,
-) -> Result<Json<Vec<AttributeValue>>, Custom<Value>> {
+    State(state): State<AppState>,
+    cookie: Cookies,
+    Json(attribute_value_info): Json<Vec<UpdateAttributeValue>>,
+) -> HandlerResult<Vec<AttributeValue>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
-    match multiple_update_attributes_values(&mut connection, attribute_value_info.0).await {
+    match multiple_update_attributes_values(&mut connection, attribute_value_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
+}
+
+pub fn attribute_value_routes() -> Router<AppState> {
+    Router::new()
+        .route("/", post(attribute_value_create).get(attribute_value_list))
+        .route("/multiple_delete", post(attribute_value_multiple_delete))
+        .route("/multiple_patch", post(attribute_value_multiple_update))
 }

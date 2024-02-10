@@ -21,7 +21,6 @@ pub async fn cookie_check<'a>(
         Some(res) => match get_user(connection, res.parse::<i32>().expect("Server Error")).await {
             Ok(_) => Ok(()),
             Err(err) => Err(CustomErrors::DieselError {
-                status: StatusCode::BAD_REQUEST,
                 error: err,
                 message: Some("Invalid credentials provided"),
             }),

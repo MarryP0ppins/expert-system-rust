@@ -5,7 +5,6 @@ use serde_json::{json, Value};
 #[derive(Debug)]
 pub enum CustomErrors<'a> {
     DieselError {
-        status: StatusCode,
         error: diesel::result::Error,
         message: Option<&'a str>,
     },
@@ -24,12 +23,8 @@ pub enum CustomErrors<'a> {
 impl From<CustomErrors<'_>> for (StatusCode, Json<Value>) {
     fn from(err: CustomErrors<'_>) -> (StatusCode, Json<Value>) {
         match err {
-            CustomErrors::DieselError {
-                status,
-                error,
-                message,
-            } => (
-                status,
+            CustomErrors::DieselError { error, message } => (
+                StatusCode::BAD_REQUEST,
                 Json(json!({"error":error.to_string(), "extra":message})),
             ),
             CustomErrors::Argon2Error {

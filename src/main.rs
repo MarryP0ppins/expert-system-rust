@@ -1,16 +1,23 @@
-#[macro_use]
-extern crate axum_macros;
 extern crate diesel;
 
-use axum::{http::StatusCode, response::Json, Router};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Json},
+    Router,
+};
 use diesel_async::{
     pooled_connection::{bb8, AsyncDieselConnectionManager},
     AsyncPgConnection,
 };
 use dotenvy::dotenv;
 use rand::{rngs::StdRng, Rng, SeedableRng};
-use routes::{history::history_routes, system::system_routes, user::user_routes};
-use serde_json::Value;
+use routes::{
+    answer::answer_routes, attribute::attribute_routes,
+    attribute_rule_group::attribute_rule_group_routes, attribute_value::attribute_value_routes,
+    history::history_routes, object::object_routes, question::question_routes,
+    question_rule_group::question_rule_group_routes, system::system_routes, user::user_routes,
+};
+use serde_json::{json, Value};
 use std::{env, net::SocketAddr};
 use tower_cookies::{cookie::Key, CookieManagerLayer};
 
@@ -32,6 +39,15 @@ struct AppState {
     cookie_key: Key,
 }
 
+async fn handler_404() -> impl IntoResponse {
+    (
+        StatusCode::NOT_FOUND,
+        Json(json!({
+            "status": "error",
+            "reason": "Resource was not found."
+        })),
+    )
+}
 /*
 #[catch(404)]
 fn not_found() -> Value {
@@ -76,90 +92,27 @@ async fn main() {
         .nest("/user", user_routes())
         .nest("/system", system_routes())
         .nest("/history", history_routes())
+        .nest("/question", question_routes())
+        .nest("/answer", answer_routes())
+        .nest("/question-rule-group", question_rule_group_routes())
+        .nest("/attribute", attribute_routes())
+        .nest("/attribute_value", attribute_value_routes())
+        .nest("/attribute-rule-group", attribute_rule_group_routes())
+        .nest("/object", object_routes())
         .with_state(AppState {
             db_pool: pool,
             cookie_key: secret_key,
         })
-        .layer(CookieManagerLayer::new());
+        .layer(CookieManagerLayer::new())
+        .fallback(handler_404);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 
     /*
-    rocket::build()
-        .mount(
-            "/history",
-            routes![
-                history::history_create,
-                history::history_list,
-                history::history_delete
-            ],
-        )
-        .mount(
-            "/question",
-            routes![
-                question::question_create,
-                question::question_list,
-                question::question_multiple_delete,
-                question::question_multiple_update
-            ],
-        )
-        .mount(
-            "/answer",
-            routes![
-                answer::answer_create,
-                answer::answer_list,
-                answer::answer_multiple_delete,
-                answer::answer_multiple_update
-            ],
-        )
-        .mount(
-            "/question-rule-group",
-            routes![
-                question_rule_group::question_rule_group_create,
-                question_rule_group::question_rule_group_list,
-                question_rule_group::question_rule_group_multiple_delete
-            ],
-        )
-        .mount(
-            "/attribute",
-            routes![
-                attribute::attribute_create,
-                attribute::attribute_list,
-                attribute::attribute_multiple_delete,
-                attribute::attribute_multiple_update
-            ],
-        )
-        .mount(
-            "/attribute-value",
-            routes![
-                attribute_value::attribute_value_create,
-                attribute_value::attribute_value_list,
-                attribute_value::attribute_value_multiple_delete,
-                attribute_value::attribute_value_multiple_update
-            ],
-        )
-        .mount(
-            "/attribute-rule-group",
-            routes![
-                attribute_rule_group::attribute_rule_group_create,
-                attribute_rule_group::attribute_rule_group_list,
-                attribute_rule_group::attribute_rule_group_multiple_delete
-            ],
-        )
-        .mount(
-            "/object",
-            routes![
-                object::object_create,
-                object::object_list,
-                object::object_multiple_delete,
-                object::object_multiple_update
-            ],
-        )
-        .register(
-            "/",
-            catchers![not_found, server_error, unprocessable_entity],
-        )
-        .manage(AppState { db_pool: pool })*/
+    .register(
+        "/",
+        catchers![not_found, server_error, unprocessable_entity],
+    )*/
 }

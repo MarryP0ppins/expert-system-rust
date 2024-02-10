@@ -79,7 +79,6 @@ pub async fn login_user<'a>(
         Ok(result) => _user = result,
         Err(err) => {
             return Err(CustomErrors::DieselError {
-                status: StatusCode::BAD_REQUEST,
                 error: err,
                 message: Some("Invalid credantials provided"),
             })

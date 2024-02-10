@@ -1,145 +1,130 @@
 use crate::{
-    models::answer::{Answer, NewAnswer, UpdateAnswer},
+    models::{
+        answer::{Answer, NewAnswer, UpdateAnswer},
+        error::CustomErrors,
+    },
     services::answer::{
         create_answer, get_answers, multiple_delete_answers, multiple_update_answers,
     },
     utils::auth::cookie_check,
-    AppState,
+    AppState, HandlerResult,
+};
+use axum::{
+    extract::{Query, State},
+    routing::post,
+    Json, Router,
 };
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
+use serde_json::{json, Value};
+use tower_cookies::Cookies;
 
-use rocket::{
-    http::{CookieJar, Status},
-    response::status::Custom,
-    serde::json::{Json, Value},
-    State,
-};
-use rocket_contrib::json;
-
-#[post("/", format = "json", data = "<answer_info>")]
 pub async fn answer_create(
-    state: &State<AppState>,
-    answer_info: Json<Vec<NewAnswer>>,
-    cookie: &CookieJar<'_>,
-) -> Result<Json<Vec<Answer>>, Custom<Value>> {
+    State(state): State<AppState>,
+    cookie: Cookies,
+    Json(answer_info): Json<Vec<NewAnswer>>,
+) -> HandlerResult<Vec<Answer>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
-    match create_answer(&mut connection, answer_info.0).await {
+    match create_answer(&mut connection, answer_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
-#[get("/?<question>")]
 pub async fn answer_list(
-    state: &State<AppState>,
-    question: i32,
-    cookie: &CookieJar<'_>,
-) -> Result<Json<Vec<Answer>>, Custom<Value>> {
+    State(state): State<AppState>,
+    Query(question): Query<i32>,
+    cookie: Cookies,
+) -> HandlerResult<Vec<Answer>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
     match get_answers(&mut connection, question).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
-#[post("/multiple_delete", format = "json", data = "<answer_info>")]
 pub async fn answer_multiple_delete(
-    state: &State<AppState>,
-    answer_info: Json<Vec<i32>>,
-    cookie: &CookieJar<'_>,
-) -> Result<Value, Custom<Value>> {
+    State(state): State<AppState>,
+    cookie: Cookies,
+    Json(answer_info): Json<Vec<i32>>,
+) -> HandlerResult<Value> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
-    match multiple_delete_answers(&mut connection, answer_info.0).await {
+    match multiple_delete_answers(&mut connection, answer_info).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
-#[post("/multiple_patch", format = "json", data = "<answer_info>")]
 pub async fn answer_multiple_update(
-    state: &State<AppState>,
-    answer_info: Json<Vec<UpdateAnswer>>,
-    cookie: &CookieJar<'_>,
-) -> Result<Json<Vec<Answer>>, Custom<Value>> {
+    State(state): State<AppState>,
+    cookie: Cookies,
+    Json(answer_info): Json<Vec<UpdateAnswer>>,
+) -> HandlerResult<Vec<Answer>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                json!({"error":err.to_string(), "message":"Failed to get a database connection"})
-                    .into(),
-            ))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
-    match cookie_check(&mut connection, cookie).await {
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err),
+        Err(err) => return Err(err.into()),
     };
 
-    match multiple_update_answers(&mut connection, answer_info.0).await {
+    match multiple_update_answers(&mut connection, answer_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(Custom(
-            Status::BadRequest,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
+}
+
+pub fn answer_routes() -> Router<AppState> {
+    Router::new()
+        .route("/", post(answer_create).get(answer_list))
+        .route("/multiple_delete", post(answer_multiple_delete))
+        .route("/multiple_patch", post(answer_multiple_update))
 }

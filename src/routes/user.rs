@@ -17,7 +17,6 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
 use tower_cookies::{Cookie, Cookies};
 
-#[debug_handler]
 pub async fn user_login(
     State(state): State<AppState>,
     cookie: Cookies,
@@ -35,14 +34,12 @@ pub async fn user_login(
     }
 }
 
-#[debug_handler]
 pub async fn user_logout(cookie: Cookies) -> HandlerResult<Value> {
     cookie.remove(Cookie::new(COOKIE_NAME, ""));
 
     Ok(json!({"message":"You are logout"}).into())
 }
 
-#[debug_handler]
 pub async fn user_registration(
     State(state): State<AppState>,
     Json(user_info): Json<NewUser>,
@@ -55,14 +52,14 @@ pub async fn user_registration(
 
     match create_user(&mut connection, user_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err((
-            StatusCode::BAD_REQUEST,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
-#[debug_handler]
 pub async fn user_get(
     State(state): State<AppState>,
     cookie: Cookies,
@@ -75,10 +72,11 @@ pub async fn user_get(
     {
         Some(res) => user_id = res.parse::<i32>().expect("Server Error"),
         None => {
-            return Err((
-                StatusCode::UNAUTHORIZED,
-                json!({"error":"Not authorized"}).into(),
-            ))
+            return Err(CustomErrors::StringError {
+                status: StatusCode::UNAUTHORIZED,
+                error: "Not authorized",
+            }
+            .into())
         }
     };
 
@@ -90,10 +88,11 @@ pub async fn user_get(
 
     match get_user(&mut connection, user_id).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err((
-            StatusCode::BAD_REQUEST,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 

@@ -10,7 +10,6 @@ use crate::{
 };
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
     routing::{get, post},
     Json, Router,
 };
@@ -18,7 +17,6 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
 use tower_cookies::Cookies;
 
-#[debug_handler]
 pub async fn system_create(
     State(state): State<AppState>,
     cookie: Cookies,
@@ -37,14 +35,14 @@ pub async fn system_create(
 
     match create_system(&mut connection, system_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err((
-            StatusCode::BAD_REQUEST,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
-#[debug_handler]
 pub async fn system_list(
     State(state): State<AppState>,
     Query(pagination): Query<SystemListPagination>,
@@ -64,14 +62,14 @@ pub async fn system_list(
     .await
     {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err((
-            StatusCode::BAD_REQUEST,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
-#[debug_handler]
 pub async fn system_retrieve(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
@@ -84,14 +82,14 @@ pub async fn system_retrieve(
 
     match get_system(&mut connection, system_id).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err((
-            StatusCode::BAD_REQUEST,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
-#[debug_handler]
 pub async fn system_partial_update(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
@@ -111,14 +109,14 @@ pub async fn system_partial_update(
 
     match update_system(&mut connection, system_id, system_info.0).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err((
-            StatusCode::BAD_REQUEST,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
-#[debug_handler]
 pub async fn system_delete(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
@@ -137,10 +135,11 @@ pub async fn system_delete(
 
     match delete_system(&mut connection, system_id).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
-        Err(err) => Err((
-            StatusCode::BAD_REQUEST,
-            json!({"error":err.to_string()}).into(),
-        )),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
     }
 }
 
