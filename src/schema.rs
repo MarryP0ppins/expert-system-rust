@@ -16,21 +16,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    attributerulegroup_atributevalue (attribute_value_id, attribute_rule_group_id) {
-        id -> Int4,
-        attribute_value_id -> Int4,
-        attribute_rule_group_id -> Int4,
-    }
-}
-
-diesel::table! {
-    attributerulegroups (id) {
-        id -> Int4,
-        system_id -> Int4,
-    }
-}
-
-diesel::table! {
     attributes (id) {
         id -> Int4,
         system_id -> Int4,
@@ -57,6 +42,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::Operatorenum;
+
+    clauses (id) {
+        id -> Int4,
+        rule_id -> Nullable<Int4>,
+        #[max_length = 64]
+        compared_value -> Varchar,
+        logical_group -> Int4,
+        operator -> Operatorenum,
+    }
+}
+
+diesel::table! {
     histories (id) {
         id -> Int4,
         system_id -> Int4,
@@ -79,21 +78,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    questionrulegroup_answer (answer_id, question_rule_group_id) {
-        id -> Int4,
-        answer_id -> Int4,
-        question_rule_group_id -> Int4,
-    }
-}
-
-diesel::table! {
-    questionrulegroups (id) {
-        id -> Int4,
-        system_id -> Int4,
-    }
-}
-
-diesel::table! {
     questions (id) {
         id -> Int4,
         system_id -> Int4,
@@ -104,17 +88,25 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::*;
-    use super::sql_types::Operatorenum;
+    rule_answer (answer_id, rule_id) {
+        id -> Int4,
+        answer_id -> Int4,
+        rule_id -> Int4,
+    }
+}
 
+diesel::table! {
+    rule_attributevalue (attribute_value_id, rule_id) {
+        id -> Int4,
+        attribute_value_id -> Int4,
+        rule_id -> Int4,
+    }
+}
+
+diesel::table! {
     rules (id) {
         id -> Int4,
-        attribute_rule_group_id -> Nullable<Int4>,
-        question_rule_group_id -> Nullable<Int4>,
-        #[max_length = 64]
-        compared_value -> Varchar,
-        logical_group -> Int4,
-        operator -> Operatorenum,
+        system_id -> Int4,
     }
 }
 
@@ -150,34 +142,33 @@ diesel::table! {
 }
 
 diesel::joinable!(answers -> questions (question_id));
-diesel::joinable!(attributerulegroup_atributevalue -> attributerulegroups (attribute_rule_group_id));
-diesel::joinable!(attributerulegroup_atributevalue -> attributesvalues (attribute_value_id));
 diesel::joinable!(attributes -> systems (system_id));
 diesel::joinable!(attributesvalue_object -> attributesvalues (attribute_value_id));
 diesel::joinable!(attributesvalue_object -> objects (object_id));
 diesel::joinable!(attributesvalues -> attributes (attribute_id));
+diesel::joinable!(clauses -> rules (rule_id));
 diesel::joinable!(histories -> systems (system_id));
 diesel::joinable!(histories -> users (user_id));
 diesel::joinable!(objects -> systems (system_id));
-diesel::joinable!(questionrulegroup_answer -> answers (answer_id));
-diesel::joinable!(questionrulegroup_answer -> questionrulegroups (question_rule_group_id));
 diesel::joinable!(questions -> systems (system_id));
-diesel::joinable!(rules -> attributerulegroups (attribute_rule_group_id));
-diesel::joinable!(rules -> questionrulegroups (question_rule_group_id));
+diesel::joinable!(rule_answer -> answers (answer_id));
+diesel::joinable!(rule_answer -> rules (rule_id));
+diesel::joinable!(rule_attributevalue -> attributesvalues (attribute_value_id));
+diesel::joinable!(rule_attributevalue -> rules (rule_id));
+diesel::joinable!(rules -> systems (system_id));
 diesel::joinable!(systems -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     answers,
-    attributerulegroup_atributevalue,
-    attributerulegroups,
     attributes,
     attributesvalue_object,
     attributesvalues,
+    clauses,
     histories,
     objects,
-    questionrulegroup_answer,
-    questionrulegroups,
     questions,
+    rule_answer,
+    rule_attributevalue,
     rules,
     systems,
     users,

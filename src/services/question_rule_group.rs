@@ -6,7 +6,7 @@ use crate::{
             QuestionRuleGroupWithRulesAndAnswers,
         },
         question_rule_group_answer::{NewQuestionRuleGroupAnswer, QuestionRuleGroupAnswer},
-        rules::{NewRule, Rule},
+        rule::{NewRule, Rule},
     },
     schema::{answers, questionrulegroup_answer, questionrulegroups::dsl::*, rules},
 };

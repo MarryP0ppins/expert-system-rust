@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate axum_macros;
 extern crate diesel;
 
 use axum::{

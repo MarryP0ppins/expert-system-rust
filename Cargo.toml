@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 axum = { version = "0.7" }
+axum-macros = { version = "*" }
 tower-cookies = { version = "0.10", features = ["private"] }
 tokio = { version = "1", features = ["full"] }
 diesel = { version = "2.1", features = ["postgres", "chrono", "serde_json"] }

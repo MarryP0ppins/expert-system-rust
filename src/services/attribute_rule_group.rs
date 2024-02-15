@@ -8,7 +8,7 @@ use crate::{
             AttributeRuleGroupAttributeValue, NewAttributeRuleGroupAttributeValue,
         },
         attribute_value::AttributeValue,
-        rules::{NewRule, Rule},
+        rule::{NewRule, Rule},
     },
     schema::{
         attributerulegroup_atributevalue, attributerulegroups::dsl::*, attributesvalues, rules,
