@@ -1,14 +1,10 @@
 use crate::{
     models::{
-        attribute_rule_group::{
-            AttributeRuleGroupWithRulesAndAttributesValues,
-            NewAttributeRuleGroupWithRulesAndAttributesValues,
-        },
+        clause::{Clause, NewClause, UpdateClause},
         error::CustomErrors,
     },
-    services::attribute_rule_group::{
-        create_attribute_rule_groups, get_attribute_rule_groups,
-        multiple_delete_attribute_rule_groups,
+    services::clause::{
+        create_clauses, get_clauses, multiple_delete_clauses, multiple_update_clauses,
     },
     utils::auth::cookie_check,
     AppState, HandlerResult,
@@ -22,11 +18,12 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
 use tower_cookies::Cookies;
 
-pub async fn attribute_rule_group_create(
+#[debug_handler]
+pub async fn clause_create(
     State(state): State<AppState>,
     cookie: Cookies,
-    Json(attribute_rule_group_info): Json<Vec<NewAttributeRuleGroupWithRulesAndAttributesValues>>,
-) -> HandlerResult<Vec<AttributeRuleGroupWithRulesAndAttributesValues>> {
+    Json(clause_info): Json<Vec<NewClause>>,
+) -> HandlerResult<Vec<Clause>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
@@ -38,7 +35,7 @@ pub async fn attribute_rule_group_create(
         Err(err) => return Err(err.into()),
     };
 
-    match create_attribute_rule_groups(&mut connection, attribute_rule_group_info).await {
+    match create_clauses(&mut connection, clause_info).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
@@ -48,11 +45,12 @@ pub async fn attribute_rule_group_create(
     }
 }
 
-pub async fn attribute_rule_group_list(
+#[debug_handler]
+pub async fn clause_list(
     State(state): State<AppState>,
-    Query(system): Query<i32>,
+    Query(rule): Query<i32>,
     cookie: Cookies,
-) -> HandlerResult<Vec<AttributeRuleGroupWithRulesAndAttributesValues>> {
+) -> HandlerResult<Vec<Clause>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
@@ -64,7 +62,7 @@ pub async fn attribute_rule_group_list(
         Err(err) => return Err(err.into()),
     };
 
-    match get_attribute_rule_groups(&mut connection, system).await {
+    match get_clauses(&mut connection, rule).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
@@ -74,10 +72,11 @@ pub async fn attribute_rule_group_list(
     }
 }
 
-pub async fn attribute_rule_group_multiple_delete(
+#[debug_handler]
+pub async fn clause_multiple_delete(
     State(state): State<AppState>,
     cookie: Cookies,
-    Json(attribute_rule_group_info): Json<Vec<i32>>,
+    Json(clause_info): Json<Vec<i32>>,
 ) -> HandlerResult<Value> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
@@ -90,7 +89,7 @@ pub async fn attribute_rule_group_multiple_delete(
         Err(err) => return Err(err.into()),
     };
 
-    match multiple_delete_attribute_rule_groups(&mut connection, attribute_rule_group_info).await {
+    match multiple_delete_clauses(&mut connection, clause_info).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
@@ -100,14 +99,36 @@ pub async fn attribute_rule_group_multiple_delete(
     }
 }
 
-pub fn attribute_rule_group_routes() -> Router<AppState> {
+#[debug_handler]
+pub async fn clause_multiple_update(
+    State(state): State<AppState>,
+    cookie: Cookies,
+    Json(clause_info): Json<Vec<UpdateClause>>,
+) -> HandlerResult<Vec<Clause>> {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
+        Ok(ok) => connection = ok,
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+    };
+
+    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
+        Ok(_) => (),
+        Err(err) => return Err(err.into()),
+    };
+
+    match multiple_update_clauses(&mut connection, clause_info).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
+    }
+}
+
+pub fn clause_routes() -> Router<AppState> {
     Router::new()
-        .route(
-            "/",
-            post(attribute_rule_group_create).get(attribute_rule_group_list),
-        )
-        .route(
-            "/multiple_delete",
-            post(attribute_rule_group_multiple_delete),
-        )
+        .route("/", post(clause_create).get(clause_list))
+        .route("/multiple_delete", post(clause_multiple_delete))
+        .route("/multiple_patch", post(clause_multiple_update))
 }

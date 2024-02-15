@@ -47,7 +47,7 @@ diesel::table! {
 
     clauses (id) {
         id -> Int4,
-        rule_id -> Nullable<Int4>,
+        rule_id -> Int4,
         #[max_length = 64]
         compared_value -> Varchar,
         logical_group -> Int4,

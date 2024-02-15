@@ -14,10 +14,9 @@ use diesel_async::{
 use dotenvy::dotenv;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use routes::{
-    answer::answer_routes, attribute::attribute_routes,
-    attribute_rule_group::attribute_rule_group_routes, attribute_value::attribute_value_routes,
-    history::history_routes, object::object_routes, question::question_routes,
-    question_rule_group::question_rule_group_routes, system::system_routes, user::user_routes,
+    answer::answer_routes, attribute::attribute_routes, attribute_value::attribute_value_routes,
+    clause::clause_routes, history::history_routes, object::object_routes,
+    question::question_routes, system::system_routes, user::user_routes,
 };
 use serde_json::{json, Value};
 use std::{env, net::SocketAddr};
@@ -96,10 +95,10 @@ async fn main() {
         .nest("/history", history_routes())
         .nest("/question", question_routes())
         .nest("/answer", answer_routes())
-        .nest("/question-rule-group", question_rule_group_routes())
         .nest("/attribute", attribute_routes())
         .nest("/attribute_value", attribute_value_routes())
-        .nest("/attribute-rule-group", attribute_rule_group_routes())
+        .nest("/Clause", clause_routes())
+        //.nest("/attribute-rule-group", attribute_rule_group_routes())
         .nest("/object", object_routes())
         .with_state(AppState {
             db_pool: pool,
