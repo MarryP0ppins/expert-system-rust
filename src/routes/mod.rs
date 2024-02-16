@@ -5,5 +5,6 @@ pub mod clause;
 pub mod history;
 pub mod object;
 pub mod question;
+pub mod rule;
 pub mod system;
 pub mod user;

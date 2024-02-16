@@ -22,7 +22,6 @@ pub struct NewQuestion {
 }
 
 #[derive(Debug, Queryable, Serialize, Deserialize)]
-#[diesel(table_name=questions)]
 pub struct NewQuestionWithAnswersBody {
     pub system_id: i32,
     pub body: String,

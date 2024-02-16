@@ -16,7 +16,7 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 use routes::{
     answer::answer_routes, attribute::attribute_routes, attribute_value::attribute_value_routes,
     clause::clause_routes, history::history_routes, object::object_routes,
-    question::question_routes, system::system_routes, user::user_routes,
+    question::question_routes, rule::rule_routes, system::system_routes, user::user_routes,
 };
 use serde_json::{json, Value};
 use std::{env, net::SocketAddr};
@@ -97,8 +97,8 @@ async fn main() {
         .nest("/answer", answer_routes())
         .nest("/attribute", attribute_routes())
         .nest("/attribute_value", attribute_value_routes())
-        .nest("/Clause", clause_routes())
-        //.nest("/attribute-rule-group", attribute_rule_group_routes())
+        .nest("/clause", clause_routes())
+        .nest("/rule", rule_routes())
         .nest("/object", object_routes())
         .with_state(AppState {
             db_pool: pool,

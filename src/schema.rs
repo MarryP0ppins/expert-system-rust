@@ -107,6 +107,7 @@ diesel::table! {
     rules (id) {
         id -> Int4,
         system_id -> Int4,
+        attribute_rule -> Bool,
     }
 }
 

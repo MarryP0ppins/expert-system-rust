@@ -9,7 +9,7 @@ use super::rule::Rule;
 #[diesel(belongs_to(AttributeValue))]
 #[diesel(belongs_to(Rule))]
 #[diesel(table_name=rule_attributevalue)]
-pub struct RuleAttributevalue {
+pub struct RuleAttributeValue {
     pub id: i32,
     pub attribute_value_id: i32,
     pub rule_id: i32,
@@ -17,7 +17,7 @@ pub struct RuleAttributevalue {
 
 #[derive(Debug, Queryable, Deserialize, Insertable)]
 #[diesel(table_name=rule_attributevalue)]
-pub struct NewRuleAnswer {
+pub struct NewRuleAttributeValue {
     pub attribute_value_id: i32,
     pub rule_id: i32,
 }

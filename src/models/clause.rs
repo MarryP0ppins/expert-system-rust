@@ -19,9 +19,7 @@ pub enum RuleOperator {
     NoLessThan,
 }
 
-#[derive(
-    Debug, Queryable, Serialize, Deserialize, Identifiable, Associations, Selectable, Clone,
-)]
+#[derive(Debug, Queryable, Serialize, Identifiable, Associations, Selectable, Clone)]
 #[diesel(belongs_to(Rule))]
 #[diesel(table_name=clauses)]
 pub struct Clause {
@@ -32,10 +30,18 @@ pub struct Clause {
     pub operator: RuleOperator,
 }
 
-#[derive(Debug, Queryable, Insertable, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Insertable, Deserialize)]
 #[diesel(table_name=clauses)]
 pub struct NewClause {
     pub rule_id: i32,
+    pub compared_value: String,
+    pub logical_group: i32,
+    pub operator: RuleOperator,
+}
+
+#[derive(Debug, Queryable, Insertable, Deserialize)]
+#[diesel(table_name=clauses)]
+pub struct NewClauseWithoutRuleId {
     pub compared_value: String,
     pub logical_group: i32,
     pub operator: RuleOperator,
