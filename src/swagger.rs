@@ -2,6 +2,8 @@ use crate::{
     models::{answer as answer_model, error, user as user_model},
     routes::{answer, user},
 };
+#[cfg(not(debug_assertions))]
+use axum::Json;
 use utoipa::OpenApi;
 
 #[derive(OpenApi)]
@@ -27,3 +29,15 @@ use utoipa::OpenApi;
     ))
 )]
 pub struct ApiDoc;
+
+#[cfg(not(debug_assertions))]
+#[utoipa::path(
+    get,
+    path = "/api-docs/openapi.json",
+    responses(
+        (status = 200, description = "JSON file", body = ())
+    )
+)]
+pub async fn openapi() -> Json<utoipa::openapi::OpenApi> {
+    Json(ApiDoc::openapi())
+}

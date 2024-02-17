@@ -2,6 +2,8 @@
 extern crate axum_macros;
 extern crate diesel;
 
+#[cfg(not(debug_assertions))]
+use axum::routing::get;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Json},
@@ -21,9 +23,14 @@ use routes::{
 };
 use serde_json::{json, Value};
 use std::{env, net::SocketAddr};
+#[cfg(not(debug_assertions))]
+use swagger::openapi;
+#[cfg(debug_assertions)]
 use swagger::ApiDoc;
 use tower_cookies::{cookie::Key, CookieManagerLayer};
+#[cfg(debug_assertions)]
 use utoipa::OpenApi;
+#[cfg(debug_assertions)]
 use utoipa_swagger_ui::SwaggerUi;
 
 mod models;
@@ -94,7 +101,7 @@ async fn main() {
     StdRng::from_entropy().fill(&mut secret_key);
     let secret_key = Key::from(&secret_key);
 
-    let app = Router::new()
+    let mut app = Router::new()
         .nest("/user", user_routes())
         .nest("/system", system_routes())
         .nest("/history", history_routes())
@@ -112,16 +119,20 @@ async fn main() {
             cookie_key: secret_key,
         })
         .layer(CookieManagerLayer::new())
-        .fallback(handler_404)
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
+        .fallback(handler_404);
+
+    #[cfg(not(debug_assertions))]
+    {
+        app = app.route("/api-docs/openapi.json", get(openapi))
+    }
+
+    #[cfg(debug_assertions)]
+    {
+        app = app
+            .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+    }
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
-
-    /*
-    .register(
-        "/",
-        catchers![not_found, server_error, unprocessable_entity],
-    )*/
 }
