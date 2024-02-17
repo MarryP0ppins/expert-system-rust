@@ -17,6 +17,18 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
 use tower_cookies::{Cookie, Cookies};
 
+#[utoipa::path(
+    post,
+    path = "/user/login",
+    request_body = UserLogin,
+    responses(
+        (status = 200, description = "User login successfully", body=UserWithoutPassword),
+        (status = 400, description = "Invalid credantials provided", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::BAD_REQUEST.as_u16(),
+            error: "Invalid credantials provided",
+        }))
+    )
+)]
 pub async fn user_login(
     State(state): State<AppState>,
     cookie: Cookies,
@@ -25,7 +37,7 @@ pub async fn user_login(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match login_user(&mut connection, user_info, cookie, &state.cookie_key).await {
@@ -34,12 +46,31 @@ pub async fn user_login(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/user/logout",
+    responses(
+        (status = 200, description = "User logout successfully", body = Value, example = json!({"message":"You are logout"})),
+    )
+)]
 pub async fn user_logout(cookie: Cookies) -> HandlerResult<Value> {
     cookie.remove(Cookie::new(COOKIE_NAME, ""));
 
     Ok(json!({"message":"You are logout"}).into())
 }
 
+#[utoipa::path(
+    post,
+    path = "/user/registration",
+    request_body = NewUser,
+    responses(
+        (status = 200, description = "User registration successfully", body=UserWithoutPassword),
+        (status = 400, description = "Invalid credantials provided", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::BAD_REQUEST.as_u16(),
+            error: "Provided email or username already exist",
+        }))
+    )
+)]
 pub async fn user_registration(
     State(state): State<AppState>,
     Json(user_info): Json<NewUser>,
@@ -47,19 +78,30 @@ pub async fn user_registration(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match create_user(&mut connection, user_info).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/user",
+    responses(
+        (status = 200, description = "Matching User", body=UserWithoutPassword),
+        (status = 401, description = "Unauthorized to User", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED.as_u16(),
+            error: "Not authorized",
+        }))
+    )
+)]
 pub async fn user_get(
     State(state): State<AppState>,
     cookie: Cookies,
@@ -73,7 +115,7 @@ pub async fn user_get(
         Some(res) => user_id = res.parse::<i32>().expect("Server Error"),
         None => {
             return Err(CustomErrors::StringError {
-                status: StatusCode::UNAUTHORIZED,
+                status: StatusCode::UNAUTHORIZED.as_u16(),
                 error: "Not authorized",
             }
             .into())
@@ -83,13 +125,13 @@ pub async fn user_get(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match get_user(&mut connection, user_id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),

@@ -2,9 +2,6 @@ use crate::schema::systems;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
-/*
-* User models begin from here
-*/
 
 #[derive(Debug, Queryable, Serialize, Identifiable)]
 #[diesel(table_name=systems)]

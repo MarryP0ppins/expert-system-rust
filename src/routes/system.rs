@@ -25,7 +25,7 @@ pub async fn system_create(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -36,7 +36,7 @@ pub async fn system_create(
     match create_system(&mut connection, system_info).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),
@@ -50,7 +50,7 @@ pub async fn system_list(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     let pagination: SystemListPagination = pagination;
@@ -63,7 +63,7 @@ pub async fn system_list(
     {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),
@@ -77,13 +77,13 @@ pub async fn system_retrieve(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match get_system(&mut connection, system_id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),
@@ -99,7 +99,7 @@ pub async fn system_partial_update(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -110,7 +110,7 @@ pub async fn system_partial_update(
     match update_system(&mut connection, system_id, system_info.0).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),
@@ -125,7 +125,7 @@ pub async fn system_delete(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -136,7 +136,7 @@ pub async fn system_delete(
     match delete_system(&mut connection, system_id).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),

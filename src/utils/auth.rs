@@ -21,12 +21,12 @@ pub async fn cookie_check<'a>(
         Some(res) => match get_user(connection, res.parse::<i32>().expect("Server Error")).await {
             Ok(_) => Ok(()),
             Err(err) => Err(CustomErrors::DieselError {
-                error: err,
+                error: err.to_string(),
                 message: Some("Invalid credentials provided"),
             }),
         },
         None => Err(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED,
+            status: StatusCode::UNAUTHORIZED.as_u16(),
             error: "Not authorized",
         }),
     }

@@ -3,9 +3,6 @@ use crate::schema::{clauses, sql_types::Operatorenum};
 use diesel::prelude::*;
 use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
-/*
-* User models begin from here
-*/
 
 #[derive(Debug, DbEnum, Deserialize, Serialize, Clone)]
 #[ExistingTypePath = "Operatorenum"]

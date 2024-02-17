@@ -2,9 +2,6 @@ use super::{answer::Answer, attribute_value::AttributeValue, clause::Clause, sys
 use crate::schema::rules;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
-/*
-* User models begin from here
-*/
 
 #[derive(Debug, Queryable, Serialize, Identifiable, Associations, Selectable, Clone)]
 #[diesel(belongs_to(System))]

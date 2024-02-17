@@ -25,7 +25,7 @@ pub async fn history_create(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -36,7 +36,7 @@ pub async fn history_create(
     match create_history(&mut connection, history_info).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),
@@ -51,7 +51,7 @@ pub async fn history_list(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -64,7 +64,7 @@ pub async fn history_list(
     match get_histories(&mut connection, pagination.system, pagination.user).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),
@@ -79,7 +79,7 @@ pub async fn history_delete(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -90,7 +90,7 @@ pub async fn history_delete(
     match delete_history(&mut connection, history_id).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),

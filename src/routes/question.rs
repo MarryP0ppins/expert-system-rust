@@ -26,7 +26,7 @@ pub async fn question_create(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -37,7 +37,7 @@ pub async fn question_create(
     match create_questions(&mut connection, question_info).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),
@@ -52,7 +52,7 @@ pub async fn question_list(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -63,7 +63,7 @@ pub async fn question_list(
     match get_questions(&mut connection, system).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),
@@ -78,7 +78,7 @@ pub async fn question_multiple_delete(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -89,7 +89,7 @@ pub async fn question_multiple_delete(
     match multiple_delete_questions(&mut connection, question_info).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),
@@ -104,7 +104,7 @@ pub async fn question_multiple_update(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -115,7 +115,7 @@ pub async fn question_multiple_update(
     match multiple_update_questions(&mut connection, question_info).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),

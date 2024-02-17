@@ -28,7 +28,7 @@ pub async fn attribute_create(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -39,7 +39,7 @@ pub async fn attribute_create(
     match create_attributes(&mut connection, attribute_info).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),
@@ -54,7 +54,7 @@ pub async fn attribute_list(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -65,7 +65,7 @@ pub async fn attribute_list(
     match get_attributes(&mut connection, system).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),
@@ -80,7 +80,7 @@ pub async fn attribute_multiple_delete(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -91,7 +91,7 @@ pub async fn attribute_multiple_delete(
     match multiple_delete_attributes(&mut connection, attribute_info).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),
@@ -106,7 +106,7 @@ pub async fn attribute_multiple_update(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -117,7 +117,7 @@ pub async fn attribute_multiple_update(
     match multiple_update_attributes(&mut connection, attribute_info).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.to_string(),
             message: None,
         }
         .into()),

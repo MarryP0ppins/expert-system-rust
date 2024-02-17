@@ -2,12 +2,10 @@ use crate::schema::users;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use validator::Validate;
-/*
-* User models begin from here
-*/
 
-#[derive(Debug, Queryable, Serialize)]
+#[derive(Debug, Queryable, Serialize, ToSchema)]
 #[diesel(table_name=users)]
 pub struct UserWithoutPassword {
     pub id: i32,
@@ -33,7 +31,7 @@ pub struct User {
     pub password: String,
 }
 
-#[derive(Debug, Queryable, Insertable, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Insertable, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name=users)]
 pub struct NewUser {
     pub email: String,
@@ -44,7 +42,7 @@ pub struct NewUser {
     pub password: String,
 }
 
-#[derive(Debug, Queryable, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name=users)]
 pub struct UserLogin {
     pub email: String,
