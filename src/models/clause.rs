@@ -39,14 +39,6 @@ pub struct NewClause {
     pub operator: RuleOperator,
 }
 
-#[derive(Debug, Queryable, Insertable, Deserialize)]
-#[diesel(table_name=clauses)]
-pub struct NewClauseWithoutRuleId {
-    pub compared_value: String,
-    pub logical_group: i32,
-    pub operator: RuleOperator,
-}
-
 #[derive(Debug, Deserialize, AsChangeset, Clone)]
 #[diesel(table_name=clauses)]
 pub struct UpdateClause {

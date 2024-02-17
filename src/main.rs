@@ -16,17 +16,22 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 use routes::{
     answer::answer_routes, attribute::attribute_routes, attribute_value::attribute_value_routes,
     clause::clause_routes, history::history_routes, object::object_routes,
-    question::question_routes, rule::rule_routes, system::system_routes, user::user_routes,
+    question::question_routes, rule::rule_routes, rule_answer::rule_answer_routes,
+    rule_attributevalue::rule_attributevalue_routes, system::system_routes, user::user_routes,
 };
 use serde_json::{json, Value};
 use std::{env, net::SocketAddr};
+use swagger::ApiDoc;
 use tower_cookies::{cookie::Key, CookieManagerLayer};
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 mod models;
 mod pagination;
 mod routes;
 mod schema;
 mod services;
+mod swagger;
 mod utils;
 
 pub const COOKIE_NAME: &str = "session_id";
@@ -100,12 +105,15 @@ async fn main() {
         .nest("/clause", clause_routes())
         .nest("/rule", rule_routes())
         .nest("/object", object_routes())
+        .nest("/rule-attributevalue", rule_attributevalue_routes())
+        .nest("/rule-answer", rule_answer_routes())
         .with_state(AppState {
             db_pool: pool,
             cookie_key: secret_key,
         })
         .layer(CookieManagerLayer::new())
-        .fallback(handler_404);
+        .fallback(handler_404)
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();

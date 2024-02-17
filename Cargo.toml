@@ -12,11 +12,13 @@ tower-cookies = { version = "0.10", features = ["private"] }
 tokio = { version = "1", features = ["full"] }
 diesel = { version = "2.1", features = ["postgres", "chrono", "serde_json"] }
 diesel-async = { version = "0.4", features = ["postgres", "bb8"] }
+diesel-derive-enum = { version = "2.1", features = ["postgres"] }
+utoipa = { version = "4.2", features = ["axum_extras", "preserve_order"] }
+utoipa-swagger-ui = { version = "6.0", features = ["axum"] }
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1" }
-diesel-derive-enum = { version = "2.1", features = ["postgres"] }
 validator = { version = "0.16", features = ["derive"] }
 argon2 = { version = "0.5" }
 rand = { version = "0.8" }

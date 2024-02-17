@@ -1,9 +1,9 @@
 use crate::{
     models::{
         error::CustomErrors,
-        rule::{NewRuleWithClausesAndEffects, RuleWithClausesAndEffects},
+        rule::{NewRule, RuleWithClausesAndEffects},
     },
-    services::rule::{create_rules, get_rules, multiple_delete_rules},
+    services::rule::{create_rule, get_rules, multiple_delete_rules},
     utils::auth::cookie_check,
     AppState, HandlerResult,
 };
@@ -20,8 +20,8 @@ use tower_cookies::Cookies;
 pub async fn rule_create(
     State(state): State<AppState>,
     cookie: Cookies,
-    Json(rule_info): Json<Vec<NewRuleWithClausesAndEffects>>,
-) -> HandlerResult<Vec<RuleWithClausesAndEffects>> {
+    Json(rule_info): Json<NewRule>,
+) -> HandlerResult<RuleWithClausesAndEffects> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
@@ -33,10 +33,10 @@ pub async fn rule_create(
         Err(err) => return Err(err.into()),
     };
 
-    match create_rules(&mut connection, rule_info).await {
+    match create_rule(&mut connection, rule_info).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.into(),
             message: None,
         }
         .into()),
@@ -63,7 +63,7 @@ pub async fn rule_list(
     match get_rules(&mut connection, system).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.into(),
             message: None,
         }
         .into()),
@@ -90,7 +90,7 @@ pub async fn rule_multiple_delete(
     match multiple_delete_rules(&mut connection, rule_info).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err,
+            error: err.into(),
             message: None,
         }
         .into()),
