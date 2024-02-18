@@ -27,7 +27,7 @@ pub async fn clause_create(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -38,7 +38,7 @@ pub async fn clause_create(
     match create_clauses(&mut connection, clause_info).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err.to_string(),
+            error: err,
             message: None,
         }
         .into()),
@@ -54,7 +54,7 @@ pub async fn clause_list(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -65,7 +65,7 @@ pub async fn clause_list(
     match get_clauses(&mut connection, rule).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err.to_string(),
+            error: err,
             message: None,
         }
         .into()),
@@ -81,7 +81,7 @@ pub async fn clause_multiple_delete(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -92,7 +92,7 @@ pub async fn clause_multiple_delete(
     match multiple_delete_clauses(&mut connection, clause_info).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err.to_string(),
+            error: err,
             message: None,
         }
         .into()),
@@ -108,7 +108,7 @@ pub async fn clause_multiple_update(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -119,7 +119,7 @@ pub async fn clause_multiple_update(
     match multiple_update_clauses(&mut connection, clause_info).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err.to_string(),
+            error: err,
             message: None,
         }
         .into()),

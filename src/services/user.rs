@@ -79,7 +79,7 @@ pub async fn login_user<'a>(
         Ok(result) => _user = result,
         Err(err) => {
             return Err(CustomErrors::DieselError {
-                error: err.to_string(),
+                error: err,
                 message: Some("Invalid credantials provided"),
             })
         }
@@ -111,8 +111,8 @@ pub async fn login_user<'a>(
             })
         }
         Err(err) => Err(CustomErrors::Argon2Error {
-            status: StatusCode::BAD_REQUEST.as_u16(),
-            error: err.to_string(),
+            status: StatusCode::BAD_REQUEST,
+            error: err,
             message: Some("Invalid credantials provided"),
         }),
     }

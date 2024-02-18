@@ -27,7 +27,7 @@ use tower_cookies::Cookies;
     responses(
         (status = 200, description = "Answers create successfully", body=[Answer]),
         (status = 401, description = "Unauthorized to create Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED.as_u16(),
+            status: StatusCode::UNAUTHORIZED,
             error: "Not authorized",
         }))
     )
@@ -40,7 +40,7 @@ pub async fn answer_create(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -51,7 +51,7 @@ pub async fn answer_create(
     match create_answer(&mut connection, answer_info).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err.to_string(),
+            error: err,
             message: None,
         }
         .into()),
@@ -64,7 +64,7 @@ pub async fn answer_create(
     responses(
         (status = 200, description = "List matching answers by query", body=[Answer]),
         (status = 401, description = "Unauthorized to list Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED.as_u16(),
+            status: StatusCode::UNAUTHORIZED,
             error: "Not authorized",
         }))
     ),
@@ -80,7 +80,7 @@ pub async fn answer_list(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -93,7 +93,7 @@ pub async fn answer_list(
     match get_answers(&mut connection, pagination.question_id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err.to_string(),
+            error: err,
             message: None,
         }
         .into()),
@@ -107,7 +107,7 @@ pub async fn answer_list(
     responses(
         (status = 200, description = "Answers deleted successfully", body = Value, example = json!({"delete":"successful"})),
         (status = 401, description = "Unauthorized to delete Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED.as_u16(),
+            status: StatusCode::UNAUTHORIZED,
             error: "Not authorized",
         })),
         (status = 404, description = "Answers not found")
@@ -121,7 +121,7 @@ pub async fn answer_multiple_delete(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -132,7 +132,7 @@ pub async fn answer_multiple_delete(
     match multiple_delete_answers(&mut connection, answer_info).await {
         Ok(_) => Ok(json!({"delete":"successful"}).into()),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err.to_string(),
+            error: err,
             message: None,
         }
         .into()),
@@ -146,7 +146,7 @@ pub async fn answer_multiple_delete(
     responses(
         (status = 200, description = "Answers updated successfully", body=[Answer]),
         (status = 401, description = "Unauthorized to update Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED.as_u16(),
+            status: StatusCode::UNAUTHORIZED,
             error: "Not authorized",
         })),
         (status = 404, description = "Answers not found")
@@ -160,7 +160,7 @@ pub async fn answer_multiple_update(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
@@ -171,7 +171,7 @@ pub async fn answer_multiple_update(
     match multiple_update_answers(&mut connection, answer_info).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err.to_string(),
+            error: err,
             message: None,
         }
         .into()),

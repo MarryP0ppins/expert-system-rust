@@ -24,7 +24,7 @@ use tower_cookies::{Cookie, Cookies};
     responses(
         (status = 200, description = "User login successfully", body=UserWithoutPassword),
         (status = 400, description = "Invalid credantials provided", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::BAD_REQUEST.as_u16(),
+            status: StatusCode::BAD_REQUEST,
             error: "Invalid credantials provided",
         }))
     )
@@ -37,7 +37,7 @@ pub async fn user_login(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
     match login_user(&mut connection, user_info, cookie, &state.cookie_key).await {
@@ -66,7 +66,7 @@ pub async fn user_logout(cookie: Cookies) -> HandlerResult<Value> {
     responses(
         (status = 200, description = "User registration successfully", body=UserWithoutPassword),
         (status = 400, description = "Invalid credantials provided", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::BAD_REQUEST.as_u16(),
+            status: StatusCode::BAD_REQUEST,
             error: "Provided email or username already exist",
         }))
     )
@@ -78,13 +78,13 @@ pub async fn user_registration(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
     match create_user(&mut connection, user_info).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err.to_string(),
+            error: err,
             message: None,
         }
         .into()),
@@ -97,7 +97,7 @@ pub async fn user_registration(
     responses(
         (status = 200, description = "Matching User", body=UserWithoutPassword),
         (status = 401, description = "Unauthorized to User", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED.as_u16(),
+            status: StatusCode::UNAUTHORIZED,
             error: "Not authorized",
         }))
     )
@@ -115,7 +115,7 @@ pub async fn user_get(
         Some(res) => user_id = res.parse::<i32>().expect("Server Error"),
         None => {
             return Err(CustomErrors::StringError {
-                status: StatusCode::UNAUTHORIZED.as_u16(),
+                status: StatusCode::UNAUTHORIZED,
                 error: "Not authorized",
             }
             .into())
@@ -125,13 +125,13 @@ pub async fn user_get(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err.to_string()).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
     };
 
     match get_user(&mut connection, user_id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
-            error: err.to_string(),
+            error: err,
             message: None,
         }
         .into()),
