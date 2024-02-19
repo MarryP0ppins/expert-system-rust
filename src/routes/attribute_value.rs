@@ -3,6 +3,7 @@ use crate::{
         attribute_value::{AttributeValue, NewAttributeValue, UpdateAttributeValue},
         error::CustomErrors,
     },
+    pagination::AttributeValueListPagination,
     services::attribute_value::{
         create_attributes_values, get_attribute_values, multiple_delete_attributes_values,
         multiple_update_attributes_values,
@@ -12,6 +13,7 @@ use crate::{
 };
 use axum::{
     extract::{Query, State},
+    http::StatusCode,
     routing::post,
     Json, Router,
 };
@@ -19,6 +21,18 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
 use tower_cookies::Cookies;
 
+#[utoipa::path(
+    post,
+    path = "/attributevalue",
+    request_body = [NewAttributeValue],
+    responses(
+        (status = 200, description = "AttributeValues create successfully", body=[AttributeValue]),
+        (status = 401, description = "Unauthorized to create AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        }))
+    )
+)]
 pub async fn attribute_value_create(
     State(state): State<AppState>,
     cookie: Cookies,
@@ -45,9 +59,23 @@ pub async fn attribute_value_create(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/attributevalue",
+    responses(
+        (status = 200, description = "List matching AttributeValues by query", body=[AttributeValue]),
+        (status = 401, description = "Unauthorized to list AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        }))
+    ),
+    params(
+        AttributeValueListPagination
+    )
+)]
 pub async fn attribute_value_list(
     State(state): State<AppState>,
-    Query(attribute): Query<i32>,
+    Query(pagination): Query<AttributeValueListPagination>,
     cookie: Cookies,
 ) -> HandlerResult<Vec<AttributeValue>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
@@ -61,7 +89,8 @@ pub async fn attribute_value_list(
         Err(err) => return Err(err.into()),
     };
 
-    match get_attribute_values(&mut connection, attribute).await {
+    let pagination = pagination as AttributeValueListPagination;
+    match get_attribute_values(&mut connection, pagination.attribute_id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
@@ -71,6 +100,19 @@ pub async fn attribute_value_list(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/attributevalue/multiple_delete",
+    request_body = [i32],
+    responses(
+        (status = 200, description = "AttributeValues deleted successfully", body = Value, example = json!({"delete":"successful"})),
+        (status = 401, description = "Unauthorized to delete AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        })),
+        (status = 404, description = "AttributeValues not found")
+    )
+)]
 pub async fn attribute_value_multiple_delete(
     State(state): State<AppState>,
     cookie: Cookies,
@@ -97,6 +139,19 @@ pub async fn attribute_value_multiple_delete(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/attributevalue/multiple_update",
+    request_body = [UpdateAttributeValue],
+    responses(
+        (status = 200, description = "AttributeValues updated successfully", body=[AttributeValue]),
+        (status = 401, description = "Unauthorized to update AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        })),
+        (status = 404, description = "AttributeValues not found")
+    )
+)]
 pub async fn attribute_value_multiple_update(
     State(state): State<AppState>,
     cookie: Cookies,

@@ -26,7 +26,15 @@ pub async fn get_histories(
         .select((
             id,
             (systems::all_columns),
-            (users::all_columns),
+            (
+                users::id,
+                users::email,
+                users::username,
+                users::created_at,
+                users::first_name,
+                users::last_name,
+                users::is_superuser,
+            ),
             answered_questions,
             results,
             started_at,
@@ -63,7 +71,15 @@ pub async fn create_history(
         .select((
             id,
             (systems::all_columns),
-            (users::all_columns),
+            (
+                users::id,
+                users::email,
+                users::username,
+                users::created_at,
+                users::first_name,
+                users::last_name,
+                users::is_superuser,
+            ),
             answered_questions,
             results,
             started_at,

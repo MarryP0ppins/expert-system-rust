@@ -10,6 +10,7 @@ use crate::{
 };
 use axum::{
     extract::{Path, Query, State},
+    http::StatusCode,
     routing::{delete, post},
     Json, Router,
 };
@@ -17,6 +18,18 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
 use tower_cookies::Cookies;
 
+#[utoipa::path(
+    post,
+    path = "/history",
+    request_body = NewHistory,
+    responses(
+        (status = 200, description = "Histories create successfully", body=HistoryWithSystemAndUser),
+        (status = 401, description = "Unauthorized to create Histories", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        }))
+    )
+)]
 pub async fn history_create(
     State(state): State<AppState>,
     cookie: Cookies,
@@ -43,6 +56,20 @@ pub async fn history_create(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/history",
+    responses(
+        (status = 200, description = "List matching Histories by query", body=[HistoryWithSystemAndUser]),
+        (status = 401, description = "Unauthorized to list Histories", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        }))
+    ),
+    params(
+        HistoryListPagination
+    )
+)]
 pub async fn history_list(
     State(state): State<AppState>,
     Query(pagination): Query<HistoryListPagination>,
@@ -71,6 +98,21 @@ pub async fn history_list(
     }
 }
 
+#[utoipa::path(
+    delete,
+    path = "/history/{id}",
+    responses(
+        (status = 200, description = "History deleted successfully"),
+        (status = 401, description = "Unauthorized to delete History", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        })),
+        (status = 404, description = "History not found")
+    ),
+    params(
+        ("id" = i32, Path, description = "History database id")
+    ),
+)]
 pub async fn history_delete(
     State(state): State<AppState>,
     Path(history_id): Path<i32>,

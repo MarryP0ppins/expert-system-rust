@@ -62,7 +62,7 @@ pub async fn answer_create(
     get,
     path = "/answer",
     responses(
-        (status = 200, description = "List matching answers by query", body=[Answer]),
+        (status = 200, description = "List matching Answers by query", body=[Answer]),
         (status = 401, description = "Unauthorized to list Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized",

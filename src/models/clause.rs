@@ -3,10 +3,10 @@ use crate::schema::{clauses, sql_types::Operatorenum};
 use diesel::prelude::*;
 use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Debug, DbEnum, Deserialize, Serialize, Clone)]
+#[derive(Debug, DbEnum, Deserialize, Serialize, Clone, ToSchema)]
 #[ExistingTypePath = "Operatorenum"]
-
 pub enum RuleOperator {
     Equel,
     NotEqual,
@@ -16,7 +16,7 @@ pub enum RuleOperator {
     NoLessThan,
 }
 
-#[derive(Debug, Queryable, Serialize, Identifiable, Associations, Selectable, Clone)]
+#[derive(Debug, Queryable, Serialize, Identifiable, Associations, Selectable, Clone, ToSchema)]
 #[diesel(belongs_to(Rule))]
 #[diesel(table_name=clauses)]
 pub struct Clause {
@@ -27,7 +27,7 @@ pub struct Clause {
     pub operator: RuleOperator,
 }
 
-#[derive(Debug, Queryable, Insertable, Deserialize)]
+#[derive(Debug, Queryable, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name=clauses)]
 pub struct NewClause {
     pub rule_id: i32,
@@ -36,7 +36,7 @@ pub struct NewClause {
     pub operator: RuleOperator,
 }
 
-#[derive(Debug, Deserialize, AsChangeset, Clone)]
+#[derive(Debug, Deserialize, AsChangeset, Clone, ToSchema)]
 #[diesel(table_name=clauses)]
 pub struct UpdateClause {
     pub id: i32,

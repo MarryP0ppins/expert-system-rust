@@ -108,7 +108,7 @@ async fn main() {
         .nest("/question", question_routes())
         .nest("/answer", answer_routes())
         .nest("/attribute", attribute_routes())
-        .nest("/attribute_value", attribute_value_routes())
+        .nest("/attributevalue", attribute_value_routes())
         .nest("/clause", clause_routes())
         .nest("/rule", rule_routes())
         .nest("/object", object_routes())

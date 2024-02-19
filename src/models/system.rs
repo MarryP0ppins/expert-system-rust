@@ -2,8 +2,9 @@ use crate::schema::systems;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Debug, Queryable, Serialize, Identifiable)]
+#[derive(Debug, Queryable, Serialize, Identifiable, ToSchema)]
 #[diesel(table_name=systems)]
 pub struct System {
     pub id: i32,
