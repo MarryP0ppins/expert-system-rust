@@ -1,6 +1,7 @@
 use crate::schema::rule_attributevalue;
 use diesel::prelude::*;
 use serde::Deserialize;
+use utoipa::ToSchema;
 
 use super::attribute_value::AttributeValue;
 use super::rule::Rule;
@@ -15,7 +16,7 @@ pub struct RuleAttributeValue {
     pub rule_id: i32,
 }
 
-#[derive(Debug, Queryable, Deserialize, Insertable)]
+#[derive(Debug, Queryable, Deserialize, Insertable, ToSchema)]
 #[diesel(table_name=rule_attributevalue)]
 pub struct NewRuleAttributeValue {
     pub attribute_value_id: i32,

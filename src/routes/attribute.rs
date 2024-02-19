@@ -15,7 +15,7 @@ use crate::{
 use axum::{
     extract::{Query, State},
     http::StatusCode,
-    routing::post,
+    routing::{delete, patch, post},
     Json, Router,
 };
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
@@ -102,7 +102,7 @@ pub async fn attribute_list(
 }
 
 #[utoipa::path(
-    post,
+    delete,
     path = "/attribute/multiple_delete",
     request_body = [i32],
     responses(
@@ -141,7 +141,7 @@ pub async fn attribute_multiple_delete(
 }
 
 #[utoipa::path(
-    post,
+    patch,
     path = "/attribute/multiple_update",
     request_body = [UpdateAttribute],
     responses(
@@ -182,6 +182,6 @@ pub async fn attribute_multiple_update(
 pub fn attribute_routes() -> Router<AppState> {
     Router::new()
         .route("/", post(attribute_create).get(attribute_list))
-        .route("/multiple_delete", post(attribute_multiple_delete))
-        .route("/multiple_patch", post(attribute_multiple_update))
+        .route("/multiple_delete", delete(attribute_multiple_delete))
+        .route("/multiple_patch", patch(attribute_multiple_update))
 }

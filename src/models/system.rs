@@ -16,7 +16,7 @@ pub struct System {
     pub private: bool,
 }
 
-#[derive(Debug, Queryable, Insertable, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name=systems)]
 pub struct NewSystem {
     pub user_id: i32,
@@ -25,10 +25,9 @@ pub struct NewSystem {
     pub private: bool,
 }
 
-#[derive(Debug, Deserialize, AsChangeset)]
+#[derive(Debug, Deserialize, AsChangeset, ToSchema)]
 #[diesel(table_name=systems)]
 pub struct UpdateSystem {
-    pub user_id: Option<i32>,
     pub about: Option<String>,
     pub name: Option<String>,
     pub private: Option<bool>,

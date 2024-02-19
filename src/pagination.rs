@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use utoipa::IntoParams;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
 pub struct SystemListPagination {
     pub name: Option<String>,
     pub user_id: Option<i32>,
@@ -31,4 +31,19 @@ pub struct AttributeListPagination {
 #[derive(Deserialize, IntoParams)]
 pub struct ClauseListPagination {
     pub rule_id: i32,
+}
+
+#[derive(Deserialize, IntoParams)]
+pub struct ObjectListPagination {
+    pub system_id: i32,
+}
+
+#[derive(Deserialize, IntoParams)]
+pub struct QuestionListPagination {
+    pub system_id: i32,
+}
+
+#[derive(Deserialize, IntoParams)]
+pub struct RuleListPagination {
+    pub system_id: i32,
 }

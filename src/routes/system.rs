@@ -10,6 +10,7 @@ use crate::{
 };
 use axum::{
     extract::{Path, Query, State},
+    http::StatusCode,
     routing::{get, post},
     Json, Router,
 };
@@ -17,6 +18,18 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
 use tower_cookies::Cookies;
 
+#[utoipa::path(
+    post,
+    path = "/system",
+    request_body = NewSystem,
+    responses(
+        (status = 200, description = "System create successfully", body=System),
+        (status = 401, description = "Unauthorized to create System", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        }))
+    )
+)]
 pub async fn system_create(
     State(state): State<AppState>,
     cookie: Cookies,
@@ -43,6 +56,20 @@ pub async fn system_create(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/system",
+    responses(
+        (status = 200, description = "List matching Systems by query", body=[System]),
+        (status = 401, description = "Unauthorized to list Systems", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        }))
+    ),
+    params(
+        SystemListPagination
+    )
+)]
 pub async fn system_list(
     State(state): State<AppState>,
     Query(pagination): Query<SystemListPagination>,
@@ -70,6 +97,20 @@ pub async fn system_list(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/system/{id}",
+    responses(
+        (status = 200, description = "Matching System by query", body=System),
+        (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        }))
+    ),
+    params(
+        ("id" = i32, Path, description = "System database id")
+    ),
+)]
 pub async fn system_retrieve(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
@@ -90,6 +131,22 @@ pub async fn system_retrieve(
     }
 }
 
+#[utoipa::path(
+    patch,
+    path = "/system/{id}",
+    request_body = UpdateSystem,
+    responses(
+        (status = 200, description = "System and it dependences updated successfully", body = System),
+        (status = 401, description = "Unauthorized to update System and it dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        })),
+        (status = 404, description = "System not found")
+    ),
+    params(
+        ("id" = i32, Path, description = "System database id")
+    ),
+)]
 pub async fn system_partial_update(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
@@ -117,6 +174,21 @@ pub async fn system_partial_update(
     }
 }
 
+#[utoipa::path(
+    delete,
+    path = "/system/{id}",
+    responses(
+        (status = 200, description = "System and it dependences deleted successfully", body = Value, example = json!({"delete":"successful"})),
+        (status = 401, description = "Unauthorized to delete System and it dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        })),
+        (status = 404, description = "System not found")
+    ),
+    params(
+        ("id" = i32, Path, description = "System database id")
+    ),
+)]
 pub async fn system_delete(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,

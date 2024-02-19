@@ -6,12 +6,28 @@ use crate::{
     utils::auth::cookie_check,
     AppState, HandlerResult,
 };
-use axum::{extract::State, routing::post, Json, Router};
+use axum::{
+    extract::State,
+    http::StatusCode,
+    routing::{delete, post},
+    Json, Router,
+};
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
 use tower_cookies::Cookies;
 
-#[debug_handler]
+#[utoipa::path(
+    post,
+    path = "/rule-attributevalue",
+    request_body = [NewRuleAttributeValue],
+    responses(
+        (status = 200, description = "RuleAttributeValues and their dependences create successfully", body = Value, example = json!({"created":"successful"})),
+        (status = 401, description = "Unauthorized to create RuleAttributeValue and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        }))
+    )
+)]
 pub async fn rule_attributevalue_create(
     State(state): State<AppState>,
     cookie: Cookies,
@@ -38,7 +54,19 @@ pub async fn rule_attributevalue_create(
     }
 }
 
-#[debug_handler]
+#[utoipa::path(
+    delete,
+    path = "/rule-attributevalue/multiple_delete",
+    request_body = [i32],
+    responses(
+        (status = 200, description = "RuleAttributeValues and their dependences deleted successfully", body = Value, example = json!({"delete":"successful"})),
+        (status = 401, description = "Unauthorized to delete RuleAttributeValues and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        })),
+        (status = 404, description = "RuleAttributeValues not found")
+    )
+)]
 pub async fn rule_attributevalue_multiple_delete(
     State(state): State<AppState>,
     cookie: Cookies,
@@ -70,6 +98,6 @@ pub fn rule_attributevalue_routes() -> Router<AppState> {
         .route("/", post(rule_attributevalue_create))
         .route(
             "/multiple_delete",
-            post(rule_attributevalue_multiple_delete),
+            delete(rule_attributevalue_multiple_delete),
         )
 }

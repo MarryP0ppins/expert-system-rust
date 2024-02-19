@@ -1,6 +1,7 @@
 use crate::schema::questions;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use super::answer::Answer;
 
@@ -13,7 +14,7 @@ pub struct Question {
     pub with_chooses: bool,
 }
 
-#[derive(Debug, Queryable, Insertable, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Insertable, Deserialize)]
 #[diesel(table_name=questions)]
 pub struct NewQuestion {
     pub system_id: i32,
@@ -21,7 +22,7 @@ pub struct NewQuestion {
     pub with_chooses: bool,
 }
 
-#[derive(Debug, Queryable, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Deserialize, ToSchema)]
 pub struct NewQuestionWithAnswersBody {
     pub system_id: i32,
     pub body: String,
@@ -29,7 +30,7 @@ pub struct NewQuestionWithAnswersBody {
     pub answers_body: Vec<String>,
 }
 
-#[derive(Debug, Deserialize, AsChangeset, Clone)]
+#[derive(Debug, Deserialize, AsChangeset, Clone, ToSchema)]
 #[diesel(table_name=questions)]
 pub struct UpdateQuestion {
     pub id: i32,
@@ -37,7 +38,7 @@ pub struct UpdateQuestion {
     pub with_chooses: Option<bool>,
 }
 
-#[derive(Debug, Queryable, Serialize)]
+#[derive(Debug, Queryable, Serialize, ToSchema)]
 pub struct QuestionWithAnswers {
     pub id: i32,
     pub system_id: i32,

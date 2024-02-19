@@ -3,6 +3,7 @@ use crate::{
         error::CustomErrors,
         object::{NewObjectWithAttributesValueIds, ObjectWithAttributesValues, UpdateObject},
     },
+    pagination::ObjectListPagination,
     services::object::{
         create_objects, get_objects, multiple_delete_objects, multiple_update_objects,
     },
@@ -11,13 +12,26 @@ use crate::{
 };
 use axum::{
     extract::{Query, State},
-    routing::post,
+    http::StatusCode,
+    routing::{delete, patch, post},
     Json, Router,
 };
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
 use tower_cookies::Cookies;
 
+#[utoipa::path(
+    post,
+    path = "/object",
+    request_body = [NewObjectWithAttributesValueIds],
+    responses(
+        (status = 200, description = "Objects and their dependences create successfully", body=[ObjectWithAttributesValues]),
+        (status = 401, description = "Unauthorized to create Objects and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        }))
+    )
+)]
 pub async fn object_create(
     State(state): State<AppState>,
     cookie: Cookies,
@@ -44,9 +58,23 @@ pub async fn object_create(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/object",
+    responses(
+        (status = 200, description = "List matching Objects and their dependences by query", body=[ObjectWithAttributesValues]),
+        (status = 401, description = "Unauthorized to list Objects and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        }))
+    ),
+    params(
+        ObjectListPagination
+    )
+)]
 pub async fn object_list(
     State(state): State<AppState>,
-    Query(system): Query<i32>,
+    Query(pagination): Query<ObjectListPagination>,
     cookie: Cookies,
 ) -> HandlerResult<Vec<ObjectWithAttributesValues>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
@@ -60,7 +88,9 @@ pub async fn object_list(
         Err(err) => return Err(err.into()),
     };
 
-    match get_objects(&mut connection, system).await {
+    let pagination = pagination as ObjectListPagination;
+
+    match get_objects(&mut connection, pagination.system_id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
@@ -70,6 +100,19 @@ pub async fn object_list(
     }
 }
 
+#[utoipa::path(
+    delete,
+    path = "/object/multiple_delete",
+    request_body = [i32],
+    responses(
+        (status = 200, description = "Objects and their dependences deleted successfully", body = Value, example = json!({"delete":"successful"})),
+        (status = 401, description = "Unauthorized to delete Objects and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        })),
+        (status = 404, description = "Objects not found")
+    )
+)]
 pub async fn object_multiple_delete(
     State(state): State<AppState>,
     cookie: Cookies,
@@ -96,6 +139,19 @@ pub async fn object_multiple_delete(
     }
 }
 
+#[utoipa::path(
+    patch,
+    path = "/object/multiple_update",
+    request_body = [UpdateObject],
+    responses(
+        (status = 200, description = "Objects and their dependences updated successfully", body=[ObjectWithAttributesValues]),
+        (status = 401, description = "Unauthorized to update Objects and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        })),
+        (status = 404, description = "Objects and their dependences not found")
+    )
+)]
 pub async fn object_multiple_update(
     State(state): State<AppState>,
     cookie: Cookies,
@@ -125,6 +181,6 @@ pub async fn object_multiple_update(
 pub fn object_routes() -> Router<AppState> {
     Router::new()
         .route("/", post(object_create).get(object_list))
-        .route("/multiple_delete", post(object_multiple_delete))
-        .route("/multiple_patch", post(object_multiple_update))
+        .route("/multiple_delete", delete(object_multiple_delete))
+        .route("/multiple_patch", patch(object_multiple_update))
 }

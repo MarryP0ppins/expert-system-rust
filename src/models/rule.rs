@@ -2,6 +2,7 @@ use super::{answer::Answer, attribute_value::AttributeValue, clause::Clause, sys
 use crate::schema::rules;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 #[derive(Debug, Queryable, Serialize, Identifiable, Associations, Selectable, Clone)]
 #[diesel(belongs_to(System))]
@@ -12,14 +13,14 @@ pub struct Rule {
     pub attribute_rule: bool,
 }
 
-#[derive(Debug, Queryable, Insertable, Deserialize)]
+#[derive(Debug, Queryable, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name=rules)]
 pub struct NewRule {
     pub system_id: i32,
     pub attribute_rule: bool,
 }
 
-#[derive(Debug, Queryable, Serialize)]
+#[derive(Debug, Queryable, Serialize, ToSchema)]
 pub struct RuleWithClausesAndEffects {
     pub id: i32,
     pub system_id: i32,

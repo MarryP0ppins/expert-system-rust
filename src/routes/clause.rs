@@ -13,7 +13,7 @@ use crate::{
 use axum::{
     extract::{Query, State},
     http::StatusCode,
-    routing::post,
+    routing::{delete, patch, post},
     Json, Router,
 };
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
@@ -101,7 +101,7 @@ pub async fn clause_list(
 }
 
 #[utoipa::path(
-    post,
+    delete,
     path = "/clause/multiple_delete",
     request_body = [i32],
     responses(
@@ -140,7 +140,7 @@ pub async fn clause_multiple_delete(
 }
 
 #[utoipa::path(
-    post,
+    patch,
     path = "/clause/multiple_update",
     request_body = [UpdateClause],
     responses(
@@ -181,6 +181,6 @@ pub async fn clause_multiple_update(
 pub fn clause_routes() -> Router<AppState> {
     Router::new()
         .route("/", post(clause_create).get(clause_list))
-        .route("/multiple_delete", post(clause_multiple_delete))
-        .route("/multiple_patch", post(clause_multiple_update))
+        .route("/multiple_delete", delete(clause_multiple_delete))
+        .route("/multiple_patch", patch(clause_multiple_update))
 }
