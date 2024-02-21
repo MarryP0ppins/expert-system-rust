@@ -27,6 +27,7 @@ use swagger::openapi;
 #[cfg(debug_assertions)]
 use swagger::ApiDoc;
 use tower_cookies::{cookie::Key, CookieManagerLayer};
+use tower_http::services::ServeDir;
 #[cfg(debug_assertions)]
 use utoipa::OpenApi;
 #[cfg(debug_assertions)]
@@ -41,7 +42,7 @@ mod swagger;
 mod utils;
 
 pub const COOKIE_NAME: &str = "session_id";
-
+pub const IMAGE_DIR: &str = "./images";
 type HandlerResult<T> = Result<Json<T>, (StatusCode, Json<Value>)>;
 type AsyncPool = bb8::Pool<AsyncPgConnection>;
 
@@ -113,6 +114,7 @@ async fn main() {
         .nest("/object", object_routes())
         .nest("/rule-attributevalue", rule_attributevalue_routes())
         .nest("/rule-answer", rule_answer_routes())
+        .nest_service("/images", ServeDir::new(IMAGE_DIR))
         .with_state(AppState {
             db_pool: pool,
             cookie_key: secret_key,

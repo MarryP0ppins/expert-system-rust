@@ -121,6 +121,8 @@ diesel::table! {
         #[max_length = 128]
         name -> Varchar,
         private -> Bool,
+        #[max_length = 128]
+        image_uri -> Bpchar,
     }
 }
 

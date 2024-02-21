@@ -1,7 +1,7 @@
 use crate::{
     models::{
         error::CustomErrors,
-        system::{NewSystem, System, UpdateSystem},
+        system::{NewSystemMultipart, System, UpdateSystem},
     },
     pagination::SystemListPagination,
     services::system::{create_system, delete_system, get_system, get_systems, update_system},
@@ -14,6 +14,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use axum_typed_multipart::TypedMultipart;
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
 use tower_cookies::Cookies;
@@ -21,7 +22,7 @@ use tower_cookies::Cookies;
 #[utoipa::path(
     post,
     path = "/system",
-    request_body = NewSystem,
+    request_body(content = NewSystemMultipart, description = "Multipart file", content_type = "multipart/form-data"),
     responses(
         (status = 200, description = "System create successfully", body=System),
         (status = 401, description = "Unauthorized to create System", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -33,7 +34,7 @@ use tower_cookies::Cookies;
 pub async fn system_create(
     State(state): State<AppState>,
     cookie: Cookies,
-    Json(system_info): Json<NewSystem>,
+    TypedMultipart(system_info): TypedMultipart<NewSystemMultipart>,
 ) -> HandlerResult<System> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {

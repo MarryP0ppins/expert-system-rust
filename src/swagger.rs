@@ -91,7 +91,7 @@ use utoipa::OpenApi;
         rule_model::NewRule,
         rule_model::RuleWithClausesAndEffects,
         system_model::System,
-        system_model::NewSystem,
+        system_model::NewSystemMultipart,
         system_model::UpdateSystem,
         user_model::UserLogin,
         user_model::UserWithoutPassword,

@@ -1,9 +1,14 @@
 use crate::{
-    models::system::{NewSystem, System, UpdateSystem},
+    models::system::{NewSystem, NewSystemMultipart, System, UpdateSystem},
     schema::systems::dsl::*,
+    IMAGE_DIR,
 };
 use diesel::{delete, insert_into, prelude::*, result::Error, update};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use tokio::{
+    fs::{self, File},
+    io::AsyncWriteExt,
+};
 
 pub async fn get_systems(
     connection: &mut AsyncPgConnection,
@@ -38,16 +43,42 @@ pub async fn get_system(
 
 pub async fn create_system(
     connection: &mut AsyncPgConnection,
-    system_info: NewSystem,
+    system_info: NewSystemMultipart,
 ) -> Result<System, Error> {
+    let image_info = system_info.image;
+    let image_name = format!(
+        "{}_{}_{}",
+        chrono::Utc::now().timestamp_millis(),
+        image_info.metadata.name.clone().expect("No name"),
+        image_info.metadata.file_name.clone().expect("No file name")
+    );
+
+    let result: System;
     match insert_into(systems)
-        .values::<NewSystem>(system_info)
+        .values::<NewSystem>(NewSystem {
+            user_id: system_info.user_id,
+            about: system_info.about,
+            name: system_info.name,
+            image_uri: format!("/images/{}", image_name),
+            private: system_info.private,
+        })
         .get_result::<System>(connection)
         .await
     {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
+        Ok(ok) => result = ok,
+        Err(err) => return Err(err),
     }
+
+    let _ = fs::create_dir_all(IMAGE_DIR).await;
+
+    let mut file = File::create(format!("{IMAGE_DIR}/tokio_{}", image_name))
+        .await
+        .expect("Unable to create file");
+    file.write(&image_info.contents)
+        .await
+        .expect("Error while create file");
+
+    Ok(result)
 }
 
 pub async fn update_system(

@@ -1,4 +1,6 @@
 use crate::schema::systems;
+use axum::body::Bytes;
+use axum_typed_multipart::{FieldData, TryFromMultipart};
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -14,6 +16,18 @@ pub struct System {
     pub updated_at: NaiveDateTime,
     pub name: String,
     pub private: bool,
+    pub image_uri: String,
+}
+
+#[derive(Debug, Queryable, ToSchema, TryFromMultipart)]
+pub struct NewSystemMultipart {
+    pub user_id: i32,
+    pub about: Option<String>,
+    pub name: String,
+    #[schema(value_type = String, format = Binary)]
+    #[form_data(limit = "1MiB")]
+    pub image: FieldData<Bytes>,
+    pub private: bool,
 }
 
 #[derive(Debug, Queryable, Insertable, Deserialize, ToSchema)]
@@ -22,6 +36,7 @@ pub struct NewSystem {
     pub user_id: i32,
     pub about: Option<String>,
     pub name: String,
+    pub image_uri: String,
     pub private: bool,
 }
 
@@ -30,5 +45,6 @@ pub struct NewSystem {
 pub struct UpdateSystem {
     pub about: Option<String>,
     pub name: Option<String>,
+    pub image_uri: Option<String>,
     pub private: Option<bool>,
 }
