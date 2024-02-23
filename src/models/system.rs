@@ -48,3 +48,13 @@ pub struct UpdateSystem {
     pub image_uri: Option<String>,
     pub private: Option<bool>,
 }
+
+#[derive(Debug, ToSchema, TryFromMultipart)]
+pub struct UpdateSystemMultipart {
+    pub about: Option<String>,
+    pub name: Option<String>,
+    #[schema(value_type = String, format = Binary)]
+    #[form_data(limit = "1MiB")]
+    pub image: Option<FieldData<Bytes>>,
+    pub private: Option<bool>,
+}

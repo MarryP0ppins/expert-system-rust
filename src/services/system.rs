@@ -1,5 +1,5 @@
 use crate::{
-    models::system::{NewSystem, NewSystemMultipart, System, UpdateSystem},
+    models::system::{NewSystem, NewSystemMultipart, System, UpdateSystem, UpdateSystemMultipart},
     schema::systems::dsl::*,
     IMAGE_DIR,
 };
@@ -71,7 +71,7 @@ pub async fn create_system(
 
     let _ = fs::create_dir_all(IMAGE_DIR).await;
 
-    let mut file = File::create(format!("{IMAGE_DIR}/tokio_{}", image_name))
+    let mut file = File::create(format!("{IMAGE_DIR}/{}", image_name))
         .await
         .expect("Unable to create file");
     file.write(&image_info.contents)
@@ -84,16 +84,59 @@ pub async fn create_system(
 pub async fn update_system(
     connection: &mut AsyncPgConnection,
     system_id: i32,
-    system_info: UpdateSystem,
+    system_info: UpdateSystemMultipart,
 ) -> Result<System, Error> {
+    let image_info = system_info.image;
+
+    let image_name = image_info.as_ref().and_then(|info| {
+        Some(format!(
+            "{}_{}_{}",
+            chrono::Utc::now().timestamp_millis(),
+            info.metadata.name.clone().expect("No name"),
+            info.metadata.file_name.clone().expect("No file name")
+        ))
+    });
+
+    let system_image_uri_old: String;
+    match systems
+        .find(system_id)
+        .select(image_uri)
+        .first::<String>(connection)
+        .await
+    {
+        Ok(result) => system_image_uri_old = result,
+        Err(err) => return Err(err),
+    }
+
+    let result: System;
     match update(systems.find(system_id))
-        .set::<UpdateSystem>(system_info)
+        .set::<UpdateSystem>(UpdateSystem {
+            about: system_info.about,
+            name: system_info.name,
+            image_uri: image_name
+                .as_ref()
+                .and_then(|img_name| Some(format!("/images/{}", img_name))),
+            private: system_info.private,
+        })
         .get_result::<System>(connection)
         .await
     {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
+        Ok(ok) => result = ok,
+        Err(err) => return Err(err),
     }
+
+    if let (Some(img_info), Some(img_name)) = (image_info, image_name) {
+        let _ = fs::remove_file(format!(".{}", system_image_uri_old)).await;
+
+        let mut file = File::create(format!("{IMAGE_DIR}/{}", img_name))
+            .await
+            .expect("Unable to create file");
+        file.write(&img_info.contents)
+            .await
+            .expect("Error while create file");
+    };
+
+    Ok(result)
 }
 
 pub async fn delete_system(

@@ -1,7 +1,7 @@
 use crate::{
     models::{
         error::CustomErrors,
-        system::{NewSystemMultipart, System, UpdateSystem},
+        system::{NewSystemMultipart, System, UpdateSystemMultipart},
     },
     pagination::SystemListPagination,
     services::system::{create_system, delete_system, get_system, get_systems, update_system},
@@ -14,6 +14,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use axum_macros::debug_handler;
 use axum_typed_multipart::TypedMultipart;
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
@@ -132,10 +133,11 @@ pub async fn system_retrieve(
     }
 }
 
+#[debug_handler]
 #[utoipa::path(
     patch,
     path = "/system/{id}",
-    request_body = UpdateSystem,
+    request_body(content = UpdateSystemMultipart, description = "Multipart file", content_type = "multipart/form-data"),
     responses(
         (status = 200, description = "System and it dependences updated successfully", body = System),
         (status = 401, description = "Unauthorized to update System and it dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -152,7 +154,7 @@ pub async fn system_partial_update(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
     cookie: Cookies,
-    system_info: Json<UpdateSystem>,
+    TypedMultipart(system_info): TypedMultipart<UpdateSystemMultipart>,
 ) -> HandlerResult<System> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
@@ -165,7 +167,7 @@ pub async fn system_partial_update(
         Err(err) => return Err(err.into()),
     };
 
-    match update_system(&mut connection, system_id, system_info.0).await {
+    match update_system(&mut connection, system_id, system_info).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
