@@ -4,16 +4,19 @@ use serde::Deserialize;
 use utoipa::ToSchema;
 
 use super::answer::Answer;
+use super::question::Question;
 use super::rule::Rule;
 
 #[derive(Debug, Queryable, Identifiable, Associations, Selectable)]
 #[diesel(belongs_to(Answer))]
 #[diesel(belongs_to(Rule))]
+#[diesel(belongs_to(Question))]
 #[diesel(table_name=rule_answer)]
 pub struct RuleAnswer {
     pub id: i32,
     pub answer_id: i32,
     pub rule_id: i32,
+    pub question_id: i32,
 }
 
 #[derive(Debug, Queryable, Deserialize, Insertable, ToSchema)]
@@ -21,4 +24,5 @@ pub struct RuleAnswer {
 pub struct NewRuleAnswer {
     pub answer_id: i32,
     pub rule_id: i32,
+    pub question_id: i32,
 }

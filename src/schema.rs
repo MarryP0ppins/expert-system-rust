@@ -52,6 +52,7 @@ diesel::table! {
         compared_value -> Varchar,
         logical_group -> Int4,
         operator -> Operatorenum,
+        question_id -> Int4,
     }
 }
 
@@ -88,18 +89,20 @@ diesel::table! {
 }
 
 diesel::table! {
-    rule_answer (answer_id, rule_id) {
+    rule_answer (answer_id, rule_id, question_id) {
         id -> Int4,
         answer_id -> Int4,
         rule_id -> Int4,
+        question_id -> Int4,
     }
 }
 
 diesel::table! {
-    rule_attributevalue (attribute_value_id, rule_id) {
+    rule_attributevalue (attribute_value_id, rule_id, attribute_id) {
         id -> Int4,
         attribute_value_id -> Int4,
         rule_id -> Int4,
+        attribute_id -> Int4,
     }
 }
 
@@ -122,7 +125,7 @@ diesel::table! {
         name -> Varchar,
         private -> Bool,
         #[max_length = 128]
-        image_uri -> Bpchar,
+        image_uri -> Varchar,
     }
 }
 
@@ -149,13 +152,16 @@ diesel::joinable!(attributes -> systems (system_id));
 diesel::joinable!(attributesvalue_object -> attributesvalues (attribute_value_id));
 diesel::joinable!(attributesvalue_object -> objects (object_id));
 diesel::joinable!(attributesvalues -> attributes (attribute_id));
+diesel::joinable!(clauses -> questions (question_id));
 diesel::joinable!(clauses -> rules (rule_id));
 diesel::joinable!(histories -> systems (system_id));
 diesel::joinable!(histories -> users (user_id));
 diesel::joinable!(objects -> systems (system_id));
 diesel::joinable!(questions -> systems (system_id));
 diesel::joinable!(rule_answer -> answers (answer_id));
+diesel::joinable!(rule_answer -> questions (question_id));
 diesel::joinable!(rule_answer -> rules (rule_id));
+diesel::joinable!(rule_attributevalue -> attributes (attribute_id));
 diesel::joinable!(rule_attributevalue -> attributesvalues (attribute_value_id));
 diesel::joinable!(rule_attributevalue -> rules (rule_id));
 diesel::joinable!(rules -> systems (system_id));

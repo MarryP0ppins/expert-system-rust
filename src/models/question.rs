@@ -38,7 +38,7 @@ pub struct UpdateQuestion {
     pub with_chooses: Option<bool>,
 }
 
-#[derive(Debug, Queryable, Serialize, ToSchema)]
+#[derive(Debug, Queryable, Serialize, Clone, ToSchema)]
 pub struct QuestionWithAnswers {
     pub id: i32,
     pub system_id: i32,

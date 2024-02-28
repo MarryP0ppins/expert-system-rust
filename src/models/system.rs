@@ -6,6 +6,8 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+use super::{question::QuestionWithAnswers, rule::RuleWithClausesAndEffects};
+
 #[derive(Debug, Queryable, Serialize, Identifiable, ToSchema)]
 #[diesel(table_name=systems)]
 pub struct System {
@@ -57,4 +59,10 @@ pub struct UpdateSystemMultipart {
     #[form_data(limit = "1MiB")]
     pub image: Option<FieldData<Bytes>>,
     pub private: Option<bool>,
+}
+
+#[derive(Debug, Queryable, Serialize, ToSchema)]
+pub struct SystemData {
+    pub questions: Vec<QuestionWithAnswers>,
+    pub rules: Vec<RuleWithClausesAndEffects>,
 }

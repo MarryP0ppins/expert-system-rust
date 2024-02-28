@@ -1,10 +1,13 @@
 use crate::{
     models::{
         error::CustomErrors,
-        system::{NewSystemMultipart, System, UpdateSystemMultipart},
+        system::{NewSystemMultipart, System, SystemData, UpdateSystemMultipart},
     },
     pagination::SystemListPagination,
-    services::system::{create_system, delete_system, get_system, get_systems, update_system},
+    services::system::{
+        create_system, delete_system, get_ready_to_start_system, get_system, get_systems,
+        update_system,
+    },
     utils::auth::cookie_check,
     AppState, HandlerResult,
 };
@@ -14,7 +17,6 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use axum_macros::debug_handler;
 use axum_typed_multipart::TypedMultipart;
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
@@ -133,7 +135,40 @@ pub async fn system_retrieve(
     }
 }
 
-#[debug_handler]
+#[utoipa::path(
+    get,
+    path = "/system/{id}/start",
+    responses(
+        (status = 200, description = "Matching System by query", body=SystemData),
+        (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized",
+        }))
+    ),
+    params(
+        ("id" = i32, Path, description = "System database id")
+    ),
+)]
+pub async fn system_start(
+    State(state): State<AppState>,
+    Path(system_id): Path<i32>,
+) -> HandlerResult<SystemData> {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
+        Ok(ok) => connection = ok,
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+    };
+
+    match get_ready_to_start_system(&mut connection, system_id).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }
+        .into()),
+    }
+}
+
 #[utoipa::path(
     patch,
     path = "/system/{id}",
@@ -227,4 +262,5 @@ pub fn system_routes() -> Router<AppState> {
                 .patch(system_partial_update)
                 .delete(system_delete),
         )
+        .route("/:system_id/start", get(system_start))
 }

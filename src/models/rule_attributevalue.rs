@@ -3,17 +3,20 @@ use diesel::prelude::*;
 use serde::Deserialize;
 use utoipa::ToSchema;
 
+use super::attribute::Attribute;
 use super::attribute_value::AttributeValue;
 use super::rule::Rule;
 
 #[derive(Debug, Queryable, Identifiable, Associations, Selectable)]
 #[diesel(belongs_to(AttributeValue))]
 #[diesel(belongs_to(Rule))]
+#[diesel(belongs_to(Attribute))]
 #[diesel(table_name=rule_attributevalue)]
 pub struct RuleAttributeValue {
     pub id: i32,
     pub attribute_value_id: i32,
     pub rule_id: i32,
+    pub attribute_id: i32,
 }
 
 #[derive(Debug, Queryable, Deserialize, Insertable, ToSchema)]
@@ -21,4 +24,5 @@ pub struct RuleAttributeValue {
 pub struct NewRuleAttributeValue {
     pub attribute_value_id: i32,
     pub rule_id: i32,
+    pub attribute_id: i32,
 }

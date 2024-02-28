@@ -25,6 +25,7 @@ pub struct Clause {
     pub compared_value: String,
     pub logical_group: i32,
     pub operator: RuleOperator,
+    pub question_id: i32,
 }
 
 #[derive(Debug, Queryable, Insertable, Deserialize, ToSchema)]
@@ -34,6 +35,7 @@ pub struct NewClause {
     pub compared_value: String,
     pub logical_group: i32,
     pub operator: RuleOperator,
+    pub question_id: i32,
 }
 
 #[derive(Debug, Deserialize, AsChangeset, Clone, ToSchema)]
@@ -43,4 +45,5 @@ pub struct UpdateClause {
     pub compared_value: Option<String>,
     pub logical_group: Option<i32>,
     pub operator: Option<RuleOperator>,
+    pub question_id: Option<i32>,
 }
