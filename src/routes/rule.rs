@@ -5,7 +5,6 @@ use crate::{
     },
     pagination::RuleListPagination,
     services::rule::{create_rule, get_rules, multiple_delete_rules},
-    utils::auth::cookie_check,
     AppState, HandlerResult,
 };
 use axum::{
@@ -16,7 +15,6 @@ use axum::{
 };
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
-use tower_cookies::Cookies;
 
 #[utoipa::path(
     post,
@@ -32,18 +30,13 @@ use tower_cookies::Cookies;
 )]
 pub async fn rule_create(
     State(state): State<AppState>,
-    cookie: Cookies,
+
     Json(rule_info): Json<NewRule>,
 ) -> HandlerResult<RuleWithClausesAndEffects> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     match create_rule(&mut connection, rule_info).await {
@@ -72,7 +65,6 @@ pub async fn rule_create(
 pub async fn rule_list(
     State(state): State<AppState>,
     Query(pagination): Query<RuleListPagination>,
-    cookie: Cookies,
 ) -> HandlerResult<Vec<RuleWithClausesAndEffects>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
@@ -80,10 +72,6 @@ pub async fn rule_list(
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
-    };
     let pagination = pagination as RuleListPagination;
 
     match get_rules(&mut connection, pagination.system_id).await {
@@ -110,18 +98,13 @@ pub async fn rule_list(
 )]
 pub async fn rule_multiple_delete(
     State(state): State<AppState>,
-    cookie: Cookies,
+
     Json(rule_info): Json<Vec<i32>>,
 ) -> HandlerResult<Value> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     match multiple_delete_rules(&mut connection, rule_info).await {

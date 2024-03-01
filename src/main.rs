@@ -4,7 +4,8 @@ extern crate diesel;
 #[cfg(not(debug_assertions))]
 use axum::routing::get;
 use axum::{
-    http::StatusCode,
+    http::{Method, StatusCode},
+    middleware as axum_middleware,
     response::{IntoResponse, Json},
     Router,
 };
@@ -13,6 +14,7 @@ use diesel_async::{
     AsyncPgConnection,
 };
 use dotenvy::dotenv;
+use middleware::auth;
 use models::error::CustomErrors;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use routes::{
@@ -34,6 +36,7 @@ use utoipa::OpenApi;
 #[cfg(debug_assertions)]
 use utoipa_swagger_ui::SwaggerUi;
 
+mod middleware;
 mod models;
 mod pagination;
 mod routes;
@@ -44,8 +47,32 @@ mod utils;
 
 pub const COOKIE_NAME: &str = "session_id";
 pub const IMAGE_DIR: &str = "./images";
+pub const URI_WITHOUT_AUTH: [UriInfo; 4] = [
+    UriInfo {
+        uri: "/user/login",
+        method: Method::POST,
+    },
+    UriInfo {
+        uri: "/system",
+        method: Method::GET,
+    },
+    UriInfo {
+        uri: "/user/logout",
+        method: Method::POST,
+    },
+    UriInfo {
+        uri: "/user/registration",
+        method: Method::POST,
+    },
+];
 type HandlerResult<T> = Result<Json<T>, CustomErrors>;
 type AsyncPool = bb8::Pool<AsyncPgConnection>;
+
+#[derive(Debug)]
+pub struct UriInfo<'a> {
+    uri: &'a str,
+    method: Method,
+}
 
 #[derive(Debug, Clone)]
 struct AppState {
@@ -102,6 +129,11 @@ async fn main() {
     StdRng::from_entropy().fill(&mut secret_key);
     let secret_key = Key::from(&secret_key);
 
+    let state = AppState {
+        db_pool: pool,
+        cookie_key: secret_key,
+    };
+
     let mut app = Router::new()
         .nest("/user", user_routes())
         .nest("/system", system_routes())
@@ -116,10 +148,8 @@ async fn main() {
         .nest("/rule-attributevalue", rule_attributevalue_routes())
         .nest("/rule-answer", rule_answer_routes())
         .nest_service("/images", ServeDir::new(IMAGE_DIR))
-        .with_state(AppState {
-            db_pool: pool,
-            cookie_key: secret_key,
-        })
+        .layer(axum_middleware::from_fn_with_state(state.clone(), auth))
+        .with_state(state)
         .layer(CookieManagerLayer::new())
         .fallback(handler_404);
 

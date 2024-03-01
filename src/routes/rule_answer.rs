@@ -1,7 +1,6 @@
 use crate::{
     models::{error::CustomErrors, rule_answer::NewRuleAnswer},
     services::rule_answer::{create_rule_answers, multiple_delete_rule_answers},
-    utils::auth::cookie_check,
     AppState, HandlerResult,
 };
 use axum::{
@@ -12,7 +11,6 @@ use axum::{
 };
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
-use tower_cookies::Cookies;
 
 #[utoipa::path(
     post,
@@ -28,18 +26,13 @@ use tower_cookies::Cookies;
 )]
 pub async fn rule_answer_create(
     State(state): State<AppState>,
-    cookie: Cookies,
+
     Json(rule_answer_info): Json<Vec<NewRuleAnswer>>,
 ) -> HandlerResult<Value> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     match create_rule_answers(&mut connection, rule_answer_info).await {
@@ -66,18 +59,13 @@ pub async fn rule_answer_create(
 )]
 pub async fn rule_answer_multiple_delete(
     State(state): State<AppState>,
-    cookie: Cookies,
+
     Json(rule_answer_info): Json<Vec<i32>>,
 ) -> HandlerResult<Value> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     match multiple_delete_rule_answers(&mut connection, rule_answer_info).await {

@@ -8,7 +8,6 @@ use crate::{
         create_system, delete_system, get_ready_to_start_system, get_system, get_systems,
         update_system,
     },
-    utils::auth::cookie_check,
     AppState, HandlerResult,
 };
 use axum::{
@@ -20,7 +19,6 @@ use axum::{
 use axum_typed_multipart::TypedMultipart;
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
-use tower_cookies::Cookies;
 
 #[utoipa::path(
     post,
@@ -36,18 +34,12 @@ use tower_cookies::Cookies;
 )]
 pub async fn system_create(
     State(state): State<AppState>,
-    cookie: Cookies,
     TypedMultipart(system_info): TypedMultipart<NewSystemMultipart>,
 ) -> HandlerResult<System> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     match create_system(&mut connection, system_info).await {
@@ -184,18 +176,12 @@ pub async fn system_start(
 pub async fn system_partial_update(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
-    cookie: Cookies,
     TypedMultipart(system_info): TypedMultipart<UpdateSystemMultipart>,
 ) -> HandlerResult<System> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     match update_system(&mut connection, system_id, system_info).await {
@@ -225,17 +211,11 @@ pub async fn system_partial_update(
 pub async fn system_delete(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
-    cookie: Cookies,
 ) -> HandlerResult<Value> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     match delete_system(&mut connection, system_id).await {

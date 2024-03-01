@@ -5,7 +5,6 @@ use crate::{
     },
     pagination::HistoryListPagination,
     services::history::{create_history, delete_history, get_histories},
-    utils::auth::cookie_check,
     AppState, HandlerResult,
 };
 use axum::{
@@ -16,7 +15,6 @@ use axum::{
 };
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
-use tower_cookies::Cookies;
 
 #[utoipa::path(
     post,
@@ -32,18 +30,13 @@ use tower_cookies::Cookies;
 )]
 pub async fn history_create(
     State(state): State<AppState>,
-    cookie: Cookies,
+
     Json(history_info): Json<NewHistory>,
 ) -> HandlerResult<HistoryWithSystemAndUser> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     match create_history(&mut connection, history_info).await {
@@ -72,17 +65,11 @@ pub async fn history_create(
 pub async fn history_list(
     State(state): State<AppState>,
     Query(pagination): Query<HistoryListPagination>,
-    cookie: Cookies,
 ) -> HandlerResult<Vec<HistoryWithSystemAndUser>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     let pagination: HistoryListPagination = pagination;
@@ -114,17 +101,11 @@ pub async fn history_list(
 pub async fn history_delete(
     State(state): State<AppState>,
     Path(history_id): Path<i32>,
-    cookie: Cookies,
 ) -> HandlerResult<Value> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     match delete_history(&mut connection, history_id).await {

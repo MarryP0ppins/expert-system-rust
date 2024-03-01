@@ -9,7 +9,6 @@ use crate::{
     services::attribute::{
         create_attributes, get_attributes, multiple_delete_attributes, multiple_update_attributes,
     },
-    utils::auth::cookie_check,
     AppState, HandlerResult,
 };
 use axum::{
@@ -20,7 +19,6 @@ use axum::{
 };
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
-use tower_cookies::Cookies;
 
 #[utoipa::path(
     post,
@@ -36,18 +34,13 @@ use tower_cookies::Cookies;
 )]
 pub async fn attribute_create(
     State(state): State<AppState>,
-    cookie: Cookies,
+
     Json(attribute_info): Json<Vec<NewAttributeWithAttributeValuesName>>,
 ) -> HandlerResult<Vec<AttributeWithAttributeValues>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     match create_attributes(&mut connection, attribute_info).await {
@@ -76,17 +69,11 @@ pub async fn attribute_create(
 pub async fn attribute_list(
     State(state): State<AppState>,
     Query(pagination): Query<AttributeListPagination>,
-    cookie: Cookies,
 ) -> HandlerResult<Vec<AttributeWithAttributeValues>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     let pagination = pagination as AttributeListPagination;
@@ -114,18 +101,13 @@ pub async fn attribute_list(
 )]
 pub async fn attribute_multiple_delete(
     State(state): State<AppState>,
-    cookie: Cookies,
+
     Json(attribute_info): Json<Vec<i32>>,
 ) -> HandlerResult<Value> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     match multiple_delete_attributes(&mut connection, attribute_info).await {
@@ -152,18 +134,13 @@ pub async fn attribute_multiple_delete(
 )]
 pub async fn attribute_multiple_update(
     State(state): State<AppState>,
-    cookie: Cookies,
+
     Json(attribute_info): Json<Vec<UpdateAttribute>>,
 ) -> HandlerResult<Vec<AttributeWithAttributeValues>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     match multiple_update_attributes(&mut connection, attribute_info).await {

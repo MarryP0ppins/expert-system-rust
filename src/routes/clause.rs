@@ -7,7 +7,6 @@ use crate::{
     services::clause::{
         create_clauses, get_clauses, multiple_delete_clauses, multiple_update_clauses,
     },
-    utils::auth::cookie_check,
     AppState, HandlerResult,
 };
 use axum::{
@@ -18,7 +17,6 @@ use axum::{
 };
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use serde_json::{json, Value};
-use tower_cookies::Cookies;
 
 #[utoipa::path(
     post,
@@ -34,18 +32,13 @@ use tower_cookies::Cookies;
 )]
 pub async fn clause_create(
     State(state): State<AppState>,
-    cookie: Cookies,
+
     Json(clause_info): Json<Vec<NewClause>>,
 ) -> HandlerResult<Vec<Clause>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     match create_clauses(&mut connection, clause_info).await {
@@ -74,17 +67,11 @@ pub async fn clause_create(
 pub async fn clause_list(
     State(state): State<AppState>,
     Query(pagination): Query<ClauseListPagination>,
-    cookie: Cookies,
 ) -> HandlerResult<Vec<Clause>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     let pagination = pagination as ClauseListPagination;
@@ -113,18 +100,13 @@ pub async fn clause_list(
 )]
 pub async fn clause_multiple_delete(
     State(state): State<AppState>,
-    cookie: Cookies,
+
     Json(clause_info): Json<Vec<i32>>,
 ) -> HandlerResult<Value> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     match multiple_delete_clauses(&mut connection, clause_info).await {
@@ -151,18 +133,13 @@ pub async fn clause_multiple_delete(
 )]
 pub async fn clause_multiple_update(
     State(state): State<AppState>,
-    cookie: Cookies,
+
     Json(clause_info): Json<Vec<UpdateClause>>,
 ) -> HandlerResult<Vec<Clause>> {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
-
-    match cookie_check(&mut connection, cookie, &state.cookie_key).await {
-        Ok(_) => (),
-        Err(err) => return Err(err),
     };
 
     match multiple_update_clauses(&mut connection, clause_info).await {
