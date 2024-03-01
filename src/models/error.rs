@@ -1,35 +1,36 @@
+use axum::response::{IntoResponse, Response};
 use axum::{http::StatusCode, Json};
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::json;
 use utoipa::ToSchema;
 
 #[derive(Debug, ToSchema)]
-pub enum CustomErrors<'a> {
+pub enum CustomErrors {
     DieselError {
         #[schema(value_type=String)]
         error: diesel::result::Error,
-        message: Option<&'a str>,
+        message: Option<String>,
     },
     Argon2Error {
         #[schema(value_type=u16)]
         status: StatusCode,
         #[schema(value_type=String)]
         error: argon2::password_hash::Error,
-        message: Option<&'a str>,
+        message: Option<String>,
     },
     StringError {
         #[schema(value_type=u16)]
         status: StatusCode,
-        error: &'a str,
+        error: String,
     },
     #[schema(value_type=String)]
     PoolConnectionError(diesel_async::pooled_connection::bb8::RunError),
 }
 
-impl From<CustomErrors<'_>> for (StatusCode, Json<Value>) {
-    fn from(err: CustomErrors<'_>) -> (StatusCode, Json<Value>) {
-        match err {
+impl IntoResponse for CustomErrors {
+    fn into_response(self) -> Response {
+        let response = match self {
             CustomErrors::DieselError { error, message } => (
                 StatusCode::BAD_REQUEST,
                 Json(json!({"error":error.to_string(), "extra":message})),
@@ -49,11 +50,13 @@ impl From<CustomErrors<'_>> for (StatusCode, Json<Value>) {
                     json!({"error":error.to_string(), "extra":"Failed to get a database connection"}),
                 ),
             ),
-        }
+        };
+
+        response.into_response()
     }
 }
 
-impl<'a> Serialize for CustomErrors<'a> {
+impl Serialize for CustomErrors {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

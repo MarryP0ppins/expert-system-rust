@@ -28,7 +28,7 @@ use tower_cookies::Cookies;
         (status = 200, description = "Questions and their dependences create successfully", body=[QuestionWithAnswers]),
         (status = 401, description = "Unauthorized to create Questions and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         }))
     )
 )]
@@ -40,12 +40,12 @@ pub async fn question_create(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     match create_questions(&mut connection, question_info).await {
@@ -53,8 +53,7 @@ pub async fn question_create(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -65,7 +64,7 @@ pub async fn question_create(
         (status = 200, description = "List matching Questions and their dependences by query", body=[QuestionWithAnswers]),
         (status = 401, description = "Unauthorized to list Questions and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         }))
     ),
     params(
@@ -80,12 +79,12 @@ pub async fn question_list(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     let pagination = pagination as QuestionListPagination;
@@ -95,8 +94,7 @@ pub async fn question_list(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -108,7 +106,7 @@ pub async fn question_list(
         (status = 200, description = "Questions and their dependences deleted successfully", body = Value, example = json!({"delete":"successful"})),
         (status = 401, description = "Unauthorized to delete Questions and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         })),
         (status = 404, description = "Questions not found")
     )
@@ -121,21 +119,20 @@ pub async fn question_multiple_delete(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     match multiple_delete_questions(&mut connection, question_info).await {
-        Ok(_) => Ok(json!({"delete":"successful"}).into()),
+        Ok(_) => Ok(Json(json!({"delete":"successful"}))),
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -147,7 +144,7 @@ pub async fn question_multiple_delete(
         (status = 200, description = "Quetions and their dependences updated successfully", body=[QuestionWithAnswers]),
         (status = 401, description = "Unauthorized to update Quetions and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         })),
         (status = 404, description = "Quetions and their dependences not found")
     )
@@ -160,12 +157,12 @@ pub async fn question_multiple_update(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     match multiple_update_questions(&mut connection, question_info).await {
@@ -173,8 +170,7 @@ pub async fn question_multiple_update(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 

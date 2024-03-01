@@ -28,7 +28,7 @@ use tower_cookies::Cookies;
         (status = 200, description = "Clauses create successfully", body=[Clause]),
         (status = 401, description = "Unauthorized to create Clauses", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         }))
     )
 )]
@@ -40,12 +40,12 @@ pub async fn clause_create(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     match create_clauses(&mut connection, clause_info).await {
@@ -53,8 +53,7 @@ pub async fn clause_create(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -65,7 +64,7 @@ pub async fn clause_create(
         (status = 200, description = "List matching Clauses by query", body=[Clause]),
         (status = 401, description = "Unauthorized to list Clauses", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         }))
     ),
     params(
@@ -80,12 +79,12 @@ pub async fn clause_list(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     let pagination = pagination as ClauseListPagination;
@@ -95,8 +94,7 @@ pub async fn clause_list(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -108,7 +106,7 @@ pub async fn clause_list(
         (status = 200, description = "Clauses deleted successfully", body = Value, example = json!({"delete":"successful"})),
         (status = 401, description = "Unauthorized to delete Clauses", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         })),
         (status = 404, description = "Clauses not found")
     )
@@ -121,21 +119,20 @@ pub async fn clause_multiple_delete(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     match multiple_delete_clauses(&mut connection, clause_info).await {
-        Ok(_) => Ok(json!({"delete":"successful"}).into()),
+        Ok(_) => Ok(Json(json!({"delete":"successful"}))),
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -147,7 +144,7 @@ pub async fn clause_multiple_delete(
         (status = 200, description = "Clauses updated successfully", body=[Clause]),
         (status = 401, description = "Unauthorized to update Clauses", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         })),
         (status = 404, description = "Clauses not found")
     )
@@ -160,12 +157,12 @@ pub async fn clause_multiple_update(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     match multiple_update_clauses(&mut connection, clause_info).await {
@@ -173,8 +170,7 @@ pub async fn clause_multiple_update(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 

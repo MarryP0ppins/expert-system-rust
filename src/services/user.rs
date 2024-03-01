@@ -64,12 +64,12 @@ pub async fn create_user(
     }
 }
 
-pub async fn login_user<'a>(
-    connection: &'a mut AsyncPgConnection,
+pub async fn login_user(
+    connection: &mut AsyncPgConnection,
     user_info: UserLogin,
     cookie: Cookies,
-    cookie_key: &'a Key,
-) -> Result<UserWithoutPassword, CustomErrors<'a>> {
+    cookie_key: &Key,
+) -> Result<UserWithoutPassword, CustomErrors> {
     let _user: User;
     match users
         .filter(email.eq(user_info.email))
@@ -80,7 +80,7 @@ pub async fn login_user<'a>(
         Err(err) => {
             return Err(CustomErrors::DieselError {
                 error: err,
-                message: Some("Invalid credantials provided"),
+                message: Some("Invalid credantials provided".to_string()),
             })
         }
     }
@@ -113,7 +113,7 @@ pub async fn login_user<'a>(
         Err(err) => Err(CustomErrors::Argon2Error {
             status: StatusCode::BAD_REQUEST,
             error: err,
-            message: Some("Invalid credantials provided"),
+            message: Some("Invalid credantials provided".to_string()),
         }),
     }
 }

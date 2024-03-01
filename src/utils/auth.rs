@@ -12,7 +12,7 @@ pub async fn cookie_check<'a>(
     connection: &'a mut AsyncPgConnection,
     cookie: Cookies,
     cookie_key: &'a Key,
-) -> Result<(), CustomErrors<'a>> {
+) -> Result<(), CustomErrors> {
     match cookie
         .private(&cookie_key)
         .get(COOKIE_NAME)
@@ -22,12 +22,12 @@ pub async fn cookie_check<'a>(
             Ok(_) => Ok(()),
             Err(err) => Err(CustomErrors::DieselError {
                 error: err,
-                message: Some("Invalid credentials provided"),
+                message: Some("Invalid credentials provided".to_string()),
             }),
         },
         None => Err(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         }),
     }
 }

@@ -29,7 +29,7 @@ use tower_cookies::Cookies;
         (status = 200, description = "AttributeValues create successfully", body=[AttributeValue]),
         (status = 401, description = "Unauthorized to create AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         }))
     )
 )]
@@ -41,12 +41,12 @@ pub async fn attribute_value_create(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     match create_attributes_values(&mut connection, attribute_value_info).await {
@@ -54,8 +54,7 @@ pub async fn attribute_value_create(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -66,7 +65,7 @@ pub async fn attribute_value_create(
         (status = 200, description = "List matching AttributeValues by query", body=[AttributeValue]),
         (status = 401, description = "Unauthorized to list AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         }))
     ),
     params(
@@ -81,12 +80,12 @@ pub async fn attribute_value_list(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     let pagination = pagination as AttributeValueListPagination;
@@ -95,8 +94,7 @@ pub async fn attribute_value_list(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -108,7 +106,7 @@ pub async fn attribute_value_list(
         (status = 200, description = "AttributeValues deleted successfully", body = Value, example = json!({"delete":"successful"})),
         (status = 401, description = "Unauthorized to delete AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         })),
         (status = 404, description = "AttributeValues not found")
     )
@@ -121,21 +119,20 @@ pub async fn attribute_value_multiple_delete(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     match multiple_delete_attributes_values(&mut connection, attribute_value_info).await {
-        Ok(_) => Ok(json!({"delete":"successful"}).into()),
+        Ok(_) => Ok(Json(json!({"delete":"successful"}))),
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -147,7 +144,7 @@ pub async fn attribute_value_multiple_delete(
         (status = 200, description = "AttributeValues updated successfully", body=[AttributeValue]),
         (status = 401, description = "Unauthorized to update AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         })),
         (status = 404, description = "AttributeValues not found")
     )
@@ -160,12 +157,12 @@ pub async fn attribute_value_multiple_update(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     match multiple_update_attributes_values(&mut connection, attribute_value_info).await {
@@ -173,8 +170,7 @@ pub async fn attribute_value_multiple_update(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 

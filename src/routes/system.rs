@@ -30,7 +30,7 @@ use tower_cookies::Cookies;
         (status = 200, description = "System create successfully", body=System),
         (status = 401, description = "Unauthorized to create System", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         }))
     )
 )]
@@ -42,12 +42,12 @@ pub async fn system_create(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     match create_system(&mut connection, system_info).await {
@@ -55,8 +55,7 @@ pub async fn system_create(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -67,7 +66,7 @@ pub async fn system_create(
         (status = 200, description = "List matching Systems by query", body=[System]),
         (status = 401, description = "Unauthorized to list Systems", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         }))
     ),
     params(
@@ -81,7 +80,7 @@ pub async fn system_list(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     let pagination: SystemListPagination = pagination;
@@ -96,8 +95,7 @@ pub async fn system_list(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -108,7 +106,7 @@ pub async fn system_list(
         (status = 200, description = "Matching System by query", body=System),
         (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         }))
     ),
     params(
@@ -122,7 +120,7 @@ pub async fn system_retrieve(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match get_system(&mut connection, system_id).await {
@@ -130,8 +128,7 @@ pub async fn system_retrieve(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -142,7 +139,7 @@ pub async fn system_retrieve(
         (status = 200, description = "Matching System by query", body=SystemData),
         (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         }))
     ),
     params(
@@ -156,7 +153,7 @@ pub async fn system_start(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match get_ready_to_start_system(&mut connection, system_id).await {
@@ -164,8 +161,7 @@ pub async fn system_start(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -177,7 +173,7 @@ pub async fn system_start(
         (status = 200, description = "System and it dependences updated successfully", body = System),
         (status = 401, description = "Unauthorized to update System and it dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         })),
         (status = 404, description = "System not found")
     ),
@@ -194,12 +190,12 @@ pub async fn system_partial_update(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     match update_system(&mut connection, system_id, system_info).await {
@@ -207,8 +203,7 @@ pub async fn system_partial_update(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -219,7 +214,7 @@ pub async fn system_partial_update(
         (status = 200, description = "System and it dependences deleted successfully", body = Value, example = json!({"delete":"successful"})),
         (status = 401, description = "Unauthorized to delete System and it dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         })),
         (status = 404, description = "System not found")
     ),
@@ -235,21 +230,20 @@ pub async fn system_delete(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     match delete_system(&mut connection, system_id).await {
-        Ok(_) => Ok(json!({"delete":"successful"}).into()),
+        Ok(_) => Ok(Json(json!({"delete":"successful"}))),
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 

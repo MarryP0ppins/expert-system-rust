@@ -26,7 +26,7 @@ use tower_cookies::Cookies;
         (status = 200, description = "Histories create successfully", body=HistoryWithSystemAndUser),
         (status = 401, description = "Unauthorized to create Histories", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         }))
     )
 )]
@@ -38,12 +38,12 @@ pub async fn history_create(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     match create_history(&mut connection, history_info).await {
@@ -51,8 +51,7 @@ pub async fn history_create(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -63,7 +62,7 @@ pub async fn history_create(
         (status = 200, description = "List matching Histories by query", body=[HistoryWithSystemAndUser]),
         (status = 401, description = "Unauthorized to list Histories", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         }))
     ),
     params(
@@ -78,12 +77,12 @@ pub async fn history_list(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     let pagination: HistoryListPagination = pagination;
@@ -93,8 +92,7 @@ pub async fn history_list(
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 
@@ -105,7 +103,7 @@ pub async fn history_list(
         (status = 200, description = "History deleted successfully"),
         (status = 401, description = "Unauthorized to delete History", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized",
+            error: "Not authorized".to_string(),
         })),
         (status = 404, description = "History not found")
     ),
@@ -121,21 +119,20 @@ pub async fn history_delete(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err).into()),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match cookie_check(&mut connection, cookie, &state.cookie_key).await {
         Ok(_) => (),
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(err),
     };
 
     match delete_history(&mut connection, history_id).await {
-        Ok(_) => Ok(json!({"delete":"successful"}).into()),
+        Ok(_) => Ok(Json(json!({"delete":"successful"}))),
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
-        }
-        .into()),
+        }),
     }
 }
 

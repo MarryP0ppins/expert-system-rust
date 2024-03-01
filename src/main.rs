@@ -13,6 +13,7 @@ use diesel_async::{
     AsyncPgConnection,
 };
 use dotenvy::dotenv;
+use models::error::CustomErrors;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use routes::{
     answer::answer_routes, attribute::attribute_routes, attribute_value::attribute_value_routes,
@@ -20,7 +21,7 @@ use routes::{
     question::question_routes, rule::rule_routes, rule_answer::rule_answer_routes,
     rule_attributevalue::rule_attributevalue_routes, system::system_routes, user::user_routes,
 };
-use serde_json::{json, Value};
+use serde_json::json;
 use std::{env, net::SocketAddr};
 #[cfg(not(debug_assertions))]
 use swagger::openapi;
@@ -43,7 +44,7 @@ mod utils;
 
 pub const COOKIE_NAME: &str = "session_id";
 pub const IMAGE_DIR: &str = "./images";
-type HandlerResult<T> = Result<Json<T>, (StatusCode, Json<Value>)>;
+type HandlerResult<T> = Result<Json<T>, CustomErrors>;
 type AsyncPool = bb8::Pool<AsyncPgConnection>;
 
 #[derive(Debug, Clone)]
