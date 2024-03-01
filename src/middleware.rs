@@ -5,7 +5,9 @@ use axum::{
 };
 use tower_cookies::Cookies;
 
-use crate::{models::error::CustomErrors, utils::auth::cookie_check, AppState, URI_WITHOUT_AUTH};
+use crate::{
+    constants::URI_WITHOUT_AUTH, models::error::CustomErrors, utils::auth::cookie_check, AppState,
+};
 
 pub async fn auth(
     State(state): State<AppState>,

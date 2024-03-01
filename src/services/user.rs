@@ -1,11 +1,11 @@
 use crate::{
+    constants::COOKIE_NAME,
     models::{
         error::CustomErrors,
         user::{NewUser, User, UserLogin, UserWithoutPassword},
     },
     schema::users::dsl::*,
     utils::auth::{check_password, hash_password},
-    COOKIE_NAME,
 };
 use axum::http::StatusCode;
 use diesel::{insert_into, prelude::*, result::Error};

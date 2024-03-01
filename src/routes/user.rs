@@ -1,10 +1,11 @@
 use crate::{
+    constants::COOKIE_NAME,
     models::{
         error::CustomErrors,
         user::{NewUser, UserLogin, UserWithoutPassword},
     },
     services::user::{create_user, get_user, login_user},
-    AppState, HandlerResult, COOKIE_NAME,
+    AppState, HandlerResult,
 };
 use axum::{
     extract::State,

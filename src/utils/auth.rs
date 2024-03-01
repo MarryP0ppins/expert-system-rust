@@ -6,7 +6,7 @@ use axum::http::StatusCode;
 use diesel_async::AsyncPgConnection;
 use tower_cookies::{Cookies, Key};
 
-use crate::{models::error::CustomErrors, services::user::get_user, COOKIE_NAME};
+use crate::{constants::COOKIE_NAME, models::error::CustomErrors, services::user::get_user};
 
 pub async fn cookie_check<'a>(
     connection: &'a mut AsyncPgConnection,

@@ -4,11 +4,12 @@ extern crate diesel;
 #[cfg(not(debug_assertions))]
 use axum::routing::get;
 use axum::{
-    http::{Method, StatusCode},
+    http::{HeaderValue, Method, StatusCode},
     middleware as axum_middleware,
     response::{IntoResponse, Json},
     Router,
 };
+use constants::IMAGE_DIR;
 use diesel_async::{
     pooled_connection::{bb8, AsyncDieselConnectionManager},
     AsyncPgConnection,
@@ -30,12 +31,16 @@ use swagger::openapi;
 #[cfg(debug_assertions)]
 use swagger::ApiDoc;
 use tower_cookies::{cookie::Key, CookieManagerLayer};
-use tower_http::services::ServeDir;
+use tower_http::{
+    cors::{Any, CorsLayer},
+    services::ServeDir,
+};
 #[cfg(debug_assertions)]
 use utoipa::OpenApi;
 #[cfg(debug_assertions)]
 use utoipa_swagger_ui::SwaggerUi;
 
+mod constants;
 mod middleware;
 mod models;
 mod pagination;
@@ -45,34 +50,8 @@ mod services;
 mod swagger;
 mod utils;
 
-pub const COOKIE_NAME: &str = "session_id";
-pub const IMAGE_DIR: &str = "./images";
-pub const URI_WITHOUT_AUTH: [UriInfo; 4] = [
-    UriInfo {
-        uri: "/user/login",
-        method: Method::POST,
-    },
-    UriInfo {
-        uri: "/system",
-        method: Method::GET,
-    },
-    UriInfo {
-        uri: "/user/logout",
-        method: Method::POST,
-    },
-    UriInfo {
-        uri: "/user/registration",
-        method: Method::POST,
-    },
-];
 type HandlerResult<T> = Result<Json<T>, CustomErrors>;
 type AsyncPool = bb8::Pool<AsyncPgConnection>;
-
-#[derive(Debug)]
-pub struct UriInfo<'a> {
-    uri: &'a str,
-    method: Method,
-}
 
 #[derive(Debug, Clone)]
 struct AppState {
@@ -89,31 +68,6 @@ async fn handler_404() -> impl IntoResponse {
         })),
     )
 }
-/*
-#[catch(404)]
-fn not_found() -> Value {
-    json!({
-        "status": "error",
-        "reason": "Resource was not found."
-    })
-}
-
-#[catch(422)]
-fn unprocessable_entity() -> Value {
-    json!({
-        "status": "Unprocessable Entity",
-        "reason": "Invalid JSON payload"
-    })
-}
-
-#[catch(500)]
-fn server_error() -> Value {
-    json!({
-        "status": "Server error",
-        "reason": "Something went wrong. Please try again later"
-    })
-}
- */
 
 #[tokio::main]
 async fn main() {
@@ -134,6 +88,16 @@ async fn main() {
         cookie_key: secret_key,
     };
 
+    let cors = CorsLayer::new()
+        .allow_origin(
+            env::var("ALLOW_ORIGIN")
+                .expect("ALLOW_ORIGIN must be set")
+                .parse::<HeaderValue>()
+                .unwrap(),
+        )
+        .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
+        .allow_headers(Any); //.allow_credentials(true);
+
     let mut app = Router::new()
         .nest("/user", user_routes())
         .nest("/system", system_routes())
@@ -151,6 +115,7 @@ async fn main() {
         .layer(axum_middleware::from_fn_with_state(state.clone(), auth))
         .with_state(state)
         .layer(CookieManagerLayer::new())
+        .layer(cors)
         .fallback(handler_404);
 
     #[cfg(not(debug_assertions))]
