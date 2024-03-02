@@ -3,7 +3,6 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use validator::Validate;
 
 #[derive(Queryable, Serialize, ToSchema)]
 #[diesel(table_name=users)]
@@ -17,11 +16,10 @@ pub struct UserWithoutPassword {
     pub is_superuser: bool,
 }
 
-#[derive(Queryable, Serialize, Validate)]
+#[derive(Queryable, Serialize)]
 #[diesel(table_name=users)]
 pub struct User {
     pub id: i32,
-    #[validate(email)]
     pub email: String,
     pub username: String,
     pub created_at: NaiveDateTime,
