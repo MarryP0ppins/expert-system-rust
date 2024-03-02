@@ -1,4 +1,3 @@
-extern crate axum_macros;
 extern crate diesel;
 
 #[cfg(not(debug_assertions))]
