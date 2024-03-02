@@ -17,15 +17,15 @@ pub const URI_WITHOUT_AUTH: [UriInfo; 5] = [
         method: Method::GET,
     },
     UriInfo {
-        uri: "/system",
-        method: Method::POST,
-    },
-    UriInfo {
         uri: "/user/logout",
         method: Method::POST,
     },
     UriInfo {
         uri: "/user/registration",
         method: Method::POST,
+    },
+    UriInfo {
+        uri: "/swagger-ui/api-docs/openapi.json",
+        method: Method::GET,
     },
 ];
