@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use utoipa::ToSchema;
 /*
-#[derive(Debug, Queryable, Serialize, Identifiable)]
+#[derive( Queryable, Serialize, Identifiable)]
 #[diesel(table_name=histories)]
 pub struct History {
     pub id: i32,
@@ -19,7 +19,7 @@ pub struct History {
 }
  */
 
-#[derive(Debug, Queryable, Insertable, Deserialize, Clone, ToSchema)]
+#[derive(Queryable, Insertable, Deserialize, Clone, ToSchema)]
 #[diesel(table_name=histories)]
 pub struct NewHistory {
     pub system_id: i32,
@@ -28,7 +28,7 @@ pub struct NewHistory {
     pub results: Value,
 }
 
-#[derive(Debug, Queryable, Serialize, ToSchema)]
+#[derive(Queryable, Serialize, ToSchema)]
 pub struct HistoryWithSystemAndUser {
     pub id: i32,
     pub system: System,

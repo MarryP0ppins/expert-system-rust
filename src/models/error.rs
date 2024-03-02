@@ -5,7 +5,7 @@ use serde::Serialize;
 use serde_json::json;
 use utoipa::ToSchema;
 
-#[derive(Debug, ToSchema)]
+#[derive(ToSchema)]
 pub enum CustomErrors {
     DieselError {
         #[schema(value_type=String)]

@@ -7,7 +7,7 @@ use super::attribute::Attribute;
 use super::attribute_value::AttributeValue;
 use super::rule::Rule;
 
-#[derive(Debug, Queryable, Identifiable, Associations, Selectable)]
+#[derive(Queryable, Identifiable, Associations, Selectable)]
 #[diesel(belongs_to(AttributeValue))]
 #[diesel(belongs_to(Rule))]
 #[diesel(belongs_to(Attribute))]
@@ -19,7 +19,7 @@ pub struct RuleAttributeValue {
     pub attribute_id: i32,
 }
 
-#[derive(Debug, Queryable, Deserialize, Insertable, ToSchema)]
+#[derive(Queryable, Deserialize, Insertable, ToSchema)]
 #[diesel(table_name=rule_attributevalue)]
 pub struct NewRuleAttributeValue {
     pub attribute_value_id: i32,

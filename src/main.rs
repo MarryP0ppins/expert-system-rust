@@ -53,7 +53,7 @@ mod utils;
 type HandlerResult<T> = Result<Json<T>, CustomErrors>;
 type AsyncPool = bb8::Pool<AsyncPgConnection>;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 struct AppState {
     db_pool: AsyncPool,
     cookie_key: Key,
@@ -111,12 +111,12 @@ async fn main() {
         .nest("/object", object_routes())
         .nest("/rule-attributevalue", rule_attributevalue_routes())
         .nest("/rule-answer", rule_answer_routes())
-        .nest_service("/images", ServeDir::new(IMAGE_DIR))
         .layer(axum_middleware::from_fn_with_state(state.clone(), auth))
+        .nest_service("/images", ServeDir::new(IMAGE_DIR))
         .with_state(state)
         .layer(CookieManagerLayer::new())
-        .layer(cors)
-        .fallback(handler_404);
+        .fallback(handler_404)
+        .layer(cors);
 
     #[cfg(not(debug_assertions))]
     {

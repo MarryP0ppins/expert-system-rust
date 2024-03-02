@@ -8,7 +8,7 @@ use utoipa::ToSchema;
 
 use super::{question::QuestionWithAnswers, rule::RuleWithClausesAndEffects};
 
-#[derive(Debug, Queryable, Serialize, Identifiable, ToSchema)]
+#[derive(Queryable, Serialize, Identifiable, ToSchema)]
 #[diesel(table_name=systems)]
 pub struct System {
     pub id: i32,
@@ -21,7 +21,7 @@ pub struct System {
     pub image_uri: String,
 }
 
-#[derive(Debug, Queryable, ToSchema, TryFromMultipart)]
+#[derive(Queryable, ToSchema, TryFromMultipart)]
 pub struct NewSystemMultipart {
     pub user_id: i32,
     pub about: Option<String>,
@@ -32,7 +32,7 @@ pub struct NewSystemMultipart {
     pub private: bool,
 }
 
-#[derive(Debug, Queryable, Insertable, Deserialize, ToSchema)]
+#[derive(Queryable, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name=systems)]
 pub struct NewSystem {
     pub user_id: i32,
@@ -42,7 +42,7 @@ pub struct NewSystem {
     pub private: bool,
 }
 
-#[derive(Debug, Deserialize, AsChangeset, ToSchema)]
+#[derive(Deserialize, AsChangeset, ToSchema)]
 #[diesel(table_name=systems)]
 pub struct UpdateSystem {
     pub about: Option<String>,
@@ -51,7 +51,7 @@ pub struct UpdateSystem {
     pub private: Option<bool>,
 }
 
-#[derive(Debug, ToSchema, TryFromMultipart)]
+#[derive(ToSchema, TryFromMultipart)]
 pub struct UpdateSystemMultipart {
     pub about: Option<String>,
     pub name: Option<String>,
@@ -61,7 +61,7 @@ pub struct UpdateSystemMultipart {
     pub private: Option<bool>,
 }
 
-#[derive(Debug, Queryable, Serialize, ToSchema)]
+#[derive(Queryable, Serialize, ToSchema)]
 pub struct SystemData {
     pub questions: Vec<QuestionWithAnswers>,
     pub rules: Vec<RuleWithClausesAndEffects>,

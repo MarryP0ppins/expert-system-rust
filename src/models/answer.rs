@@ -5,7 +5,7 @@ use utoipa::ToSchema;
 
 use super::question::Question;
 
-#[derive(Debug, Queryable, Serialize, Identifiable, Associations, Selectable, Clone, ToSchema)]
+#[derive(Queryable, Serialize, Identifiable, Associations, Selectable, Clone, ToSchema)]
 #[diesel(belongs_to(Question))]
 #[diesel(table_name=answers)]
 pub struct Answer {
@@ -14,14 +14,14 @@ pub struct Answer {
     pub body: String,
 }
 
-#[derive(Debug, Queryable, Insertable, Deserialize, ToSchema)]
+#[derive(Queryable, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name=answers)]
 pub struct NewAnswer {
     pub question_id: i32,
     pub body: String,
 }
 
-#[derive(Debug, Deserialize, AsChangeset, Clone, ToSchema)]
+#[derive(Deserialize, AsChangeset, Clone, ToSchema)]
 #[diesel(table_name=answers)]
 pub struct UpdateAnswer {
     pub id: i32,

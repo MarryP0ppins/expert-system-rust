@@ -16,7 +16,7 @@ pub enum RuleOperator {
     NoLessThan,
 }
 
-#[derive(Debug, Queryable, Serialize, Identifiable, Associations, Selectable, Clone, ToSchema)]
+#[derive(Queryable, Serialize, Identifiable, Associations, Selectable, Clone, ToSchema)]
 #[diesel(belongs_to(Rule))]
 #[diesel(table_name=clauses)]
 pub struct Clause {
@@ -28,7 +28,7 @@ pub struct Clause {
     pub question_id: i32,
 }
 
-#[derive(Debug, Queryable, Insertable, Deserialize, ToSchema)]
+#[derive(Queryable, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name=clauses)]
 pub struct NewClause {
     pub rule_id: i32,
@@ -38,7 +38,7 @@ pub struct NewClause {
     pub question_id: i32,
 }
 
-#[derive(Debug, Deserialize, AsChangeset, Clone, ToSchema)]
+#[derive(Deserialize, AsChangeset, Clone, ToSchema)]
 #[diesel(table_name=clauses)]
 pub struct UpdateClause {
     pub id: i32,

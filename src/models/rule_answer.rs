@@ -7,7 +7,7 @@ use super::answer::Answer;
 use super::question::Question;
 use super::rule::Rule;
 
-#[derive(Debug, Queryable, Identifiable, Associations, Selectable)]
+#[derive(Queryable, Identifiable, Associations, Selectable)]
 #[diesel(belongs_to(Answer))]
 #[diesel(belongs_to(Rule))]
 #[diesel(belongs_to(Question))]
@@ -19,7 +19,7 @@ pub struct RuleAnswer {
     pub question_id: i32,
 }
 
-#[derive(Debug, Queryable, Deserialize, Insertable, ToSchema)]
+#[derive(Queryable, Deserialize, Insertable, ToSchema)]
 #[diesel(table_name=rule_answer)]
 pub struct NewRuleAnswer {
     pub answer_id: i32,

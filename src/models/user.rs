@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
 
-#[derive(Debug, Queryable, Serialize, ToSchema)]
+#[derive(Queryable, Serialize, ToSchema)]
 #[diesel(table_name=users)]
 pub struct UserWithoutPassword {
     pub id: i32,
@@ -17,7 +17,7 @@ pub struct UserWithoutPassword {
     pub is_superuser: bool,
 }
 
-#[derive(Debug, Queryable, Serialize, Validate)]
+#[derive(Queryable, Serialize, Validate)]
 #[diesel(table_name=users)]
 pub struct User {
     pub id: i32,
@@ -31,7 +31,7 @@ pub struct User {
     pub password: String,
 }
 
-#[derive(Debug, Queryable, Insertable, Serialize, Deserialize, ToSchema)]
+#[derive(Queryable, Insertable, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name=users)]
 pub struct NewUser {
     pub email: String,
@@ -42,14 +42,14 @@ pub struct NewUser {
     pub password: String,
 }
 
-#[derive(Debug, Queryable, Serialize, Deserialize, ToSchema)]
+#[derive(Queryable, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name=users)]
 pub struct UserLogin {
     pub email: String,
     pub password: String,
 }
 
-#[derive(Debug, Deserialize, AsChangeset)]
+#[derive(Deserialize, AsChangeset)]
 #[diesel(table_name=users)]
 pub struct UpdateUser {
     pub email: Option<String>,
