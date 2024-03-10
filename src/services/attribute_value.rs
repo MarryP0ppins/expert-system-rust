@@ -54,7 +54,7 @@ pub async fn multiple_update_attributes_values(
 
     for attribute_value_raw in attributes_values_info.into_iter() {
         match update(attributesvalues.find(attribute_value_raw.id))
-            .set::<UpdateAttributeValue>(attribute_value_raw.clone())
+            .set::<UpdateAttributeValue>(attribute_value_raw)
             .get_result::<AttributeValue>(connection)
             .await
         {

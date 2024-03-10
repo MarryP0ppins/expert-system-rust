@@ -147,7 +147,7 @@ pub async fn multiple_update_questions(
     let mut _questions: Vec<Question> = vec![];
     for question_raw in questions_info.into_iter() {
         match update(questions.find(question_raw.id))
-            .set::<UpdateQuestion>(question_raw.clone())
+            .set::<UpdateQuestion>(question_raw)
             .get_result::<Question>(connection)
             .await
         {

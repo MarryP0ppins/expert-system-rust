@@ -175,7 +175,7 @@ pub async fn multiple_update_objects(
 
     for object_raw in object_info.into_iter() {
         match update(objects.find(object_raw.id))
-            .set::<UpdateObject>(object_raw.clone())
+            .set::<UpdateObject>(object_raw)
             .get_result::<Object>(connection)
             .await
         {

@@ -54,7 +54,7 @@ pub async fn multiple_update_clauses(
 
     for clause_raw in clauses_info.into_iter() {
         match update(clauses.find(clause_raw.id))
-            .set::<UpdateClause>(clause_raw.clone())
+            .set::<UpdateClause>(clause_raw)
             .get_result::<Clause>(connection)
             .await
         {

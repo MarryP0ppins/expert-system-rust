@@ -55,7 +55,7 @@ pub async fn create_history(
     let insert_raw_id: i32;
 
     match insert_into(histories)
-        .values::<NewHistory>(history_info.clone())
+        .values::<NewHistory>(history_info)
         .returning(id)
         .get_result(connection)
         .await

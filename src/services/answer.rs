@@ -54,7 +54,7 @@ pub async fn multiple_update_answers(
 
     for answer_raw in answer_info.into_iter() {
         match update(answers.find(answer_raw.id))
-            .set::<UpdateAnswer>(answer_raw.clone())
+            .set::<UpdateAnswer>(answer_raw)
             .get_result::<Answer>(connection)
             .await
         {

@@ -154,7 +154,7 @@ pub async fn multiple_update_attributes(
 
     for attribute_raw in attributes_info.into_iter() {
         match update(attributes.find(attribute_raw.id))
-            .set::<UpdateAttribute>(attribute_raw.clone())
+            .set::<UpdateAttribute>(attribute_raw)
             .get_result::<Attribute>(connection)
             .await
         {
