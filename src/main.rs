@@ -15,7 +15,6 @@ use diesel_async::{
 };
 use dotenvy::dotenv;
 use middleware::auth;
-use models::error::CustomErrors;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use routes::{
     answer::answer_routes, attribute::attribute_routes, attribute_value::attribute_value_routes,
@@ -49,7 +48,6 @@ mod services;
 mod swagger;
 mod utils;
 
-type HandlerResult<T> = Result<Json<T>, CustomErrors>;
 type AsyncPool = bb8::Pool<AsyncPgConnection>;
 
 #[derive(Clone)]

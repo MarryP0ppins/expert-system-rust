@@ -1,24 +1,23 @@
 use crate::{
     models::{
-        attribute::{
-            AttributeWithAttributeValues, NewAttributeWithAttributeValuesName, UpdateAttribute,
-        },
+        attribute::{NewAttributeWithAttributeValuesName, UpdateAttribute},
         error::CustomErrors,
+        response_body::{ResponseBodyAttributes, ResponseBodyEmpty},
     },
     pagination::AttributeListPagination,
     services::attribute::{
         create_attributes, get_attributes, multiple_delete_attributes, multiple_update_attributes,
     },
-    AppState, HandlerResult,
+    AppState,
 };
 use axum::{
+    debug_handler,
     extract::{Query, State},
-    http::StatusCode,
+    response::IntoResponse,
     routing::{delete, patch, post},
     Json, Router,
 };
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
-use serde_json::{json, Value};
 
 #[utoipa::path(
     post,
@@ -26,27 +25,24 @@ use serde_json::{json, Value};
     context_path ="/api/v1",
     request_body = [NewAttributeWithAttributeValuesName],
     responses(
-        (status = 200, description = "Attributes and their dependences create successfully", body=[AttributeWithAttributeValues]),
-        (status = 401, description = "Unauthorized to create Attributes and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized".to_string(),
-        }))
+        (status = 200, description = "Attributes and their dependences create successfully", body = ResponseBodyAttributes),
+        (status = 401, description = "Unauthorized to create Attributes and their dependences", body = ResponseBodyAttributes, example = json!(ResponseBodyAttributes::unauthorized_example()))
     )
 )]
+#[debug_handler]
 pub async fn attribute_create(
     State(state): State<AppState>,
-
     Json(attribute_info): Json<Vec<NewAttributeWithAttributeValuesName>>,
-) -> HandlerResult<Vec<AttributeWithAttributeValues>> {
+) -> impl IntoResponse {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return ResponseBodyAttributes::from(CustomErrors::PoolConnectionError(err)),
     };
 
     match create_attributes(&mut connection, attribute_info).await {
-        Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Ok(result) => ResponseBodyAttributes::from(result),
+        Err(err) => ResponseBodyAttributes::from(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
@@ -58,30 +54,28 @@ pub async fn attribute_create(
     path = "/attributes",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching Attributes and their dependences by query", body=[AttributeWithAttributeValues]),
-        (status = 401, description = "Unauthorized to list Attributes and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized".to_string(),
-        }))
+        (status = 200, description = "List matching Attributes and their dependences by query", body = ResponseBodyAttributes),
+        (status = 401, description = "Unauthorized to list Attributes and their dependences", body = ResponseBodyAttributes, example = json!(ResponseBodyAttributes::unauthorized_example()))
     ),
     params(
         AttributeListPagination
     )
 )]
+#[debug_handler]
 pub async fn attribute_list(
     State(state): State<AppState>,
     Query(pagination): Query<AttributeListPagination>,
-) -> HandlerResult<Vec<AttributeWithAttributeValues>> {
+) -> impl IntoResponse {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return ResponseBodyAttributes::from(CustomErrors::PoolConnectionError(err)),
     };
 
     let pagination = pagination as AttributeListPagination;
     match get_attributes(&mut connection, pagination.system_id).await {
-        Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Ok(result) => ResponseBodyAttributes::from(result),
+        Err(err) => ResponseBodyAttributes::from(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
@@ -94,28 +88,29 @@ pub async fn attribute_list(
     context_path ="/api/v1",
     request_body = [i32],
     responses(
-        (status = 200, description = "Attributes and their dependences deleted successfully", body = Value, example = json!({"delete":"successful"})),
-        (status = 401, description = "Unauthorized to delete Attributes and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized".to_string(),
-        })),
+        (status = 200, description = "Attributes and their dependences deleted successfully", body = ResponseBodyEmpty, example = json!(ResponseBodyEmpty { succsess: true, data: None, error: None })),
+        (status = 401, description = "Unauthorized to delete Attributes and their dependences", body = ResponseBodyEmpty, example = json!(ResponseBodyEmpty::unauthorized_example())),
         (status = 404, description = "Answers not found")
     )
 )]
+#[debug_handler]
 pub async fn attribute_multiple_delete(
     State(state): State<AppState>,
-
     Json(attribute_info): Json<Vec<i32>>,
-) -> HandlerResult<Value> {
+) -> impl IntoResponse {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return ResponseBodyEmpty::from(CustomErrors::PoolConnectionError(err)),
     };
 
     match multiple_delete_attributes(&mut connection, attribute_info).await {
-        Ok(_) => Ok(Json(json!({"delete":"successful"}))),
-        Err(err) => Err(CustomErrors::DieselError {
+        Ok(_) => ResponseBodyEmpty {
+            succsess: true,
+            data: None,
+            error: None,
+        },
+        Err(err) => ResponseBodyEmpty::from(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
@@ -128,28 +123,25 @@ pub async fn attribute_multiple_delete(
     context_path ="/api/v1",
     request_body = [UpdateAttribute],
     responses(
-        (status = 200, description = "Attributes and their dependences updated successfully", body=[AttributeWithAttributeValues]),
-        (status = 401, description = "Unauthorized to update Attributes and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized".to_string(),
-        })),
+        (status = 200, description = "Attributes and their dependences updated successfully", body = ResponseBodyAttributes),
+        (status = 401, description = "Unauthorized to update Attributes and their dependences", body = ResponseBodyAttributes, example = json!(ResponseBodyAttributes::unauthorized_example())),
         (status = 404, description = "Attributes and their dependences not found")
     )
 )]
+#[debug_handler]
 pub async fn attribute_multiple_update(
     State(state): State<AppState>,
-
     Json(attribute_info): Json<Vec<UpdateAttribute>>,
-) -> HandlerResult<Vec<AttributeWithAttributeValues>> {
+) -> impl IntoResponse {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return ResponseBodyAttributes::from(CustomErrors::PoolConnectionError(err)),
     };
 
     match multiple_update_attributes(&mut connection, attribute_info).await {
-        Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Ok(result) => ResponseBodyAttributes::from(result),
+        Err(err) => ResponseBodyAttributes::from(CustomErrors::DieselError {
             error: err,
             message: None,
         }),

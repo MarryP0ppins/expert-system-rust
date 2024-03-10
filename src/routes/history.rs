@@ -1,20 +1,21 @@
 use crate::{
     models::{
         error::CustomErrors,
-        history::{HistoryWithSystemAndUser, NewHistory},
+        history::NewHistory,
+        response_body::{ResponseBodyEmpty, ResponseBodyHistories, ResponseBodyHistory},
     },
     pagination::HistoryListPagination,
     services::history::{create_history, delete_history, get_histories},
-    AppState, HandlerResult,
+    AppState,
 };
 use axum::{
+    debug_handler,
     extract::{Path, Query, State},
-    http::StatusCode,
+    response::IntoResponse,
     routing::{delete, post},
     Json, Router,
 };
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
-use serde_json::{json, Value};
 
 #[utoipa::path(
     post,
@@ -22,27 +23,24 @@ use serde_json::{json, Value};
     context_path ="/api/v1",
     request_body = NewHistory,
     responses(
-        (status = 200, description = "Histories create successfully", body=HistoryWithSystemAndUser),
-        (status = 401, description = "Unauthorized to create Histories", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized".to_string(),
-        }))
+        (status = 200, description = "Histories create successfully", body = ResponseBodyHistory),
+        (status = 401, description = "Unauthorized to create Histories", body = ResponseBodyHistory, example = json!(ResponseBodyHistory::unauthorized_example()))
     )
 )]
+#[debug_handler]
 pub async fn history_create(
     State(state): State<AppState>,
-
     Json(history_info): Json<NewHistory>,
-) -> HandlerResult<HistoryWithSystemAndUser> {
+) -> impl IntoResponse {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return ResponseBodyHistory::from(CustomErrors::PoolConnectionError(err)),
     };
 
     match create_history(&mut connection, history_info).await {
-        Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Ok(result) => ResponseBodyHistory::from(result),
+        Err(err) => ResponseBodyHistory::from(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
@@ -54,31 +52,29 @@ pub async fn history_create(
     path = "/histories",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching Histories by query", body=[HistoryWithSystemAndUser]),
-        (status = 401, description = "Unauthorized to list Histories", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized".to_string(),
-        }))
+        (status = 200, description = "List matching Histories by query", body = ResponseBodyHistories),
+        (status = 401, description = "Unauthorized to list Histories", body = ResponseBodyHistories, example = json!(ResponseBodyHistories::unauthorized_example()))
     ),
     params(
         HistoryListPagination
     )
 )]
+#[debug_handler]
 pub async fn history_list(
     State(state): State<AppState>,
     Query(pagination): Query<HistoryListPagination>,
-) -> HandlerResult<Vec<HistoryWithSystemAndUser>> {
+) -> impl IntoResponse {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return ResponseBodyHistories::from(CustomErrors::PoolConnectionError(err)),
     };
 
     let pagination: HistoryListPagination = pagination;
 
     match get_histories(&mut connection, pagination.system, pagination.user).await {
-        Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Ok(result) => ResponseBodyHistories::from(result),
+        Err(err) => ResponseBodyHistories::from(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
@@ -90,30 +86,32 @@ pub async fn history_list(
     path = "/histories/{id}",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "History deleted successfully"),
-        (status = 401, description = "Unauthorized to delete History", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized".to_string(),
-        })),
+        (status = 200, description = "History deleted successfully", body = ResponseBodyEmpty, example = json!(ResponseBodyEmpty { succsess: true, data: None, error: None })),
+        (status = 401, description = "Unauthorized to delete History", body = ResponseBodyEmpty, example = json!(ResponseBodyEmpty::unauthorized_example())),
         (status = 404, description = "History not found")
     ),
     params(
         ("id" = i32, Path, description = "History database id")
     ),
 )]
+#[debug_handler]
 pub async fn history_delete(
     State(state): State<AppState>,
     Path(history_id): Path<i32>,
-) -> HandlerResult<Value> {
+) -> impl IntoResponse {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return ResponseBodyEmpty::from(CustomErrors::PoolConnectionError(err)),
     };
 
     match delete_history(&mut connection, history_id).await {
-        Ok(_) => Ok(Json(json!({"delete":"successful"}))),
-        Err(err) => Err(CustomErrors::DieselError {
+        Ok(_) => ResponseBodyEmpty {
+            succsess: true,
+            data: None,
+            error: None,
+        },
+        Err(err) => ResponseBodyEmpty::from(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
