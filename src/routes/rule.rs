@@ -19,6 +19,7 @@ use serde_json::{json, Value};
 #[utoipa::path(
     post,
     path = "/rule",
+    context_path ="/api/v1",
     request_body = [NewRule],
     responses(
         (status = 200, description = "Rule create successfully", body=[RuleWithClausesAndEffects]),
@@ -51,6 +52,7 @@ pub async fn rule_create(
 #[utoipa::path(
     get,
     path = "/rule",
+    context_path ="/api/v1",
     responses(
         (status = 200, description = "List matching Rules and their dependences by query", body=[RuleWithClausesAndEffects]),
         (status = 401, description = "Unauthorized to list Rules and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -86,6 +88,7 @@ pub async fn rule_list(
 #[utoipa::path(
     delete,
     path = "/rule/multiple_delete",
+    context_path ="/api/v1",
     request_body = [i32],
     responses(
         (status = 200, description = "Rules and their dependences deleted successfully", body = Value, example = json!({"delete":"successful"})),

@@ -21,6 +21,7 @@ use serde_json::{json, Value};
 #[utoipa::path(
     post,
     path = "/object",
+    context_path ="/api/v1",
     request_body = [NewObjectWithAttributesValueIds],
     responses(
         (status = 200, description = "Objects and their dependences create successfully", body=[ObjectWithAttributesValues]),
@@ -53,6 +54,7 @@ pub async fn object_create(
 #[utoipa::path(
     get,
     path = "/object",
+    context_path ="/api/v1",
     responses(
         (status = 200, description = "List matching Objects and their dependences by query", body=[ObjectWithAttributesValues]),
         (status = 401, description = "Unauthorized to list Objects and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -88,6 +90,7 @@ pub async fn object_list(
 #[utoipa::path(
     delete,
     path = "/object/multiple_delete",
+    context_path ="/api/v1",
     request_body = [i32],
     responses(
         (status = 200, description = "Objects and their dependences deleted successfully", body = Value, example = json!({"delete":"successful"})),
@@ -121,6 +124,7 @@ pub async fn object_multiple_delete(
 #[utoipa::path(
     patch,
     path = "/object/multiple_update",
+    context_path ="/api/v1",
     request_body = [UpdateObject],
     responses(
         (status = 200, description = "Objects and their dependences updated successfully", body=[ObjectWithAttributesValues]),

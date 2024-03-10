@@ -12,3 +12,4 @@ pub mod rule_answer;
 pub mod rule_attributevalue;
 pub mod system;
 pub mod user;
+pub mod response_body;

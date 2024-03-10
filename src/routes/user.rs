@@ -20,7 +20,8 @@ use tower_cookies::{Cookie, Cookies};
 
 #[utoipa::path(
     post,
-    path = "/user/login",
+    path = "/users/login",
+    context_path ="/api/v1",
     request_body = UserLogin,
     responses(
         (status = 200, description = "User login successfully", body=UserWithoutPassword),
@@ -49,7 +50,8 @@ pub async fn user_login(
 
 #[utoipa::path(
     post,
-    path = "/user/logout",
+    path = "/users/logout",
+    context_path ="/api/v1",
     responses(
         (status = 200, description = "User logout successfully", body = Value, example = json!({"message":"You are logout"})),
     )
@@ -62,7 +64,8 @@ pub async fn user_logout(cookie: Cookies) -> HandlerResult<Value> {
 
 #[utoipa::path(
     post,
-    path = "/user/registration",
+    path = "/users/registration",
+    context_path ="/api/v1",
     request_body = NewUser,
     responses(
         (status = 200, description = "User registration successfully", body=UserWithoutPassword),
@@ -93,7 +96,8 @@ pub async fn user_registration(
 
 #[utoipa::path(
     get,
-    path = "/user",
+    path = "/users",
+    context_path ="/api/v1",
     responses(
         (status = 200, description = "Matching User", body=UserWithoutPassword),
         (status = 401, description = "Unauthorized to User", body = CustomErrors, example = json!(CustomErrors::StringError {

@@ -15,6 +15,7 @@ use serde_json::{json, Value};
 #[utoipa::path(
     post,
     path = "/rule-answer",
+    context_path ="/api/v1",
     request_body = [NewRuleAnswer],
     responses(
         (status = 200, description = "RuleAnswers and their dependences create successfully", body = Value, example = json!({"created":"successful"})),
@@ -47,6 +48,7 @@ pub async fn rule_answer_create(
 #[utoipa::path(
     delete,
     path = "/rule-answer/multiple_delete",
+    context_path ="/api/v1",
     request_body = [i32],
     responses(
         (status = 200, description = "RuleAnswers and their dependences deleted successfully", body = Value, example = json!({"delete":"successful"})),

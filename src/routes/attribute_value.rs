@@ -21,7 +21,8 @@ use serde_json::{json, Value};
 
 #[utoipa::path(
     post,
-    path = "/attributevalue",
+    path = "/attributevalues",
+    context_path ="/api/v1",
     request_body = [NewAttributeValue],
     responses(
         (status = 200, description = "AttributeValues create successfully", body=[AttributeValue]),
@@ -53,7 +54,8 @@ pub async fn attribute_value_create(
 
 #[utoipa::path(
     get,
-    path = "/attributevalue",
+    path = "/attributevalues",
+    context_path ="/api/v1",
     responses(
         (status = 200, description = "List matching AttributeValues by query", body=[AttributeValue]),
         (status = 401, description = "Unauthorized to list AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -87,7 +89,8 @@ pub async fn attribute_value_list(
 
 #[utoipa::path(
     delete,
-    path = "/attributevalue/multiple_delete",
+    path = "/attributevalues/multiple_delete",
+    context_path ="/api/v1",
     request_body = [i32],
     responses(
         (status = 200, description = "AttributeValues deleted successfully", body = Value, example = json!({"delete":"successful"})),
@@ -120,7 +123,8 @@ pub async fn attribute_value_multiple_delete(
 
 #[utoipa::path(
     patch,
-    path = "/attributevalue/multiple_update",
+    path = "/attributevalues/multiple_update",
+    context_path ="/api/v1",
     request_body = [UpdateAttributeValue],
     responses(
         (status = 200, description = "AttributeValues updated successfully", body=[AttributeValue]),

@@ -18,7 +18,8 @@ use serde_json::{json, Value};
 
 #[utoipa::path(
     post,
-    path = "/history",
+    path = "/histories",
+    context_path ="/api/v1",
     request_body = NewHistory,
     responses(
         (status = 200, description = "Histories create successfully", body=HistoryWithSystemAndUser),
@@ -50,7 +51,8 @@ pub async fn history_create(
 
 #[utoipa::path(
     get,
-    path = "/history",
+    path = "/histories",
+    context_path ="/api/v1",
     responses(
         (status = 200, description = "List matching Histories by query", body=[HistoryWithSystemAndUser]),
         (status = 401, description = "Unauthorized to list Histories", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -85,7 +87,8 @@ pub async fn history_list(
 
 #[utoipa::path(
     delete,
-    path = "/history/{id}",
+    path = "/histories/{id}",
+    context_path ="/api/v1",
     responses(
         (status = 200, description = "History deleted successfully"),
         (status = 401, description = "Unauthorized to delete History", body = CustomErrors, example = json!(CustomErrors::StringError {

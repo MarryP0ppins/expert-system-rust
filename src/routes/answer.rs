@@ -2,6 +2,7 @@ use crate::{
     models::{
         answer::{Answer, NewAnswer, UpdateAnswer},
         error::CustomErrors,
+        response_body::{ResponseBodyAnswer, ResponseBodyEmpty},
     },
     pagination::AnswerListPagination,
     services::answer::{
@@ -20,14 +21,12 @@ use serde_json::{json, Value};
 
 #[utoipa::path(
     post,
-    path = "/answer",
+    path = "/answers",
+    context_path ="/api/v1",
     request_body = [NewAnswer],
     responses(
-        (status = 200, description = "Answers create successfully", body=[Answer]),
-        (status = 401, description = "Unauthorized to create Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized".to_string(),
-        }))
+        (status = 200, description = "Answers create successfully", body = ResponseBodyAnswer),
+        (status = 401, description = "Unauthorized to create Answers", body = ResponseBodyAnswer, example = json!(ResponseBodyAnswer::unauthorized_example()))
     )
 )]
 pub async fn answer_create(
@@ -52,13 +51,11 @@ pub async fn answer_create(
 
 #[utoipa::path(
     get,
-    path = "/answer",
+    path = "/answers",
+    context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching Answers by query", body=[Answer]),
-        (status = 401, description = "Unauthorized to list Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized".to_string(),
-        }))
+        (status = 200, description = "List matching Answers by query", body=ResponseBodyAnswer),
+        (status = 401, description = "Unauthorized to list Answers", body = ResponseBodyAnswer, example = json!(ResponseBodyAnswer::unauthorized_example()))
     ),
     params(
         AnswerListPagination
@@ -87,20 +84,17 @@ pub async fn answer_list(
 
 #[utoipa::path(
     delete,
-    path = "/answer/multiple_delete",
+    path = "/answers/multiple_delete",
+    context_path ="/api/v1",
     request_body = [i32],
     responses(
-        (status = 200, description = "Answers deleted successfully", body = Value, example = json!({"delete":"successful"})),
-        (status = 401, description = "Unauthorized to delete Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized".to_string(),
-        })),
+        (status = 200, description = "Answers deleted successfully", body = ResponseBodyEmpty, example = json!(ResponseBodyEmpty { succsess: true, data: None, error: None })),
+        (status = 401, description = "Unauthorized to delete Answers", body = ResponseBodyAnswer, example = json!(ResponseBodyAnswer::unauthorized_example())),
         (status = 404, description = "Answers not found")
     )
 )]
 pub async fn answer_multiple_delete(
     State(state): State<AppState>,
-
     Json(answer_info): Json<Vec<i32>>,
 ) -> HandlerResult<Value> {
     let mut connection: PooledConnection<AsyncPgConnection>;
@@ -120,20 +114,17 @@ pub async fn answer_multiple_delete(
 
 #[utoipa::path(
     patch,
-    path = "/answer/multiple_update",
+    path = "/answers/multiple_update",
+    context_path ="/api/v1",
     request_body = [UpdateAnswer],
     responses(
-        (status = 200, description = "Answers updated successfully", body=[Answer]),
-        (status = 401, description = "Unauthorized to update Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized".to_string(),
-        })),
+        (status = 200, description = "Answers updated successfully", body=ResponseBodyAnswer),
+        (status = 401, description = "Unauthorized to update Answers", body = ResponseBodyAnswer, example = json!(ResponseBodyAnswer::unauthorized_example())),
         (status = 404, description = "Answers not found")
     )
 )]
 pub async fn answer_multiple_update(
     State(state): State<AppState>,
-
     Json(answer_info): Json<Vec<UpdateAnswer>>,
 ) -> HandlerResult<Vec<Answer>> {
     let mut connection: PooledConnection<AsyncPgConnection>;

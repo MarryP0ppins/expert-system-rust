@@ -1,6 +1,7 @@
 use crate::{
     models::{
         error::CustomErrors,
+        response_body::ResponseBodySystem,
         system::{NewSystemMultipart, System, SystemData, UpdateSystemMultipart},
     },
     pagination::SystemListPagination,
@@ -22,20 +23,18 @@ use serde_json::{json, Value};
 
 #[utoipa::path(
     post,
-    path = "/system",
+    path = "/systems",
+    context_path ="/api/v1",
     request_body(content = NewSystemMultipart, description = "Multipart file", content_type = "multipart/form-data"),
     responses(
-        (status = 200, description = "System create successfully", body=System),
-        (status = 401, description = "Unauthorized to create System", body = CustomErrors, example = json!(CustomErrors::StringError {
-            status: StatusCode::UNAUTHORIZED,
-            error: "Not authorized".to_string(),
-        }))
+        (status = 200, description = "System create successfully", body=ResponseBodySystem),
+        (status = 401, description = "Unauthorized to create System", body = ResponseBodySystem, example = json!(ResponseBodySystem::unauthorized_example()))
     )
 )]
 pub async fn system_create(
     State(state): State<AppState>,
     TypedMultipart(system_info): TypedMultipart<NewSystemMultipart>,
-) -> HandlerResult<System> {
+) -> ResponseBodySystem {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
@@ -43,17 +42,26 @@ pub async fn system_create(
     };
 
     match create_system(&mut connection, system_info).await {
-        Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
-            error: err,
-            message: None,
-        }),
+        Ok(result) => Ok(Json(ResponseBodySystem {
+            succsess: true,
+            data: Some(result),
+            error: None,
+        })),
+        Err(err) => Err(Json(ResponseBodySystem {
+            succsess: false,
+            data: None,
+            error: Some(CustomErrors::DieselError {
+                error: err,
+                message: None,
+            }),
+        })),
     }
 }
 
 #[utoipa::path(
     get,
-    path = "/system",
+    path = "/systems",
+    context_path ="/api/v1",
     responses(
         (status = 200, description = "List matching Systems by query", body=[System]),
         (status = 401, description = "Unauthorized to list Systems", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -93,7 +101,8 @@ pub async fn system_list(
 
 #[utoipa::path(
     get,
-    path = "/system/{id}",
+    path = "/systems/{id}",
+    context_path ="/api/v1",
     responses(
         (status = 200, description = "Matching System by query", body=System),
         (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -126,7 +135,8 @@ pub async fn system_retrieve(
 
 #[utoipa::path(
     get,
-    path = "/system/{id}/start",
+    path = "/systems/{id}/start",
+    context_path ="/api/v1",
     responses(
         (status = 200, description = "Matching System by query", body=SystemData),
         (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -159,7 +169,8 @@ pub async fn system_start(
 
 #[utoipa::path(
     patch,
-    path = "/system/{id}",
+    path = "/systems/{id}",
+    context_path ="/api/v1",
     request_body(content = UpdateSystemMultipart, description = "Multipart file", content_type = "multipart/form-data"),
     responses(
         (status = 200, description = "System and it dependences updated successfully", body = System),
@@ -195,7 +206,8 @@ pub async fn system_partial_update(
 
 #[utoipa::path(
     delete,
-    path = "/system/{id}",
+    path = "/systems/{id}",
+    context_path ="/api/v1",
     responses(
         (status = 200, description = "System and it dependences deleted successfully", body = Value, example = json!({"delete":"successful"})),
         (status = 401, description = "Unauthorized to delete System and it dependences", body = CustomErrors, example = json!(CustomErrors::StringError {

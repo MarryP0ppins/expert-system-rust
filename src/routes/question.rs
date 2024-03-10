@@ -20,7 +20,8 @@ use serde_json::{json, Value};
 
 #[utoipa::path(
     post,
-    path = "/question",
+    path = "/questions",
+    context_path ="/api/v1",
     request_body = [NewQuestionWithAnswersBody],
     responses(
         (status = 200, description = "Questions and their dependences create successfully", body=[QuestionWithAnswers]),
@@ -52,7 +53,8 @@ pub async fn question_create(
 
 #[utoipa::path(
     get,
-    path = "/question",
+    path = "/questions",
+    context_path ="/api/v1",
     responses(
         (status = 200, description = "List matching Questions and their dependences by query", body=[QuestionWithAnswers]),
         (status = 401, description = "Unauthorized to list Questions and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -87,7 +89,8 @@ pub async fn question_list(
 
 #[utoipa::path(
     delete,
-    path = "/question/multiple_delete",
+    path = "/questions/multiple_delete",
+    context_path ="/api/v1",
     request_body = [i32],
     responses(
         (status = 200, description = "Questions and their dependences deleted successfully", body = Value, example = json!({"delete":"successful"})),
@@ -120,7 +123,8 @@ pub async fn question_multiple_delete(
 
 #[utoipa::path(
     patch,
-    path = "/question/multiple_update",
+    path = "/questions/multiple_update",
+    context_path ="/api/v1",
     request_body = [UpdateQuestion],
     responses(
         (status = 200, description = "Quetions and their dependences updated successfully", body=[QuestionWithAnswers]),

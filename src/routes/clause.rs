@@ -21,6 +21,7 @@ use serde_json::{json, Value};
 #[utoipa::path(
     post,
     path = "/clause",
+    context_path ="/api/v1",
     request_body = [NewClause],
     responses(
         (status = 200, description = "Clauses create successfully", body=[Clause]),
@@ -53,6 +54,7 @@ pub async fn clause_create(
 #[utoipa::path(
     get,
     path = "/clause",
+    context_path ="/api/v1",
     responses(
         (status = 200, description = "List matching Clauses by query", body=[Clause]),
         (status = 401, description = "Unauthorized to list Clauses", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -88,6 +90,7 @@ pub async fn clause_list(
 #[utoipa::path(
     delete,
     path = "/clause/multiple_delete",
+    context_path ="/api/v1",
     request_body = [i32],
     responses(
         (status = 200, description = "Clauses deleted successfully", body = Value, example = json!({"delete":"successful"})),
@@ -121,6 +124,7 @@ pub async fn clause_multiple_delete(
 #[utoipa::path(
     patch,
     path = "/clause/multiple_update",
+    context_path ="/api/v1",
     request_body = [UpdateClause],
     responses(
         (status = 200, description = "Clauses updated successfully", body=[Clause]),

@@ -16,7 +16,8 @@ use serde_json::{json, Value};
 
 #[utoipa::path(
     post,
-    path = "/rule-attributevalue",
+    path = "/rule-attributevalues",
+    context_path ="/api/v1",
     request_body = [NewRuleAttributeValue],
     responses(
         (status = 200, description = "RuleAttributeValues and their dependences create successfully", body = Value, example = json!({"created":"successful"})),
@@ -48,7 +49,8 @@ pub async fn rule_attributevalue_create(
 
 #[utoipa::path(
     delete,
-    path = "/rule-attributevalue/multiple_delete",
+    path = "/rule-attributevalues/multiple_delete",
+    context_path ="/api/v1",
     request_body = [i32],
     responses(
         (status = 200, description = "RuleAttributeValues and their dependences deleted successfully", body = Value, example = json!({"delete":"successful"})),

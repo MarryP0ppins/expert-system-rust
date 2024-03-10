@@ -3,7 +3,7 @@ use crate::{
         answer as answer_model, attribute as attribute_model,
         attribute_value as attribute_value_model, clause as clause_model, error,
         history as history_model, object as object_model, question as question_model,
-        rule as rule_model, rule_answer as rule_answer_model,
+        response_body, rule as rule_model, rule_answer as rule_answer_model,
         rule_attributevalue as rule_attributevalue_model, system as system_model,
         user as user_model,
     },
@@ -66,6 +66,7 @@ use utoipa::OpenApi;
     ),
     components(schemas(
         error::CustomErrors,
+        response_body::ResponseBodyAnswer,
         answer_model::Answer,
         answer_model::NewAnswer,
         answer_model::UpdateAnswer,

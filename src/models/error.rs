@@ -5,6 +5,8 @@ use serde::Serialize;
 use serde_json::json;
 use utoipa::ToSchema;
 
+use super::response_body::ResponseBodyError;
+
 #[derive(ToSchema)]
 pub enum CustomErrors {
     DieselError {
@@ -26,6 +28,37 @@ pub enum CustomErrors {
     },
     #[schema(value_type=String)]
     PoolConnectionError(diesel_async::pooled_connection::bb8::RunError),
+}
+
+impl Into<ResponseBodyError> for CustomErrors {
+    fn into(self) -> ResponseBodyError {
+        match self {
+            CustomErrors::DieselError { error, message } => ResponseBodyError {
+                status: StatusCode::BAD_REQUEST.as_u16(),
+                error: error.to_string(),
+                extra: message,
+            },
+            CustomErrors::Argon2Error {
+                status,
+                error,
+                message,
+            } => ResponseBodyError {
+                status: status.as_u16(),
+                error: error.to_string(),
+                extra: message,
+            },
+            CustomErrors::StringError { status, error } => ResponseBodyError {
+                status: status.as_u16(),
+                error,
+                extra: None,
+            },
+            CustomErrors::PoolConnectionError(error) => ResponseBodyError {
+                status: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
+                error: error.to_string(),
+                extra: Some("Failed to get a database connection".to_string()),
+            },
+        }
+    }
 }
 
 impl IntoResponse for CustomErrors {
