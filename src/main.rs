@@ -3,6 +3,7 @@ extern crate diesel;
 #[cfg(not(debug_assertions))]
 use axum::routing::get;
 use axum::{
+    extract::{MatchedPath, Request},
     http::{HeaderValue, Method, StatusCode},
     middleware as axum_middleware,
     response::{IntoResponse, Json},
@@ -29,10 +30,13 @@ use swagger::openapi;
 #[cfg(debug_assertions)]
 use swagger::ApiDoc;
 use tower_cookies::{cookie::Key, CookieManagerLayer};
+use tower_http::trace::TraceLayer;
 use tower_http::{
     cors::{Any, CorsLayer},
     services::ServeDir,
 };
+use tracing::Level;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 #[cfg(debug_assertions)]
 use utoipa::OpenApi;
 #[cfg(debug_assertions)]
@@ -68,6 +72,16 @@ async fn handler_404() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::fmt()
+        // all spans/events with a level higher than TRACE (e.g, info, warn, etc.)
+        // will be written to stdout.
+        .with_max_level(Level::TRACE)
+        .with_thread_ids(true)
+        // enabled thread name to be emitted
+        .with_thread_names(true)
+        // sets this to be the default, global collector for this application.
+        .init();
+
     dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&database_url);
@@ -114,6 +128,26 @@ async fn main() {
         )
         .layer(axum_middleware::from_fn_with_state(state.clone(), auth))
         .nest_service("/api/v1/images", ServeDir::new(IMAGE_DIR))
+        .layer(
+            TraceLayer::new_for_http()
+                // Create our own span for the request and include the matched path. The matched
+                // path is useful for figuring out which handler the request was routed to.
+                .make_span_with(|req: &Request| {
+                    let method = req.method();
+                    let uri = req.uri();
+
+                    // axum automatically adds this extension.
+                    let matched_path = req
+                        .extensions()
+                        .get::<MatchedPath>()
+                        .map(|matched_path| matched_path.as_str());
+
+                    tracing::debug_span!("request", %method, %uri, matched_path)
+                })
+                // By default `TraceLayer` will log 5xx responses but we're doing our specific
+                // logging of errors so disable that
+                .on_failure(()),
+        )
         .with_state(state)
         .layer(CookieManagerLayer::new())
         .fallback(handler_404)
@@ -132,5 +166,7 @@ async fn main() {
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    println!("{}", "start");
+    tracing::debug!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
