@@ -34,7 +34,7 @@ pub struct UpdateAttribute {
     pub name: String,
 }
 
-#[derive(Queryable, Serialize, ToSchema)]
+#[derive(Queryable, Serialize, ToSchema, Clone)]
 pub struct AttributeWithAttributeValues {
     pub id: i32,
     pub system_id: i32,

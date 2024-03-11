@@ -15,7 +15,7 @@ pub struct NewHistory {
     pub results: Value,
 }
 
-#[derive(Queryable, Serialize, ToSchema)]
+#[derive(Queryable, Serialize, ToSchema, Clone)]
 pub struct HistoryWithSystemAndUser {
     pub id: i32,
     pub system: System,

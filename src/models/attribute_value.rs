@@ -5,7 +5,7 @@ use utoipa::ToSchema;
 
 use super::attribute::Attribute;
 
-#[derive(Queryable, Serialize, Identifiable, Associations, Selectable, ToSchema)]
+#[derive(Queryable, Serialize, Identifiable, Associations, Selectable, ToSchema, Clone)]
 #[diesel(belongs_to(Attribute))]
 #[diesel(table_name=attributesvalues)]
 pub struct AttributeValue {

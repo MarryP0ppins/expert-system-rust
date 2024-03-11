@@ -13,7 +13,6 @@ pub async fn cookie_check<'a>(
     cookie: Cookies,
     cookie_key: &'a Key,
 ) -> Result<(), CustomErrors> {
-    println!("{}", "auth");
     match cookie
         .private(&cookie_key)
         .get(COOKIE_NAME)

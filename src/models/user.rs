@@ -4,7 +4,7 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Queryable, Serialize, ToSchema)]
+#[derive(Queryable, Serialize, ToSchema, Clone)]
 #[diesel(table_name=users)]
 pub struct UserWithoutPassword {
     pub id: i32,

@@ -14,12 +14,14 @@ use super::{
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
+    Json,
 };
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
+use serde_json::json;
 use utoipa::ToSchema;
 
-#[derive(ToSchema)]
+#[derive(ToSchema, Clone)]
 pub struct ResponseBodyError {
     #[schema(value_type=u16)]
     pub status: StatusCode,
@@ -40,7 +42,7 @@ impl Serialize for ResponseBodyError {
     }
 }
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize, ToSchema, Clone)]
 #[aliases(
     ResponseBodyEmpty = ResponseBody<String>,
     ResponseBodyAnswers = ResponseBody<Vec<Answer>>,
@@ -58,13 +60,13 @@ impl Serialize for ResponseBodyError {
     ResponseBodySystem = ResponseBody<System>,
     ResponseBodySystems = ResponseBody<Vec<System>>
 )]
-pub struct ResponseBody<T> {
+pub struct ResponseBody<T: Clone> {
     pub succsess: bool,
     pub data: Option<T>,
     pub error: Option<ResponseBodyError>,
 }
 
-impl<T> ResponseBody<T> {
+impl<T: Clone> ResponseBody<T> {
     pub fn unauthorized_example() -> ResponseBody<T> {
         ResponseBody::<T> {
             succsess: false,
@@ -78,7 +80,7 @@ impl<T> ResponseBody<T> {
     }
 }
 
-impl<T> From<CustomErrors> for ResponseBody<T> {
+impl<T: Clone> From<CustomErrors> for ResponseBody<T> {
     fn from(error: CustomErrors) -> ResponseBody<T> {
         ResponseBody {
             succsess: false,
@@ -88,7 +90,7 @@ impl<T> From<CustomErrors> for ResponseBody<T> {
     }
 }
 
-impl<T: Serialize> From<T> for ResponseBody<T> {
+impl<T: Serialize + Clone> From<T> for ResponseBody<T> {
     fn from(result: T) -> ResponseBody<T> {
         ResponseBody {
             succsess: true,
@@ -98,12 +100,13 @@ impl<T: Serialize> From<T> for ResponseBody<T> {
     }
 }
 
-impl<T> IntoResponse for ResponseBody<T> {
+impl<T: Serialize + Clone> IntoResponse for ResponseBody<T> {
     fn into_response(self) -> Response {
-        match (&self.succsess, &self.data, &self.error) {
-            (true, _, _) => self.into_response(),
-            (false, _, Some(error)) => (error.status, self).into_response(),
-            (false, _, None) => (StatusCode::INTERNAL_SERVER_ERROR, self).into_response(),
-        }
+        let response = match (&self.succsess, &self.data, &self.error) {
+            (true, _, _) => (StatusCode::OK, Json(json!(self))),
+            (false, _, Some(error)) => (error.status, Json(json!(self))),
+            (false, _, None) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!(self))),
+        };
+        response.into_response()
     }
 }

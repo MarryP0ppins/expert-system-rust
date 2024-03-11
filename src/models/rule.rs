@@ -20,7 +20,7 @@ pub struct NewRule {
     pub attribute_rule: bool,
 }
 
-#[derive(Queryable, Serialize, ToSchema)]
+#[derive(Queryable, Serialize, ToSchema, Clone)]
 pub struct RuleWithClausesAndEffects {
     pub id: i32,
     pub system_id: i32,

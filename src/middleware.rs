@@ -1,5 +1,6 @@
 use axum::{
     extract::{Request, State},
+    http::StatusCode,
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -7,7 +8,10 @@ use tower_cookies::Cookies;
 
 use crate::{
     constants::URI_WITHOUT_AUTH,
-    models::{error::CustomErrors, response_body::ResponseBodyEmpty},
+    models::{
+        error::CustomErrors,
+        response_body::{ResponseBodyEmpty, ResponseBodyError},
+    },
     utils::auth::cookie_check,
     AppState,
 };
@@ -39,4 +43,16 @@ pub async fn auth(
     }
 
     Ok(next.run(req).await)
+}
+
+pub async fn handler_404() -> impl IntoResponse {
+    ResponseBodyEmpty {
+        succsess: false,
+        data: None,
+        error: Some(ResponseBodyError {
+            status: StatusCode::NOT_FOUND,
+            error: "Resource was not found.".to_owned(),
+            extra: None,
+        }),
+    }
 }

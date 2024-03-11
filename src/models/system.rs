@@ -8,7 +8,7 @@ use utoipa::ToSchema;
 
 use super::{question::QuestionWithAnswers, rule::RuleWithClausesAndEffects};
 
-#[derive(Queryable, Serialize, Identifiable, ToSchema)]
+#[derive(Queryable, Serialize, Identifiable, ToSchema, Clone)]
 #[diesel(table_name=systems)]
 pub struct System {
     pub id: i32,
@@ -61,7 +61,7 @@ pub struct UpdateSystemMultipart {
     pub private: Option<bool>,
 }
 
-#[derive(Queryable, Serialize, ToSchema)]
+#[derive(Queryable, Serialize, ToSchema, Clone)]
 pub struct SystemData {
     pub questions: Vec<QuestionWithAnswers>,
     pub rules: Vec<RuleWithClausesAndEffects>,

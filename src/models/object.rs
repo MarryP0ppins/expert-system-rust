@@ -28,7 +28,7 @@ pub struct NewObjectWithAttributesValueIds {
     pub attributes_values_ids: Vec<i32>,
 }
 
-#[derive(Serialize, Queryable, ToSchema)]
+#[derive(Serialize, Queryable, ToSchema, Clone)]
 pub struct ObjectWithAttributesValues {
     pub id: i32,
     pub system_id: i32,
