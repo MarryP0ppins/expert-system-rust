@@ -77,13 +77,7 @@ pub async fn system_list(
     };
 
     let pagination: SystemListPagination = pagination;
-    match get_systems(
-        &mut connection,
-        pagination.name.as_deref(),
-        pagination.user_id,
-    )
-    .await
-    {
+    match get_systems(&mut connection, pagination).await {
         Ok(result) => ResponseBodySystems::from(result),
         Err(err) => ResponseBodySystems::from(CustomErrors::DieselError {
             error: err,
@@ -101,7 +95,7 @@ pub async fn system_list(
         (status = 401, description = "Unauthorized to retrive System", body = ResponseBodySystem, example = json!(ResponseBodySystem::unauthorized_example()))
     ),
     params(
-        ("id" = i32, Path, description = "System database id")
+        ("id" = u32, Path, description = "System database id")
     ),
 )]
 #[debug_handler]
@@ -133,7 +127,7 @@ pub async fn system_retrieve(
         (status = 401, description = "Unauthorized to retrive System", body = ResponseBodyStartSystem, example = json!(ResponseBodyStartSystem::unauthorized_example()))
     ),
     params(
-        ("id" = i32, Path, description = "System database id")
+        ("id" = u32, Path, description = "System database id")
     ),
 )]
 #[debug_handler]
@@ -167,7 +161,7 @@ pub async fn system_start(
         (status = 404, description = "System not found")
     ),
     params(
-        ("id" = i32, Path, description = "System database id")
+        ("id" = u32, Path, description = "System database id")
     ),
 )]
 #[debug_handler]
@@ -201,7 +195,7 @@ pub async fn system_partial_update(
         (status = 404, description = "System not found")
     ),
     params(
-        ("id" = i32, Path, description = "System database id")
+        ("id" = u32, Path, description = "System database id")
     ),
 )]
 #[debug_handler]

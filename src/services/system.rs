@@ -7,9 +7,11 @@ use crate::{
         rule::{Rule, RuleWithClausesAndEffects},
         rule_answer::RuleAnswer,
         system::{
-            NewSystem, NewSystemMultipart, System, SystemData, UpdateSystem, UpdateSystemMultipart,
+            NewSystem, NewSystemMultipart, System, SystemData, SystemsWithPageCount, UpdateSystem,
+            UpdateSystemMultipart,
         },
     },
+    pagination::SystemListPagination,
     schema::{rule_answer, rules, systems::dsl::*},
     utils::topological_sort::topological_sort,
     IMAGE_DIR,
@@ -25,23 +27,41 @@ use super::{question::get_questions, rule::get_rules};
 
 pub async fn get_systems(
     connection: &mut AsyncPgConnection,
-    _name: Option<&str>,
-    _user_id: Option<i32>,
-) -> Result<Vec<System>, Error> {
+    params: SystemListPagination,
+) -> Result<SystemsWithPageCount, Error> {
     let mut query = systems.into_boxed();
+    let mut raw_count_query = systems.into_boxed();
 
-    if let Some(param) = _name {
-        query = query.filter(name.like(format!("%{}%", param)));
+    if let Some(_name) = params.name {
+        query = query.filter(name.like(format!("%{}%", _name)));
+        raw_count_query = raw_count_query.filter(name.like(format!("%{}%", _name)));
     }
 
-    if let Some(_user_id) = _user_id {
+    if let Some(_user_id) = params.user_id {
         query = query.filter(user_id.eq(_user_id));
+        raw_count_query = raw_count_query.filter(user_id.eq(_user_id));
     }
 
-    match query.load::<System>(connection).await {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
-    }
+    let pages: i64;
+    match raw_count_query.count().get_result::<i64>(connection).await {
+        Ok(result) => pages = ((result as f64) / (params.count.unwrap_or(20) as f64)).ceil() as i64,
+        Err(err) => return Err(err),
+    };
+    let _systems: Vec<System>;
+    match query
+        .limit(params.count.unwrap_or(20).into())
+        .offset((params.count.unwrap_or(20) * params.page.unwrap_or(0)).into())
+        .load::<System>(connection)
+        .await
+    {
+        Ok(result) => _systems = result,
+        Err(err) => return Err(err),
+    };
+
+    Ok(SystemsWithPageCount {
+        systems: _systems,
+        pages,
+    })
 }
 
 pub async fn get_system(

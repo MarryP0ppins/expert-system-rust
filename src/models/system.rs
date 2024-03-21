@@ -21,6 +21,12 @@ pub struct System {
     pub image_uri: String,
 }
 
+#[derive(Queryable, Serialize, ToSchema, Clone)]
+pub struct SystemsWithPageCount {
+    pub systems: Vec<System>,
+    pub pages: i64,
+}
+
 #[derive(Queryable, ToSchema, TryFromMultipart)]
 pub struct NewSystemMultipart {
     pub user_id: i32,

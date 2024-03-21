@@ -92,7 +92,7 @@ async fn main() {
                 .nest("/systems", system_routes())
                 .nest("/histories", history_routes())
                 .nest("/questions", question_routes())
-                .nest("/answer", answer_routes())
+                .nest("/answers", answer_routes())
                 .nest("/attributes", attribute_routes())
                 .nest("/attributevalues", attribute_value_routes())
                 .nest("/clauses", clause_routes())

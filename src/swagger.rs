@@ -107,6 +107,7 @@ use utoipa::OpenApi;
         rule_model::NewRule,
         rule_model::RuleWithClausesAndEffects,
         system_model::System,
+        system_model::SystemsWithPageCount,
         system_model::NewSystemMultipart,
         system_model::UpdateSystemMultipart,
         system_model::SystemData,

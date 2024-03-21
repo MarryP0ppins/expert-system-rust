@@ -8,7 +8,7 @@ use super::{
     object::ObjectWithAttributesValues,
     question::QuestionWithAnswers,
     rule::RuleWithClausesAndEffects,
-    system::{System, SystemData},
+    system::{System, SystemData, SystemsWithPageCount},
     user::UserWithoutPassword,
 };
 use axum::{
@@ -18,7 +18,6 @@ use axum::{
 };
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
-use serde_json::json;
 use utoipa::ToSchema;
 
 #[derive(ToSchema, Clone)]
@@ -58,7 +57,7 @@ impl Serialize for ResponseBodyError {
     ResponseBodyUser = ResponseBody<UserWithoutPassword>,
     ResponseBodyStartSystem = ResponseBody<SystemData>,
     ResponseBodySystem = ResponseBody<System>,
-    ResponseBodySystems = ResponseBody<Vec<System>>
+    ResponseBodySystems = ResponseBody<SystemsWithPageCount>
 )]
 pub struct ResponseBody<T: Clone> {
     pub succsess: bool,
@@ -103,9 +102,9 @@ impl<T: Serialize + Clone> From<T> for ResponseBody<T> {
 impl<T: Serialize + Clone> IntoResponse for ResponseBody<T> {
     fn into_response(self) -> Response {
         let response = match (&self.succsess, &self.data, &self.error) {
-            (true, _, _) => (StatusCode::OK, Json(json!(self))),
-            (false, _, Some(error)) => (error.status, Json(json!(self))),
-            (false, _, None) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!(self))),
+            (true, _, _) => (StatusCode::OK, Json(self)),
+            (false, _, Some(error)) => (error.status, Json(self)),
+            (false, _, None) => (StatusCode::INTERNAL_SERVER_ERROR, Json(self)),
         };
         response.into_response()
     }
