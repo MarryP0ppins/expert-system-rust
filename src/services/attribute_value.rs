@@ -9,41 +9,31 @@ pub async fn get_attribute_values(
     connection: &mut AsyncPgConnection,
     attribute: i32,
 ) -> Result<Vec<AttributeValue>, Error> {
-    match attributesvalues
+    Ok(attributesvalues
         .filter(attribute_id.eq(attribute))
         .load::<AttributeValue>(connection)
-        .await
-    {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
-    }
+        .await?)
 }
 
 pub async fn create_attributes_values(
     connection: &mut AsyncPgConnection,
     attributes_values_info: Vec<NewAttributeValue>,
 ) -> Result<Vec<AttributeValue>, Error> {
-    match insert_into(attributesvalues)
+    Ok(insert_into(attributesvalues)
         .values::<Vec<NewAttributeValue>>(attributes_values_info)
         .get_results::<AttributeValue>(connection)
-        .await
-    {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
-    }
+        .await?)
 }
 
 pub async fn multiple_delete_attributes_values(
     connection: &mut AsyncPgConnection,
     attributes_values_ids: Vec<i32>,
 ) -> Result<usize, Error> {
-    match delete(attributesvalues.filter(id.eq_any(attributes_values_ids)))
-        .execute(connection)
-        .await
-    {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
-    }
+    Ok(
+        delete(attributesvalues.filter(id.eq_any(attributes_values_ids)))
+            .execute(connection)
+            .await?,
+    )
 }
 
 pub async fn multiple_update_attributes_values(

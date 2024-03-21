@@ -34,7 +34,7 @@ pub async fn auth(
 
     if !URI_WITHOUT_AUTH
         .into_iter()
-        .any(|uri| uri.uri == req.uri() && uri.method == req.method())
+        .any(|uri| uri.uri == req.uri().path() && uri.method == req.method())
     {
         match cookie_check(&mut connection, cookie, &state.cookie_key).await {
             Ok(_) => (),

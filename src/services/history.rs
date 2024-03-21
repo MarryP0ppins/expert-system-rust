@@ -22,7 +22,7 @@ pub async fn get_histories(
         query = query.or_filter(users::id.eq(param));
     }
 
-    match query
+    Ok(query
         .select((
             id,
             (systems::all_columns),
@@ -41,30 +41,20 @@ pub async fn get_histories(
             finished_at,
         ))
         .load::<HistoryWithSystemAndUser>(connection)
-        .await
-    {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
-    }
+        .await?)
 }
 
 pub async fn create_history(
     connection: &mut AsyncPgConnection,
     history_info: NewHistory,
 ) -> Result<HistoryWithSystemAndUser, Error> {
-    let insert_raw_id: i32;
-
-    match insert_into(histories)
+    let insert_raw_id = insert_into(histories)
         .values::<NewHistory>(history_info)
         .returning(id)
-        .get_result(connection)
-        .await
-    {
-        Ok(ok) => insert_raw_id = ok,
-        Err(err) => return Err(err),
-    };
+        .get_result::<i32>(connection)
+        .await?;
 
-    match histories
+    Ok(histories
         .find(insert_raw_id)
         .inner_join(systems::table)
         .inner_join(users::table)
@@ -86,11 +76,7 @@ pub async fn create_history(
             finished_at,
         ))
         .first::<HistoryWithSystemAndUser>(connection)
-        .await
-    {
-        Ok(ok) => Ok(ok),
-        Err(err) => Err(err),
-    }
+        .await?)
 }
 
 pub async fn delete_history(

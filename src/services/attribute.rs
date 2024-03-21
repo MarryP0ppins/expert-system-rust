@@ -17,15 +17,10 @@ pub async fn get_attributes(
     connection: &mut AsyncPgConnection,
     system: i32,
 ) -> Result<Vec<AttributeWithAttributeValues>, Error> {
-    let _attributes: Vec<Attribute>;
-    match attributes
+    let _attributes = attributes
         .filter(system_id.eq(system))
         .load::<Attribute>(connection)
-        .await
-    {
-        Ok(ok) => _attributes = ok,
-        Err(err) => return Err(err),
-    };
+        .await?;
 
     let _attributes_values: Vec<AttributeValue>;
     match AttributeValue::belonging_to(&_attributes)
@@ -43,7 +38,6 @@ pub async fn get_attributes(
         .map(
             |(attribute_values, attribute)| AttributeWithAttributeValues {
                 id: attribute.id,
-
                 system_id: attribute.system_id,
                 name: attribute.name,
                 values: attribute_values,
@@ -76,16 +70,12 @@ pub async fn create_attributes(
     match connection
         .transaction(|connection| {
             async {
-                match insert_into(attributes)
+                new_attributes = insert_into(attributes)
                     .values::<Vec<NewAttribute>>(attributes_raws)
                     .get_results::<Attribute>(connection)
-                    .await
-                {
-                    Ok(ok) => new_attributes = ok,
-                    Err(err) => return Err(err),
-                };
+                    .await?;
 
-                match insert_into(attributesvalues::table)
+                attributes_values = insert_into(attributesvalues::table)
                     .values::<Vec<NewAttributeValue>>(
                         attributes_values_bodies
                             .into_iter()
@@ -101,11 +91,8 @@ pub async fn create_attributes(
                             .collect(),
                     )
                     .get_results::<AttributeValue>(connection)
-                    .await
-                {
-                    Ok(ok) => attributes_values = ok.grouped_by(&new_attributes),
-                    Err(err) => return Err(err),
-                };
+                    .await?
+                    .grouped_by(&new_attributes);
 
                 Ok(())
             }
@@ -137,13 +124,9 @@ pub async fn multiple_delete_attributes(
     connection: &mut AsyncPgConnection,
     attributes_ids: Vec<i32>,
 ) -> Result<usize, Error> {
-    match delete(attributes.filter(id.eq_any(attributes_ids)))
+    Ok(delete(attributes.filter(id.eq_any(attributes_ids)))
         .execute(connection)
-        .await
-    {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
-    }
+        .await?)
 }
 
 pub async fn multiple_update_attributes(

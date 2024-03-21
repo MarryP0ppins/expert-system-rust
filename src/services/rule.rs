@@ -16,15 +16,10 @@ pub async fn get_rules(
     connection: &mut AsyncPgConnection,
     system: i32,
 ) -> Result<Vec<RuleWithClausesAndEffects>, Error> {
-    let _rules: Vec<Rule>;
-    match rules
+    let _rules = rules
         .filter(system_id.eq(system))
         .load::<Rule>(connection)
-        .await
-    {
-        Ok(ok) => _rules = ok,
-        Err(err) => return Err(err),
-    };
+        .await?;
 
     let _grouped_answers: Vec<Vec<(RuleAnswer, Answer)>>;
     match RuleAnswer::belonging_to(&_rules)
@@ -95,15 +90,10 @@ pub async fn create_rule(
     connection: &mut AsyncPgConnection,
     rule_info: NewRule,
 ) -> Result<RuleWithClausesAndEffects, Error> {
-    let _rule: Rule;
-    match insert_into(rules)
+    let _rule = insert_into(rules)
         .values::<NewRule>(rule_info)
         .get_result::<Rule>(connection)
-        .await
-    {
-        Ok(ok) => _rule = ok,
-        Err(err) => return Err(err),
-    };
+        .await?;
 
     Ok(RuleWithClausesAndEffects {
         id: _rule.id,
@@ -125,11 +115,7 @@ pub async fn multiple_delete_rules(
     connection: &mut AsyncPgConnection,
     rules_ids: Vec<i32>,
 ) -> Result<usize, Error> {
-    match delete(rules.filter(id.eq_any(rules_ids)))
+    Ok(delete(rules.filter(id.eq_any(rules_ids)))
         .execute(connection)
-        .await
-    {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
-    }
+        .await?)
 }

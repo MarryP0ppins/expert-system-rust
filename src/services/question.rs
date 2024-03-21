@@ -16,15 +16,10 @@ pub async fn get_questions(
     connection: &mut AsyncPgConnection,
     system: i32,
 ) -> Result<Vec<QuestionWithAnswers>, Error> {
-    let _questions: Vec<Question>;
-    match questions
+    let _questions = questions
         .filter(system_id.eq(system))
         .load::<Question>(connection)
-        .await
-    {
-        Ok(ok) => _questions = ok,
-        Err(err) => return Err(err),
-    };
+        .await?;
 
     let _answers: Vec<Answer>;
     match Answer::belonging_to(&_questions)
@@ -74,15 +69,12 @@ pub async fn create_questions(
     match connection
         .transaction(|connection| {
             async {
-                match insert_into(questions)
+                new_questions = insert_into(questions)
                     .values::<Vec<NewQuestion>>(questions_raws)
                     .get_results::<Question>(connection)
-                    .await
-                {
-                    Ok(ok) => new_questions = ok,
-                    Err(err) => return Err(err),
-                };
-                match insert_into(answers::table)
+                    .await?;
+
+                _answers = insert_into(answers::table)
                     .values::<Vec<NewAnswer>>(
                         answers_bodies
                             .into_iter()
@@ -96,11 +88,8 @@ pub async fn create_questions(
                             .collect(),
                     )
                     .get_results::<Answer>(connection)
-                    .await
-                {
-                    Ok(ok) => _answers = ok.grouped_by(&new_questions),
-                    Err(err) => return Err(err),
-                };
+                    .await?
+                    .grouped_by(&new_questions);
 
                 Ok(())
             }
@@ -131,13 +120,9 @@ pub async fn multiple_delete_questions(
     connection: &mut AsyncPgConnection,
     questions_ids: Vec<i32>,
 ) -> Result<usize, Error> {
-    match delete(questions.filter(id.eq_any(questions_ids)))
+    Ok(delete(questions.filter(id.eq_any(questions_ids)))
         .execute(connection)
-        .await
-    {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
-    }
+        .await?)
 }
 
 pub async fn multiple_update_questions(

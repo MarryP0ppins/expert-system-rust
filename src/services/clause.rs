@@ -9,41 +9,29 @@ pub async fn get_clauses(
     connection: &mut AsyncPgConnection,
     rule: i32,
 ) -> Result<Vec<Clause>, Error> {
-    match clauses
+    Ok(clauses
         .filter(rule_id.eq(rule))
         .load::<Clause>(connection)
-        .await
-    {
-        Ok(ok) => Ok(ok),
-        Err(err) => Err(err),
-    }
+        .await?)
 }
 
 pub async fn create_clauses(
     connection: &mut AsyncPgConnection,
     clause_info: Vec<NewClause>,
 ) -> Result<Vec<Clause>, Error> {
-    match insert_into(clauses)
+    Ok(insert_into(clauses)
         .values::<Vec<NewClause>>(clause_info)
         .get_results::<Clause>(connection)
-        .await
-    {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
-    }
+        .await?)
 }
 
 pub async fn multiple_delete_clauses(
     connection: &mut AsyncPgConnection,
     clauses_ids: Vec<i32>,
 ) -> Result<usize, Error> {
-    match delete(clauses.filter(id.eq_any(clauses_ids)))
+    Ok(delete(clauses.filter(id.eq_any(clauses_ids)))
         .execute(connection)
-        .await
-    {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
-    }
+        .await?)
 }
 
 pub async fn multiple_update_clauses(

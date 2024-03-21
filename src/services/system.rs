@@ -4,7 +4,7 @@ use crate::{
     models::{
         clause::Clause,
         question::QuestionWithAnswers,
-        rule::{Rule, RuleWithClausesAndEffects},
+        rule::Rule,
         rule_answer::RuleAnswer,
         system::{
             NewSystem, NewSystemMultipart, System, SystemData, SystemsWithPageCount, UpdateSystem,
@@ -42,25 +42,20 @@ pub async fn get_systems(
         raw_count_query = raw_count_query.filter(user_id.eq(_user_id));
     }
 
-    let pages: i64;
-    match raw_count_query.count().get_result::<i64>(connection).await {
-        Ok(result) => pages = ((result as f64) / (params.count.unwrap_or(20) as f64)).ceil() as i64,
-        Err(err) => return Err(err),
-    };
-    let _systems: Vec<System>;
-    match query
+    let raw_count = raw_count_query
+        .count()
+        .get_result::<i64>(connection)
+        .await? as f64;
+
+    let _systems = query
         .limit(params.count.unwrap_or(20).into())
         .offset((params.count.unwrap_or(20) * params.page.unwrap_or(0)).into())
         .load::<System>(connection)
-        .await
-    {
-        Ok(result) => _systems = result,
-        Err(err) => return Err(err),
-    };
+        .await?;
 
     Ok(SystemsWithPageCount {
         systems: _systems,
-        pages,
+        pages: (raw_count / (params.count.unwrap_or(20) as f64)).ceil() as i64,
     })
 }
 
@@ -68,34 +63,22 @@ pub async fn get_system(
     connection: &mut AsyncPgConnection,
     system_id: i32,
 ) -> Result<System, Error> {
-    match systems.find(system_id).first::<System>(connection).await {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
-    }
+    Ok(systems.find(system_id).first::<System>(connection).await?)
 }
 
 pub async fn get_ready_to_start_system(
     connection: &mut AsyncPgConnection,
     system_id: i32,
 ) -> Result<SystemData, Error> {
-    let _questions_with_answers: Vec<QuestionWithAnswers>;
-    match get_questions(connection, system_id).await {
-        Ok(result) => _questions_with_answers = result,
-        Err(err) => return Err(err),
-    }
+    let _questions_with_answers = get_questions(connection, system_id).await?;
 
-    let _rules_with_question_rule: Vec<Rule>;
-    match rules::table
+    let _rules_with_question_rule = rules::table
         .filter(rules::system_id.eq(system_id))
         .load::<Rule>(connection)
-        .await
-    {
-        Ok(ok) => {
-            _rules_with_question_rule =
-                ok.into_iter().filter(|rule| !rule.attribute_rule).collect();
-        }
-        Err(err) => return Err(err),
-    };
+        .await?
+        .into_iter()
+        .filter(|rule| !rule.attribute_rule)
+        .collect::<Vec<Rule>>();
 
     let mut _rules_with_question_deps: HashMap<i32, Vec<i32>> = HashMap::new();
     match Clause::belonging_to(&_rules_with_question_rule)
@@ -154,12 +137,7 @@ pub async fn get_ready_to_start_system(
         Err(err) => return Err(err),
     };
 
-    let rules_with_clauses_and_effects: Vec<RuleWithClausesAndEffects>;
-    match get_rules(connection, system_id).await {
-        Ok(result) => rules_with_clauses_and_effects = result,
-        Err(err) => return Err(err),
-    }
-
+    let rules_with_clauses_and_effects = get_rules(connection, system_id).await?;
     let belonging_questions_order = topological_sort(&rules_belonging_questions);
 
     let questions_order = (HashSet::from_iter(
@@ -204,8 +182,7 @@ pub async fn create_system(
         image_info.metadata.file_name.clone().expect("No file name")
     );
 
-    let result: System;
-    match insert_into(systems)
+    let result = insert_into(systems)
         .values::<NewSystem>(NewSystem {
             user_id: system_info.user_id,
             about: system_info.about,
@@ -214,11 +191,7 @@ pub async fn create_system(
             private: system_info.private,
         })
         .get_result::<System>(connection)
-        .await
-    {
-        Ok(ok) => result = ok,
-        Err(err) => return Err(err),
-    }
+        .await?;
 
     let _ = fs::create_dir_all(IMAGE_DIR).await;
 
@@ -248,19 +221,13 @@ pub async fn update_system(
         ))
     });
 
-    let system_image_uri_old: String;
-    match systems
+    let system_image_uri_old = systems
         .find(system_id)
         .select(image_uri)
         .first::<String>(connection)
-        .await
-    {
-        Ok(result) => system_image_uri_old = result,
-        Err(err) => return Err(err),
-    }
+        .await?;
 
-    let result: System;
-    match update(systems.find(system_id))
+    let result = update(systems.find(system_id))
         .set::<UpdateSystem>(UpdateSystem {
             about: system_info.about,
             name: system_info.name,
@@ -270,11 +237,7 @@ pub async fn update_system(
             private: system_info.private,
         })
         .get_result::<System>(connection)
-        .await
-    {
-        Ok(ok) => result = ok,
-        Err(err) => return Err(err),
-    }
+        .await?;
 
     if let (Some(img_info), Some(img_name)) = (image_info, image_name) {
         let _ = fs::remove_file(format!(".{}", system_image_uri_old)).await;
@@ -294,8 +257,5 @@ pub async fn delete_system(
     connection: &mut AsyncPgConnection,
     system_id: i32,
 ) -> Result<usize, Error> {
-    match delete(systems.find(system_id)).execute(connection).await {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
-    }
+    Ok(delete(systems.find(system_id)).execute(connection).await?)
 }

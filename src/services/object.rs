@@ -18,15 +18,10 @@ pub async fn get_objects(
     connection: &mut AsyncPgConnection,
     system: i32,
 ) -> Result<Vec<ObjectWithAttributesValues>, Error> {
-    let _object: Vec<Object>;
-    match objects
+    let _object = objects
         .filter(system_id.eq(system))
         .load::<Object>(connection)
-        .await
-    {
-        Ok(ok) => _object = ok,
-        Err(err) => return Err(err),
-    };
+        .await?;
 
     let _grouped_attributes_values: Vec<Vec<(AttributeValueObject, AttributeValue)>>;
     match AttributeValueObject::belonging_to(&_object)
@@ -82,16 +77,12 @@ pub async fn create_objects(
     match connection
         .transaction(|connection| {
             async {
-                match insert_into(objects)
+                _objects = insert_into(objects)
                     .values::<Vec<NewObject>>(new_objects)
                     .get_results::<Object>(connection)
-                    .await
-                {
-                    Ok(ok) => _objects = ok,
-                    Err(err) => return Err(err),
-                };
+                    .await?;
 
-                match insert_into(attributesvalue_object::table)
+                insert_into(attributesvalue_object::table)
                     .values::<Vec<NewAttributeValueObject>>(
                         attributes_values_ids
                             .into_iter()
@@ -107,11 +98,7 @@ pub async fn create_objects(
                             .collect(),
                     )
                     .execute(connection)
-                    .await
-                {
-                    Ok(_) => (),
-                    Err(err) => return Err(err),
-                };
+                    .await?;
 
                 Ok(())
             }
@@ -158,13 +145,9 @@ pub async fn multiple_delete_objects(
     connection: &mut AsyncPgConnection,
     objects_ids: Vec<i32>,
 ) -> Result<usize, Error> {
-    match delete(objects.filter(id.eq_any(objects_ids)))
+    Ok(delete(objects.filter(id.eq_any(objects_ids)))
         .execute(connection)
-        .await
-    {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
-    }
+        .await?)
 }
 
 pub async fn multiple_update_objects(
