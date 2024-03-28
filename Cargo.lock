@@ -567,7 +567,6 @@ dependencies = [
  "diesel-async",
  "diesel-derive-enum",
  "dotenvy",
- "rand",
  "serde",
  "serde_json",
  "tokio",

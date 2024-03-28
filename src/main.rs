@@ -13,7 +13,6 @@ use diesel_async::{
 };
 use dotenvy::dotenv;
 use middleware::{auth, handler_404};
-use rand::{rngs::StdRng, Rng, SeedableRng};
 use routes::{
     answer::answer_routes, attribute::attribute_routes, attribute_value::attribute_value_routes,
     clause::clause_routes, history::history_routes, object::object_routes,
@@ -65,9 +64,8 @@ async fn main() {
         .await
         .expect("Failed to create pool");
 
-    let mut secret_key = [0u8; 64];
-    StdRng::from_entropy().fill(&mut secret_key);
-    let secret_key = Key::from(&secret_key);
+    let cookie_key = env::var("COOKIE_KEY").expect("COOKIE_KEY must be set");
+    let secret_key = Key::from(cookie_key.as_bytes());
 
     let state = AppState {
         db_pool: pool,
