@@ -2,7 +2,6 @@ use crate::{
     constants::COOKIE_NAME,
     models::{
         error::CustomErrors,
-        response_body::{ResponseBodyEmpty, ResponseBodyUser},
         user::{NewUser, UserLogin},
     },
     services::user::{create_user, get_user, login_user},
@@ -25,8 +24,11 @@ use tower_cookies::{Cookie, Cookies};
     context_path ="/api/v1",
     request_body = UserLogin,
     responses(
-        (status = 200, description = "User login successfully", body = ResponseBodyUser),
-        (status = 400, description = "Invalid credantials provided", body = ResponseBodyUser, example = json!(ResponseBodyUser::unauthorized_example()))
+        (status = 200, description = "User login successfully", body = UserWithoutPassword),
+        (status = 400, description = "Invalid credantials provided", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
     )
 )]
 #[debug_handler]
@@ -38,12 +40,12 @@ pub async fn user_login(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return ResponseBodyUser::from(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match login_user(&mut connection, user_info, cookie, &state.cookie_key).await {
-        Ok(result) => ResponseBodyUser::from(result),
-        Err(err) => ResponseBodyUser::from(err),
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(err),
     }
 }
 
@@ -52,18 +54,14 @@ pub async fn user_login(
     path = "/users/logout",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "User logout successfully", body = ResponseBodyEmpty, example = json!(ResponseBodyEmpty { succsess: true, data: None, error: None })),
+        (status = 200, description = "User logout successfully", body = CustomErrors, example = json!(())),
     )
 )]
 #[debug_handler]
 pub async fn user_logout(cookie: Cookies) -> impl IntoResponse {
     cookie.remove(Cookie::new(COOKIE_NAME, ""));
 
-    ResponseBodyEmpty {
-        succsess: true,
-        data: None,
-        error: None,
-    }
+    ()
 }
 
 #[utoipa::path(
@@ -72,8 +70,11 @@ pub async fn user_logout(cookie: Cookies) -> impl IntoResponse {
     context_path ="/api/v1",
     request_body = NewUser,
     responses(
-        (status = 200, description = "User registration successfully", body = ResponseBodyUser),
-        (status = 400, description = "Invalid credantials provided", body = ResponseBodyUser, example = json!(ResponseBodyUser::unauthorized_example()))
+        (status = 200, description = "User registration successfully", body = UserWithoutPassword),
+        (status = 400, description = "Invalid credantials provided", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
     )
 )]
 #[debug_handler]
@@ -84,12 +85,12 @@ pub async fn user_registration(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return ResponseBodyUser::from(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match create_user(&mut connection, user_info).await {
-        Ok(result) => ResponseBodyUser::from(result),
-        Err(err) => ResponseBodyUser::from(CustomErrors::DieselError {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
@@ -101,8 +102,11 @@ pub async fn user_registration(
     path = "/users",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "Matching User", body = ResponseBodyUser),
-        (status = 401, description = "Unauthorized to User", body = ResponseBodyUser, example = json!(ResponseBodyUser::unauthorized_example()))
+        (status = 200, description = "Matching User", body = UserWithoutPassword),
+        (status = 401, description = "Unauthorized to User", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
     )
 )]
 #[debug_handler]
@@ -115,7 +119,7 @@ pub async fn user_get(State(state): State<AppState>, cookie: Cookies) -> impl In
     {
         Some(res) => user_id = res.parse::<i32>().expect("Server Error"),
         None => {
-            return ResponseBodyUser::from(CustomErrors::StringError {
+            return Err(CustomErrors::StringError {
                 status: StatusCode::UNAUTHORIZED,
                 error: "Not authorized".to_string(),
             })
@@ -125,12 +129,12 @@ pub async fn user_get(State(state): State<AppState>, cookie: Cookies) -> impl In
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return ResponseBodyUser::from(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match get_user(&mut connection, user_id).await {
-        Ok(result) => ResponseBodyUser::from(result),
-        Err(err) => ResponseBodyUser::from(CustomErrors::DieselError {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
         }),

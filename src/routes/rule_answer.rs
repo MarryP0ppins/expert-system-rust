@@ -1,11 +1,12 @@
 use crate::{
-    models::{error::CustomErrors, response_body::ResponseBodyEmpty, rule_answer::NewRuleAnswer},
+    models::{error::CustomErrors, rule_answer::NewRuleAnswer},
     services::rule_answer::{create_rule_answers, multiple_delete_rule_answers},
     AppState,
 };
 use axum::{
     debug_handler,
     extract::State,
+    http::StatusCode,
     response::IntoResponse,
     routing::{delete, post},
     Json, Router,
@@ -18,8 +19,11 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
     context_path ="/api/v1",
     request_body = [NewRuleAnswer],
     responses(
-        (status = 200, description = "RuleAnswers and their dependences create successfully", body = ResponseBodyEmpty, example = json!(ResponseBodyEmpty { succsess: true, data: None, error: None })),
-        (status = 401, description = "Unauthorized to create RuleAnswers and their dependences", body = ResponseBodyEmpty, example = json!(ResponseBodyEmpty::unauthorized_example()))
+        (status = 200, description = "RuleAnswers and their dependences create successfully", body = CustomErrors, example = json!(())),
+        (status = 401, description = "Unauthorized to create RuleAnswers and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
     )
 )]
 #[debug_handler]
@@ -30,16 +34,12 @@ pub async fn rule_answer_create(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return ResponseBodyEmpty::from(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match create_rule_answers(&mut connection, rule_answer_info).await {
-        Ok(_) => ResponseBodyEmpty {
-            succsess: true,
-            data: None,
-            error: None,
-        },
-        Err(err) => ResponseBodyEmpty::from(CustomErrors::DieselError {
+        Ok(_) => Ok(()),
+        Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
@@ -52,8 +52,11 @@ pub async fn rule_answer_create(
     context_path ="/api/v1",
     request_body = [i32],
     responses(
-        (status = 200, description = "RuleAnswers and their dependences deleted successfully", body = ResponseBodyEmpty, example = json!(ResponseBodyEmpty { succsess: true, data: None, error: None })),
-        (status = 401, description = "Unauthorized to delete RuleAnswers and their dependences", body = ResponseBodyEmpty, example = json!(ResponseBodyEmpty::unauthorized_example())),
+        (status = 200, description = "RuleAnswers and their dependences deleted successfully", body = CustomErrors, example = json!(())),
+        (status = 401, description = "Unauthorized to delete RuleAnswers and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        })),
         (status = 404, description = "RuleAnswers not found")
     )
 )]
@@ -65,16 +68,12 @@ pub async fn rule_answer_multiple_delete(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return ResponseBodyEmpty::from(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match multiple_delete_rule_answers(&mut connection, rule_answer_info).await {
-        Ok(_) => ResponseBodyEmpty {
-            succsess: true,
-            data: None,
-            error: None,
-        },
-        Err(err) => ResponseBodyEmpty::from(CustomErrors::DieselError {
+        Ok(_) => Ok(()),
+        Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
         }),

@@ -7,13 +7,7 @@ use axum::{
 use tower_cookies::Cookies;
 
 use crate::{
-    constants::URI_WITHOUT_AUTH,
-    models::{
-        error::CustomErrors,
-        response_body::{ResponseBodyEmpty, ResponseBodyError},
-    },
-    utils::auth::cookie_check,
-    AppState,
+    constants::URI_WITHOUT_AUTH, models::error::CustomErrors, utils::auth::cookie_check, AppState,
 };
 
 pub async fn auth(
@@ -25,11 +19,7 @@ pub async fn auth(
     let mut connection;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => {
-            return Err(ResponseBodyEmpty::from(CustomErrors::PoolConnectionError(
-                err,
-            )))
-        }
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     if !URI_WITHOUT_AUTH
@@ -38,7 +28,7 @@ pub async fn auth(
     {
         match cookie_check(&mut connection, cookie, &state.cookie_key).await {
             Ok(_) => (),
-            Err(err) => return Err(ResponseBodyEmpty::from(err)),
+            Err(err) => return Err(err),
         };
     }
 
@@ -46,13 +36,8 @@ pub async fn auth(
 }
 
 pub async fn handler_404() -> impl IntoResponse {
-    ResponseBodyEmpty {
-        succsess: false,
-        data: None,
-        error: Some(ResponseBodyError {
-            status: StatusCode::NOT_FOUND,
-            error: "Resource was not found.".to_owned(),
-            extra: None,
-        }),
+    CustomErrors::StringError {
+        status: StatusCode::NOT_FOUND,
+        error: "Resource was not found.".to_owned(),
     }
 }

@@ -1,9 +1,6 @@
 use crate::{
     models::{
         error::CustomErrors,
-        response_body::{
-            ResponseBodyEmpty, ResponseBodyStartSystem, ResponseBodySystem, ResponseBodySystems,
-        },
         system::{NewSystemMultipart, UpdateSystemMultipart},
     },
     pagination::SystemListPagination,
@@ -16,9 +13,10 @@ use crate::{
 use axum::{
     debug_handler,
     extract::{Path, Query, State},
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     routing::{get, post},
-    Router,
+    Json, Router,
 };
 use axum_typed_multipart::TypedMultipart;
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
@@ -30,7 +28,10 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
     request_body(content = NewSystemMultipart, description = "Multipart file", content_type = "multipart/form-data"),
     responses(
         (status = 200, description = "System create successfully", body=ResponseBodySystem),
-        (status = 401, description = "Unauthorized to create System", body = ResponseBodySystem, example = json!(ResponseBodySystem::unauthorized_example()))
+        (status = 401, description = "Unauthorized to create System", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
     )
 )]
 #[debug_handler]
@@ -41,12 +42,12 @@ pub async fn system_create(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return ResponseBodySystem::from(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match create_system(&mut connection, system_info).await {
-        Ok(result) => ResponseBodySystem::from(result),
-        Err(err) => ResponseBodySystem::from(CustomErrors::DieselError {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
@@ -58,8 +59,11 @@ pub async fn system_create(
     path = "/systems",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching Systems by query", body=ResponseBodySystems),
-        (status = 401, description = "Unauthorized to list Systems", body = ResponseBodySystems, example = json!(ResponseBodySystems::unauthorized_example()))
+        (status = 200, description = "List matching Systems by query", body = SystemsWithPageCount),
+        (status = 401, description = "Unauthorized to list Systems", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
     ),
     params(
         SystemListPagination
@@ -73,13 +77,17 @@ pub async fn system_list(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return ResponseBodySystems::from(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     let pagination: SystemListPagination = pagination;
     match get_systems(&mut connection, pagination).await {
-        Ok(result) => ResponseBodySystems::from(result),
-        Err(err) => ResponseBodySystems::from(CustomErrors::DieselError {
+        Ok(result) => {
+            let mut headers = HeaderMap::new();
+            headers.insert("pages", result.pages.to_string().parse().unwrap());
+            Ok((headers, Json(result.systems)))
+        }
+        Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
@@ -92,7 +100,10 @@ pub async fn system_list(
     context_path ="/api/v1",
     responses(
         (status = 200, description = "Matching System by query", body=ResponseBodySystem),
-        (status = 401, description = "Unauthorized to retrive System", body = ResponseBodySystem, example = json!(ResponseBodySystem::unauthorized_example()))
+        (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
     ),
     params(
         ("id" = u32, Path, description = "System database id")
@@ -106,12 +117,12 @@ pub async fn system_retrieve(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return ResponseBodySystem::from(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match get_system(&mut connection, system_id).await {
-        Ok(result) => ResponseBodySystem::from(result),
-        Err(err) => ResponseBodySystem::from(CustomErrors::DieselError {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
@@ -124,7 +135,10 @@ pub async fn system_retrieve(
     context_path ="/api/v1",
     responses(
         (status = 200, description = "Matching System by query", body=ResponseBodyStartSystem),
-        (status = 401, description = "Unauthorized to retrive System", body = ResponseBodyStartSystem, example = json!(ResponseBodyStartSystem::unauthorized_example()))
+        (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
     ),
     params(
         ("id" = u32, Path, description = "System database id")
@@ -138,12 +152,12 @@ pub async fn system_start(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return ResponseBodyStartSystem::from(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match get_ready_to_start_system(&mut connection, system_id).await {
-        Ok(result) => ResponseBodyStartSystem::from(result),
-        Err(err) => ResponseBodyStartSystem::from(CustomErrors::DieselError {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
@@ -157,7 +171,10 @@ pub async fn system_start(
     request_body(content = UpdateSystemMultipart, description = "Multipart file", content_type = "multipart/form-data"),
     responses(
         (status = 200, description = "System and it dependences updated successfully", body = ResponseBodySystem),
-        (status = 401, description = "Unauthorized to update System and it dependences", body = ResponseBodySystem, example = json!(ResponseBodySystem::unauthorized_example())),
+        (status = 401, description = "Unauthorized to update System and it dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        })),
         (status = 404, description = "System not found")
     ),
     params(
@@ -173,12 +190,12 @@ pub async fn system_partial_update(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return ResponseBodySystem::from(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match update_system(&mut connection, system_id, system_info).await {
-        Ok(result) => ResponseBodySystem::from(result),
-        Err(err) => ResponseBodySystem::from(CustomErrors::DieselError {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
@@ -190,8 +207,11 @@ pub async fn system_partial_update(
     path = "/systems/{id}",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "System and it dependences deleted successfully", body = ResponseBodyEmpty, example = json!(ResponseBodyEmpty { succsess: true, data: None, error: None })),
-        (status = 401, description = "Unauthorized to delete System and it dependences", body = ResponseBodyEmpty, example = json!(ResponseBodySystem::unauthorized_example())),
+        (status = 200, description = "System and it dependences deleted successfully", body = CustomErrors, example = json!(())),
+        (status = 401, description = "Unauthorized to delete System and it dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        })),
         (status = 404, description = "System not found")
     ),
     params(
@@ -206,16 +226,12 @@ pub async fn system_delete(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return ResponseBodyEmpty::from(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match delete_system(&mut connection, system_id).await {
-        Ok(_) => ResponseBodyEmpty {
-            succsess: true,
-            data: None,
-            error: None,
-        },
-        Err(err) => ResponseBodyEmpty::from(CustomErrors::DieselError {
+        Ok(_) => Ok(()),
+        Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
         }),

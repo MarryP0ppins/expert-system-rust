@@ -12,7 +12,7 @@ use crate::{
         },
     },
     pagination::SystemListPagination,
-    schema::{rule_answer, rules, systems::dsl::*},
+    schema::{rule_answer, rules, systems, systems::dsl::*, users},
     utils::topological_sort::topological_sort,
     IMAGE_DIR,
 };
@@ -29,17 +29,17 @@ pub async fn get_systems(
     connection: &mut AsyncPgConnection,
     params: SystemListPagination,
 ) -> Result<SystemsWithPageCount, Error> {
-    let mut query = systems.into_boxed();
-    let mut raw_count_query = systems.into_boxed();
+    let mut query = systems.inner_join(users::table).into_boxed();
+    let mut raw_count_query = systems.inner_join(users::table).into_boxed();
 
     if let Some(_name) = params.name {
         query = query.filter(name.like(format!("%{}%", _name)));
         raw_count_query = raw_count_query.filter(name.like(format!("%{}%", _name)));
     }
 
-    if let Some(_user_id) = params.user_id {
-        query = query.filter(user_id.eq(_user_id));
-        raw_count_query = raw_count_query.filter(user_id.eq(_user_id));
+    if let Some(_username) = params.username {
+        query = query.filter(users::username.like(format!("%{}%", _username)));
+        raw_count_query = raw_count_query.filter(users::username.like(format!("%{}%", _username)));
     }
 
     let raw_count = raw_count_query
@@ -48,6 +48,7 @@ pub async fn get_systems(
         .await? as f64;
 
     let _systems = query
+        .select(systems::all_columns)
         .limit(params.count.unwrap_or(20).into())
         .offset((params.count.unwrap_or(20) * params.page.unwrap_or(0)).into())
         .load::<System>(connection)

@@ -2,7 +2,6 @@ use crate::{
     models::{
         clause::{NewClause, UpdateClause},
         error::CustomErrors,
-        response_body::{ResponseBodyClauses, ResponseBodyEmpty},
     },
     pagination::ClauseListPagination,
     services::clause::{
@@ -13,6 +12,7 @@ use crate::{
 use axum::{
     debug_handler,
     extract::{Query, State},
+    http::StatusCode,
     response::IntoResponse,
     routing::{delete, patch, post},
     Json, Router,
@@ -25,8 +25,11 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
     context_path ="/api/v1",
     request_body = [NewClause],
     responses(
-        (status = 200, description = "Clauses create successfully", body = ResponseBodyClauses),
-        (status = 401, description = "Unauthorized to create Clauses", body = ResponseBodyClauses, example = json!(ResponseBodyClauses::unauthorized_example()))
+        (status = 200, description = "Clauses create successfully", body = [Clause]),
+        (status = 401, description = "Unauthorized to create Clauses", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
     )
 )]
 #[debug_handler]
@@ -37,12 +40,12 @@ pub async fn clause_create(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return ResponseBodyClauses::from(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match create_clauses(&mut connection, clause_info).await {
-        Ok(result) => ResponseBodyClauses::from(result),
-        Err(err) => ResponseBodyClauses::from(CustomErrors::DieselError {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
@@ -54,8 +57,11 @@ pub async fn clause_create(
     path = "/clause",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching Clauses by query", body = ResponseBodyClauses),
-        (status = 401, description = "Unauthorized to list Clauses", body = ResponseBodyClauses, example = json!(ResponseBodyClauses::unauthorized_example()))
+        (status = 200, description = "List matching Clauses by query", body = [Clause]),
+        (status = 401, description = "Unauthorized to list Clauses", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
     ),
     params(
         ClauseListPagination
@@ -69,14 +75,14 @@ pub async fn clause_list(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return ResponseBodyClauses::from(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     let pagination = pagination as ClauseListPagination;
 
     match get_clauses(&mut connection, pagination.rule_id).await {
-        Ok(result) => ResponseBodyClauses::from(result),
-        Err(err) => ResponseBodyClauses::from(CustomErrors::DieselError {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
@@ -89,8 +95,11 @@ pub async fn clause_list(
     context_path ="/api/v1",
     request_body = [i32],
     responses(
-        (status = 200, description = "Clauses deleted successfully", body = ResponseBodyEmpty, example = json!(ResponseBodyEmpty { succsess: true, data: None, error: None })),
-        (status = 401, description = "Unauthorized to delete Clauses", body = ResponseBodyEmpty, example = json!(ResponseBodyEmpty::unauthorized_example())),
+        (status = 200, description = "Clauses deleted successfully", body = CustomErrors, example = json!(())),
+        (status = 401, description = "Unauthorized to delete Clauses", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        })),
         (status = 404, description = "Clauses not found")
     )
 )]
@@ -102,16 +111,12 @@ pub async fn clause_multiple_delete(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return ResponseBodyEmpty::from(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match multiple_delete_clauses(&mut connection, clause_info).await {
-        Ok(_) => ResponseBodyEmpty {
-            succsess: true,
-            data: None,
-            error: None,
-        },
-        Err(err) => ResponseBodyEmpty::from(CustomErrors::DieselError {
+        Ok(_) => Ok(()),
+        Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
         }),
@@ -124,8 +129,11 @@ pub async fn clause_multiple_delete(
     context_path ="/api/v1",
     request_body = [UpdateClause],
     responses(
-        (status = 200, description = "Clauses updated successfully", body = ResponseBodyClauses),
-        (status = 401, description = "Unauthorized to update Clauses", body = ResponseBodyClauses, example = json!(ResponseBodyClauses::unauthorized_example())),
+        (status = 200, description = "Clauses updated successfully", body = [Clause]),
+        (status = 401, description = "Unauthorized to update Clauses", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        })),
         (status = 404, description = "Clauses not found")
     )
 )]
@@ -137,12 +145,12 @@ pub async fn clause_multiple_update(
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
-        Err(err) => return ResponseBodyClauses::from(CustomErrors::PoolConnectionError(err)),
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
     match multiple_update_clauses(&mut connection, clause_info).await {
-        Ok(result) => ResponseBodyClauses::from(result),
-        Err(err) => ResponseBodyClauses::from(CustomErrors::DieselError {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::DieselError {
             error: err,
             message: None,
         }),

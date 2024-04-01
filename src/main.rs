@@ -13,6 +13,7 @@ use diesel_async::{
 };
 use dotenvy::dotenv;
 use middleware::{auth, handler_404};
+
 use routes::{
     answer::answer_routes, attribute::attribute_routes, attribute_value::attribute_value_routes,
     clause::clause_routes, history::history_routes, object::object_routes,
@@ -47,6 +48,7 @@ mod swagger;
 mod utils;
 
 type AsyncPool = bb8::Pool<AsyncPgConnection>;
+//type ResponseResult<T> = Result<Json<T>, CustomErrors>;
 
 #[derive(Clone)]
 struct AppState {
