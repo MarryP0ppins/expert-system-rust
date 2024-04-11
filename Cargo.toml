@@ -21,10 +21,12 @@ utoipa = { version = "4.2", features = [
 ] }
 utoipa-swagger-ui = { version = "6.0", features = ["axum"] }
 chrono = { version = "0.4", features = ["serde"] }
-dotenvy = "0.15"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1" }
 argon2 = { version = "0.5" }
+http = "1.1.0"
+dotenv = "0.15.0"
+dotenv_codegen = "0.15.0"
 
 [profile.release]
 strip = true

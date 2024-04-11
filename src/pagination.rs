@@ -5,10 +5,10 @@ use utoipa::IntoParams;
 pub struct SystemListPagination {
     pub name: Option<String>,
     pub username: Option<String>,
-    #[param(default = json!(0))]
+    #[param(default = json!(1))]
     pub page: Option<i32>,
     #[param(default = json!(20))]
-    pub count: Option<i32>,
+    pub per_page: Option<i32>,
 }
 
 #[derive(Deserialize, IntoParams)]

@@ -21,7 +21,7 @@ pub struct System {
     pub image_uri: String,
 }
 
-#[derive(Queryable, Serialize, ToSchema, Clone)]
+#[derive(Queryable, Serialize, Clone)]
 pub struct SystemsWithPageCount {
     pub systems: Vec<System>,
     pub pages: i64,
@@ -57,11 +57,11 @@ pub struct UpdateSystem {
     pub private: Option<bool>,
 }
 
-#[derive(ToSchema, TryFromMultipart)]
+#[derive(ToSchema, TryFromMultipart, Debug)]
 pub struct UpdateSystemMultipart {
     pub about: Option<String>,
     pub name: Option<String>,
-    #[schema(value_type = String, format = Binary)]
+    #[schema(value_type = Option<String>, format = Binary)]
     #[form_data(limit = "1MiB")]
     pub image: Option<FieldData<Bytes>>,
     pub private: Option<bool>,

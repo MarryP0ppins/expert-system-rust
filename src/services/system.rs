@@ -49,14 +49,14 @@ pub async fn get_systems(
 
     let _systems = query
         .select(systems::all_columns)
-        .limit(params.count.unwrap_or(20).into())
-        .offset((params.count.unwrap_or(20) * params.page.unwrap_or(0)).into())
+        .limit(params.per_page.unwrap_or(20).into())
+        .offset((params.per_page.unwrap_or(20) * (params.page.unwrap_or(1) - 1)).into())
         .load::<System>(connection)
         .await?;
 
     Ok(SystemsWithPageCount {
         systems: _systems,
-        pages: (raw_count / (params.count.unwrap_or(20) as f64)).ceil() as i64,
+        pages: (raw_count / (params.per_page.unwrap_or(20) as f64)).ceil() as i64,
     })
 }
 

@@ -84,7 +84,7 @@ pub async fn system_list(
     match get_systems(&mut connection, pagination).await {
         Ok(result) => {
             let mut headers = HeaderMap::new();
-            headers.insert("pages", result.pages.to_string().parse().unwrap());
+            headers.insert("x-pages", result.pages.to_string().parse().unwrap());
             Ok((headers, Json(result.systems)))
         }
         Err(err) => Err(CustomErrors::DieselError {

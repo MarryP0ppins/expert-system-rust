@@ -9,7 +9,7 @@ pub const COOKIE_NAME: &str = "session_id";
 pub const IMAGE_DIR: &str = "./images";
 pub const URI_WITHOUT_AUTH: [UriInfo; 5] = [
     UriInfo {
-        uri: "/api/v1/users/login",
+        uri: "/api/v1/user/login",
         method: Method::POST,
     },
     UriInfo {
@@ -17,11 +17,11 @@ pub const URI_WITHOUT_AUTH: [UriInfo; 5] = [
         method: Method::GET,
     },
     UriInfo {
-        uri: "/api/v1/users/logout",
+        uri: "/api/v1/user/logout",
         method: Method::POST,
     },
     UriInfo {
-        uri: "/api/v1/users/registration",
+        uri: "/api/v1/user/registration",
         method: Method::POST,
     },
     UriInfo {

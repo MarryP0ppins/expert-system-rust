@@ -1,4 +1,7 @@
+#[macro_use]
+extern crate dotenv_codegen;
 extern crate diesel;
+extern crate dotenv;
 
 #[cfg(not(debug_assertions))]
 use axum::routing::get;
@@ -11,7 +14,11 @@ use diesel_async::{
     pooled_connection::{bb8, AsyncDieselConnectionManager},
     AsyncPgConnection,
 };
-use dotenvy::dotenv;
+use dotenv::dotenv;
+use http::{
+    header::{ACCEPT, CONTENT_TYPE, SET_COOKIE},
+    HeaderName,
+};
 use middleware::{auth, handler_404};
 
 use routes::{
@@ -21,17 +28,14 @@ use routes::{
     rule_attributevalue::rule_attributevalue_routes, system::system_routes, user::user_routes,
 };
 
-use std::{env, net::SocketAddr};
+use std::net::SocketAddr;
 #[cfg(not(debug_assertions))]
 use swagger::openapi;
 #[cfg(debug_assertions)]
 use swagger::ApiDoc;
 
 use tower_cookies::{cookie::Key, CookieManagerLayer};
-use tower_http::{
-    cors::{Any, CorsLayer},
-    services::ServeDir,
-};
+use tower_http::{cors::CorsLayer, services::ServeDir};
 #[cfg(debug_assertions)]
 use utoipa::OpenApi;
 #[cfg(debug_assertions)]
@@ -59,14 +63,14 @@ struct AppState {
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&database_url);
+    let database_url = dotenv!("DATABASE_URL");
+    let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(database_url);
     let pool = bb8::Pool::builder()
         .build(manager)
         .await
         .expect("Failed to create pool");
 
-    let cookie_key = env::var("COOKIE_KEY").expect("COOKIE_KEY must be set");
+    let cookie_key = dotenv!("COOKIE_KEY");
     let secret_key = Key::from(cookie_key.as_bytes());
 
     let state = AppState {
@@ -74,21 +78,23 @@ async fn main() {
         cookie_key: secret_key,
     };
 
+    let page_header = HeaderName::from_lowercase(b"x-pages").unwrap();
     let cors = CorsLayer::new()
-        .allow_origin(
-            env::var("ALLOW_ORIGIN")
-                .expect("ALLOW_ORIGIN must be set")
-                .parse::<HeaderValue>()
-                .unwrap(),
-        )
+        .allow_origin(dotenv!("ALLOW_ORIGIN").parse::<HeaderValue>().unwrap())
         .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
-        .allow_headers(Any); //.allow_credentials(true);
+        .allow_headers([
+            CONTENT_TYPE,
+            SET_COOKIE,
+            ACCEPT
+        ])
+        .expose_headers([page_header])
+        .allow_credentials(true);
 
     let mut app = Router::new()
         .nest(
             "/api/v1",
             Router::new()
-                .nest("/users", user_routes())
+                .nest("/user", user_routes())
                 .nest("/systems", system_routes())
                 .nest("/histories", history_routes())
                 .nest("/questions", question_routes())

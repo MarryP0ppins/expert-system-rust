@@ -11,7 +11,10 @@ use axum::http::StatusCode;
 use diesel::{insert_into, prelude::*, result::Error};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use tower_cookies::{
-    cookie::time::{Duration, OffsetDateTime},
+    cookie::{
+        time::{Duration, OffsetDateTime},
+        SameSite,
+    },
     Cookie, Cookies, Key,
 };
 
@@ -96,7 +99,8 @@ pub async fn login_user(
                 Cookie::build((COOKIE_NAME, _user.id.to_string()))
                     .path("/")
                     .secure(true)
-                    .http_only(true)
+                    .http_only(false)
+                    .same_site(SameSite::Strict)
                     .expires(OffsetDateTime::now_utc() + Duration::weeks(1))
                     .into(),
             );
