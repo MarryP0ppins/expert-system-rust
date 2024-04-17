@@ -2,13 +2,13 @@ use crate::{
     constants::COOKIE_NAME,
     models::{
         error::CustomErrors,
-        user::{NewUser, User, UserLogin, UserWithoutPassword},
+        user::{NewUser, UpdateUser, UpdateUserResponse, User, UserLogin, UserWithoutPassword},
     },
     schema::users::dsl::*,
     utils::auth::{check_password, hash_password},
 };
 use axum::http::StatusCode;
-use diesel::{insert_into, prelude::*, result::Error};
+use diesel::{insert_into, prelude::*, result::Error, update};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use tower_cookies::{
     cookie::{
@@ -39,6 +39,64 @@ pub async fn get_user(
         Ok(result) => Ok(result),
         Err(err) => Err(err),
     }
+}
+
+pub async fn update_user(
+    connection: &mut AsyncPgConnection,
+    user_data: UpdateUserResponse,
+    user_id: i32,
+) -> Result<UserWithoutPassword, CustomErrors> {
+    let old_user_data;
+    match users.find(user_id).first::<User>(connection).await {
+        Ok(user) => old_user_data = user,
+        Err(err) => {
+            return Err(CustomErrors::DieselError {
+                error: err,
+                message: None,
+            })
+        }
+    }
+
+    match check_password(&user_data.password, &old_user_data.password) {
+        Ok(()) => (),
+        Err(err) => {
+            return Err(CustomErrors::Argon2Error {
+                status: StatusCode::BAD_REQUEST,
+                error: err,
+                message: Some("Неверный пароль".to_owned()),
+            })
+        }
+    }
+
+    let new_user;
+    match update(users.find(user_id))
+        .set::<UpdateUser>(UpdateUser {
+            email: user_data.email,
+            first_name: user_data.first_name,
+            last_name: user_data.last_name,
+            password: user_data.new_password,
+        })
+        .get_result::<User>(connection)
+        .await
+    {
+        Ok(user) => new_user = user,
+        Err(err) => {
+            return Err(CustomErrors::DieselError {
+                error: err,
+                message: None,
+            })
+        }
+    }
+
+    Ok(UserWithoutPassword {
+        id: new_user.id,
+        email: new_user.email,
+        username: new_user.username,
+        created_at: new_user.created_at,
+        first_name: new_user.first_name,
+        last_name: new_user.last_name,
+        is_superuser: new_user.is_superuser,
+    })
 }
 
 pub async fn create_user(

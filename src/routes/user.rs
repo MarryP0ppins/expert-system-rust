@@ -2,9 +2,9 @@ use crate::{
     constants::COOKIE_NAME,
     models::{
         error::CustomErrors,
-        user::{NewUser, UserLogin},
+        user::{NewUser, UpdateUserResponse, UserLogin},
     },
-    services::user::{create_user, get_user, login_user},
+    services::user::{create_user, get_user, login_user, update_user},
     AppState,
 };
 use axum::{
@@ -141,9 +141,54 @@ pub async fn user_get(State(state): State<AppState>, cookie: Cookies) -> impl In
     }
 }
 
+#[utoipa::path(
+    patch,
+    path = "/user",
+    context_path ="/api/v1",
+    responses(
+        (status = 200, description = "Matching User", body = UserWithoutPassword),
+        (status = 401, description = "Unauthorized to User", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
+    )
+)]
+#[debug_handler]
+pub async fn user_patch(
+    State(state): State<AppState>,
+    cookie: Cookies,
+    Json(user): Json<UpdateUserResponse>,
+) -> impl IntoResponse {
+    let user_id: i32;
+    match cookie
+        .private(&state.cookie_key)
+        .get(COOKIE_NAME)
+        .map(|res| res.value().to_owned())
+    {
+        Some(res) => user_id = res.parse::<i32>().expect("Server Error"),
+        None => {
+            return Err(CustomErrors::StringError {
+                status: StatusCode::UNAUTHORIZED,
+                error: "Not authorized".to_string(),
+            })
+        }
+    };
+
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
+        Ok(ok) => connection = ok,
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
+    };
+
+    match update_user(&mut connection, user, user_id).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(err),
+    }
+}
+
 pub fn user_routes() -> Router<AppState> {
     Router::new()
-        .route("/", get(user_get))
+        .route("/", get(user_get).patch(user_patch))
         .route("/logout", post(user_logout))
         .route("/login", post(user_login))
         .route("/registration", post(user_registration))

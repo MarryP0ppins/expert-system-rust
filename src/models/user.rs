@@ -47,13 +47,22 @@ pub struct UserLogin {
     pub password: String,
 }
 
+#[derive(Deserialize)]
+pub struct UpdateUserResponse {
+    pub email: Option<String>,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub password: String,
+    pub new_password: Option<String>,
+}
+
 #[derive(Deserialize, AsChangeset)]
 #[diesel(table_name=users)]
 pub struct UpdateUser {
     pub email: Option<String>,
-    pub username: Option<String>,
+    //pub username: Option<String>,
     pub first_name: Option<String>,
     pub last_name: Option<String>,
-    pub is_superuser: Option<bool>,
+    //pub is_superuser: Option<bool>,
     pub password: Option<String>,
 }
