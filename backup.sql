@@ -1,234 +1,621 @@
-----USER_MODEL----
+/*
+ Navicat Premium Data Transfer
 
-CREATE TABLE users (
-    id serial NOT NULL,
-    email character varying(32) NOT NULL,
-    username character varying(16) NOT NULL,
-    created_at timestamp NOT NULL DEFAULT NOW(),
-    first_name character varying(16) NOT NULL,
-    last_name character varying(16) NOT NULL,
-    is_superuser boolean NOT NULL DEFAULT false,
-    password character varying(256) NOT NULL,
-    CONSTRAINT id_users_pkey PRIMARY KEY (id),
-    CONSTRAINT email_users_unique UNIQUE (email)
-        INCLUDE(email),
-    CONSTRAINT username_users_unique UNIQUE (username)
-        INCLUDE(username)
+ Source Server         : expert-system
+ Source Server Type    : PostgreSQL
+ Source Server Version : 160001 (160001)
+ Source Host           : localhost:5432
+ Source Catalog        : expert-system
+ Source Schema         : public
+
+ Target Server Type    : PostgreSQL
+ Target Server Version : 160001 (160001)
+ File Encoding         : 65001
+
+ Date: 18/04/2024 11:52:25
+*/
+
+
+-- ----------------------------
+-- Type structure for operatorenum
+-- ----------------------------
+DROP TYPE IF EXISTS "public"."operatorenum";
+CREATE TYPE "public"."operatorenum" AS ENUM (
+  'EQUAL',
+  'NOT_EQUAL',
+  'BELOW',
+  'ABOVE',
+  'NO_MORE_THAN',
+  'NO_LESS_THAN'
 );
+--ALTER TYPE "public"."operatorenum" OWNER TO "postgres";
 
-----SYSTEM_MODEL----
+-- ----------------------------
+-- Sequence structure for answers_id_seq
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "public"."answers_id_seq";
+CREATE SEQUENCE "public"."answers_id_seq" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
 
-CREATE TABLE systems (
-    id serial NOT NULL,
-    user_id integer NOT NULL,
-    about text,
-    created_at timestamp NOT NULL DEFAULT NOW(),
-    updated_at timestamp NOT NULL DEFAULT NOW(),
-    name character varying(128) NOT NULL,
-    private boolean NOT NULL DEFAULT True,
-    CONSTRAINT id_systems_pkey PRIMARY KEY (id),
-    CONSTRAINT name_systems_unique UNIQUE (name)
-        INCLUDE(name),
-    CONSTRAINT users_systems_fkey FOREIGN KEY (user_id)
-        REFERENCES public.users (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID
-);
+-- ----------------------------
+-- Sequence structure for attributes_id_seq
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "public"."attributes_id_seq";
+CREATE SEQUENCE "public"."attributes_id_seq" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
 
-CREATE FUNCTION trigger_set_timestamp()
-RETURNS TRIGGER AS $$
+-- ----------------------------
+-- Sequence structure for attributesvalue_object_id_seq
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "public"."attributesvalue_object_id_seq";
+CREATE SEQUENCE "public"."attributesvalue_object_id_seq" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
+
+-- ----------------------------
+-- Sequence structure for attributesvalues_id_seq
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "public"."attributesvalues_id_seq";
+CREATE SEQUENCE "public"."attributesvalues_id_seq" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
+
+-- ----------------------------
+-- Sequence structure for clauses_id_seq
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "public"."clauses_id_seq";
+CREATE SEQUENCE "public"."clauses_id_seq" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
+
+-- ----------------------------
+-- Sequence structure for histories_id_seq
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "public"."histories_id_seq";
+CREATE SEQUENCE "public"."histories_id_seq" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
+
+-- ----------------------------
+-- Sequence structure for objects_id_seq
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "public"."objects_id_seq";
+CREATE SEQUENCE "public"."objects_id_seq" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
+
+-- ----------------------------
+-- Sequence structure for questions_id_seq
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "public"."questions_id_seq";
+CREATE SEQUENCE "public"."questions_id_seq" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
+
+-- ----------------------------
+-- Sequence structure for rule_answer_id_seq
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "public"."rule_answer_id_seq";
+CREATE SEQUENCE "public"."rule_answer_id_seq" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
+
+-- ----------------------------
+-- Sequence structure for rule_attributevalue_id_seq
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "public"."rule_attributevalue_id_seq";
+CREATE SEQUENCE "public"."rule_attributevalue_id_seq" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
+
+-- ----------------------------
+-- Sequence structure for rules_id_seq
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "public"."rules_id_seq";
+CREATE SEQUENCE "public"."rules_id_seq" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
+
+-- ----------------------------
+-- Sequence structure for systems_id_seq
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "public"."systems_id_seq";
+CREATE SEQUENCE "public"."systems_id_seq" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
+
+-- ----------------------------
+-- Sequence structure for users_id_seq
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "public"."users_id_seq";
+CREATE SEQUENCE "public"."users_id_seq" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
+
+-- ----------------------------
+-- Table structure for __diesel_schema_migrations
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."__diesel_schema_migrations";
+CREATE TABLE "public"."__diesel_schema_migrations" (
+  "version" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
+  "run_on" timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
+)
+;
+
+-- ----------------------------
+-- Table structure for answers
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."answers";
+CREATE TABLE "public"."answers" (
+  "id" int4 NOT NULL DEFAULT nextval('answers_id_seq'::regclass),
+  "question_id" int4 NOT NULL,
+  "body" varchar(128) COLLATE "pg_catalog"."default" NOT NULL
+)
+;
+
+-- ----------------------------
+-- Table structure for attributes
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."attributes";
+CREATE TABLE "public"."attributes" (
+  "id" int4 NOT NULL DEFAULT nextval('attributes_id_seq'::regclass),
+  "system_id" int4 NOT NULL,
+  "name" varchar(128) COLLATE "pg_catalog"."default" NOT NULL
+)
+;
+
+-- ----------------------------
+-- Table structure for attributesvalue_object
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."attributesvalue_object";
+CREATE TABLE "public"."attributesvalue_object" (
+  "id" int4 NOT NULL DEFAULT nextval('attributesvalue_object_id_seq'::regclass),
+  "object_id" int4 NOT NULL,
+  "attribute_value_id" int4 NOT NULL
+)
+;
+
+-- ----------------------------
+-- Table structure for attributesvalues
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."attributesvalues";
+CREATE TABLE "public"."attributesvalues" (
+  "id" int4 NOT NULL DEFAULT nextval('attributesvalues_id_seq'::regclass),
+  "attribute_id" int4 NOT NULL,
+  "value" varchar(128) COLLATE "pg_catalog"."default" NOT NULL
+)
+;
+
+-- ----------------------------
+-- Table structure for clauses
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."clauses";
+CREATE TABLE "public"."clauses" (
+  "id" int4 NOT NULL DEFAULT nextval('clauses_id_seq'::regclass),
+  "rule_id" int4 NOT NULL,
+  "compared_value" varchar(64) COLLATE "pg_catalog"."default" NOT NULL,
+  "logical_group" int4 NOT NULL,
+  "operator" "public"."operatorenum" NOT NULL,
+  "question_id" int4 NOT NULL
+)
+;
+
+-- ----------------------------
+-- Table structure for histories
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."histories";
+CREATE TABLE "public"."histories" (
+  "id" int4 NOT NULL DEFAULT nextval('histories_id_seq'::regclass),
+  "system_id" int4 NOT NULL,
+  "user_id" int4 NOT NULL,
+  "answered_questions" varchar(8) COLLATE "pg_catalog"."default" NOT NULL DEFAULT '0/0'::character varying,
+  "results" json NOT NULL,
+  "started_at" timestamp(6) NOT NULL DEFAULT now(),
+  "finished_at" timestamp(6) NOT NULL DEFAULT now()
+)
+;
+
+-- ----------------------------
+-- Table structure for objects
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."objects";
+CREATE TABLE "public"."objects" (
+  "id" int4 NOT NULL DEFAULT nextval('objects_id_seq'::regclass),
+  "system_id" int4 NOT NULL,
+  "name" varchar(128) COLLATE "pg_catalog"."default" NOT NULL
+)
+;
+
+-- ----------------------------
+-- Table structure for questions
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."questions";
+CREATE TABLE "public"."questions" (
+  "id" int4 NOT NULL DEFAULT nextval('questions_id_seq'::regclass),
+  "system_id" int4 NOT NULL,
+  "body" varchar(64) COLLATE "pg_catalog"."default" NOT NULL,
+  "with_chooses" bool NOT NULL DEFAULT false
+)
+;
+
+-- ----------------------------
+-- Table structure for rule_answer
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."rule_answer";
+CREATE TABLE "public"."rule_answer" (
+  "id" int4 NOT NULL DEFAULT nextval('rule_answer_id_seq'::regclass),
+  "answer_id" int4 NOT NULL,
+  "rule_id" int4 NOT NULL,
+  "question_id" int4 NOT NULL
+)
+;
+
+-- ----------------------------
+-- Table structure for rule_attributevalue
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."rule_attributevalue";
+CREATE TABLE "public"."rule_attributevalue" (
+  "id" int4 NOT NULL DEFAULT nextval('rule_attributevalue_id_seq'::regclass),
+  "attribute_value_id" int4 NOT NULL,
+  "rule_id" int4 NOT NULL,
+  "attribute_id" int4 NOT NULL
+)
+;
+
+-- ----------------------------
+-- Table structure for rules
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."rules";
+CREATE TABLE "public"."rules" (
+  "id" int4 NOT NULL DEFAULT nextval('rules_id_seq'::regclass),
+  "system_id" int4 NOT NULL,
+  "attribute_rule" bool NOT NULL DEFAULT true
+)
+;
+
+-- ----------------------------
+-- Table structure for systems
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."systems";
+CREATE TABLE "public"."systems" (
+  "id" int4 NOT NULL DEFAULT nextval('systems_id_seq'::regclass),
+  "user_id" int4 NOT NULL,
+  "about" text COLLATE "pg_catalog"."default",
+  "created_at" timestamp(6) NOT NULL DEFAULT now(),
+  "updated_at" timestamp(6) NOT NULL DEFAULT now(),
+  "name" varchar(128) COLLATE "pg_catalog"."default" NOT NULL,
+  "private" bool NOT NULL DEFAULT true,
+  "image_uri" varchar(128) COLLATE "pg_catalog"."default" NOT NULL DEFAULT 'image_logo'::bpchar
+)
+;
+
+-- ----------------------------
+-- Table structure for users
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."users";
+CREATE TABLE "public"."users" (
+  "id" int4 NOT NULL DEFAULT nextval('users_id_seq'::regclass),
+  "email" varchar(32) COLLATE "pg_catalog"."default" NOT NULL,
+  "username" varchar(16) COLLATE "pg_catalog"."default" NOT NULL,
+  "created_at" timestamp(6) NOT NULL DEFAULT now(),
+  "first_name" varchar(16) COLLATE "pg_catalog"."default" NOT NULL,
+  "last_name" varchar(16) COLLATE "pg_catalog"."default" NOT NULL,
+  "is_superuser" bool NOT NULL DEFAULT false,
+  "password" varchar(256) COLLATE "pg_catalog"."default" NOT NULL
+)
+;
+
+-- ----------------------------
+-- Function structure for diesel_manage_updated_at
+-- ----------------------------
+DROP FUNCTION IF EXISTS "public"."diesel_manage_updated_at"("_tbl" regclass);
+CREATE OR REPLACE FUNCTION "public"."diesel_manage_updated_at"("_tbl" regclass)
+  RETURNS "pg_catalog"."void" AS $BODY$
+BEGIN
+    EXECUTE format('CREATE TRIGGER set_updated_at BEFORE UPDATE ON %s
+                    FOR EACH ROW EXECUTE PROCEDURE diesel_set_updated_at()', _tbl);
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+
+-- ----------------------------
+-- Function structure for trigger_set_timestamp
+-- ----------------------------
+DROP FUNCTION IF EXISTS "public"."trigger_set_timestamp"();
+CREATE OR REPLACE FUNCTION "public"."trigger_set_timestamp"()
+  RETURNS "pg_catalog"."trigger" AS $BODY$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
 
-CREATE TRIGGER set_timestamp
-BEFORE UPDATE ON systems
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "public"."answers_id_seq"
+OWNED BY "public"."answers"."id";
+SELECT setval('"public"."answers_id_seq"', 4, true);
+
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "public"."attributes_id_seq"
+OWNED BY "public"."attributes"."id";
+SELECT setval('"public"."attributes_id_seq"', 2, true);
+
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "public"."attributesvalue_object_id_seq"
+OWNED BY "public"."attributesvalue_object"."id";
+SELECT setval('"public"."attributesvalue_object_id_seq"', 6, true);
+
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "public"."attributesvalues_id_seq"
+OWNED BY "public"."attributesvalues"."id";
+SELECT setval('"public"."attributesvalues_id_seq"', 6, true);
+
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "public"."clauses_id_seq"
+OWNED BY "public"."clauses"."id";
+SELECT setval('"public"."clauses_id_seq"', 1, false);
+
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "public"."histories_id_seq"
+OWNED BY "public"."histories"."id";
+SELECT setval('"public"."histories_id_seq"', 3, true);
+
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "public"."objects_id_seq"
+OWNED BY "public"."objects"."id";
+SELECT setval('"public"."objects_id_seq"', 2, true);
+
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "public"."questions_id_seq"
+OWNED BY "public"."questions"."id";
+SELECT setval('"public"."questions_id_seq"', 3, true);
+
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "public"."rule_answer_id_seq"
+OWNED BY "public"."rule_answer"."id";
+SELECT setval('"public"."rule_answer_id_seq"', 1, false);
+
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "public"."rule_attributevalue_id_seq"
+OWNED BY "public"."rule_attributevalue"."id";
+SELECT setval('"public"."rule_attributevalue_id_seq"', 1, false);
+
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "public"."rules_id_seq"
+OWNED BY "public"."rules"."id";
+SELECT setval('"public"."rules_id_seq"', 1, false);
+
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "public"."systems_id_seq"
+OWNED BY "public"."systems"."id";
+SELECT setval('"public"."systems_id_seq"', 53, true);
+
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "public"."users_id_seq"
+OWNED BY "public"."users"."id";
+SELECT setval('"public"."users_id_seq"', 3, true);
+
+-- ----------------------------
+-- Primary Key structure for table __diesel_schema_migrations
+-- ----------------------------
+ALTER TABLE "public"."__diesel_schema_migrations" ADD CONSTRAINT "__diesel_schema_migrations_pkey" PRIMARY KEY ("version");
+
+-- ----------------------------
+-- Primary Key structure for table answers
+-- ----------------------------
+ALTER TABLE "public"."answers" ADD CONSTRAINT "id_answers_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Primary Key structure for table attributes
+-- ----------------------------
+ALTER TABLE "public"."attributes" ADD CONSTRAINT "id_attributes_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Primary Key structure for table attributesvalue_object
+-- ----------------------------
+ALTER TABLE "public"."attributesvalue_object" ADD CONSTRAINT "attributesvalue_object_pkey" PRIMARY KEY ("object_id", "attribute_value_id");
+
+-- ----------------------------
+-- Primary Key structure for table attributesvalues
+-- ----------------------------
+ALTER TABLE "public"."attributesvalues" ADD CONSTRAINT "id_attributesvalues_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Primary Key structure for table clauses
+-- ----------------------------
+ALTER TABLE "public"."clauses" ADD CONSTRAINT "id_clauses_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Primary Key structure for table histories
+-- ----------------------------
+ALTER TABLE "public"."histories" ADD CONSTRAINT "id_histories_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Primary Key structure for table objects
+-- ----------------------------
+ALTER TABLE "public"."objects" ADD CONSTRAINT "id_objects_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Primary Key structure for table questions
+-- ----------------------------
+ALTER TABLE "public"."questions" ADD CONSTRAINT "id_questions_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Primary Key structure for table rule_answer
+-- ----------------------------
+ALTER TABLE "public"."rule_answer" ADD CONSTRAINT "rule_answer_pkey" PRIMARY KEY ("answer_id", "rule_id", "question_id");
+
+-- ----------------------------
+-- Primary Key structure for table rule_attributevalue
+-- ----------------------------
+ALTER TABLE "public"."rule_attributevalue" ADD CONSTRAINT "rule_attribute_value_pkey" PRIMARY KEY ("attribute_value_id", "rule_id", "attribute_id");
+
+-- ----------------------------
+-- Primary Key structure for table rules
+-- ----------------------------
+ALTER TABLE "public"."rules" ADD CONSTRAINT "id_rules_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Triggers structure for table systems
+-- ----------------------------
+CREATE TRIGGER "set_timestamp" BEFORE UPDATE ON "public"."systems"
 FOR EACH ROW
-EXECUTE PROCEDURE trigger_set_timestamp();
+EXECUTE PROCEDURE "public"."trigger_set_timestamp"();
 
-----HISTORY_MODEL----
+-- ----------------------------
+-- Uniques structure for table systems
+-- ----------------------------
+ALTER TABLE "public"."systems" ADD CONSTRAINT "name_systems_unique" UNIQUE ("name");
 
-CREATE TABLE histories (
-    id serial NOT NULL,
-    system_id integer NOT NULL,
-    user_id integer NOT NULL,
-    started_at timestamp NOT NULL DEFAULT NOW(),
-    finished_at timestamp NOT NULL DEFAULT NOW(),
-    answered_questions character varying(8) NOT NULL DEFAULT '0/0',
-    results json NOT NULL,
-    CONSTRAINT id_histories_pkey PRIMARY KEY (id),
-    CONSTRAINT users_histories_fkey FOREIGN KEY (user_id)
-        REFERENCES public."users" (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID,
-    CONSTRAINT systems_histories_fkey FOREIGN KEY (system_id)
-        REFERENCES public.systems (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID
-);
+-- ----------------------------
+-- Primary Key structure for table systems
+-- ----------------------------
+ALTER TABLE "public"."systems" ADD CONSTRAINT "id_systems_pkey" PRIMARY KEY ("id");
 
-----QUESTION_MODEL----
+-- ----------------------------
+-- Uniques structure for table users
+-- ----------------------------
+ALTER TABLE "public"."users" ADD CONSTRAINT "email_users_unique" UNIQUE ("email");
+ALTER TABLE "public"."users" ADD CONSTRAINT "username_users_unique" UNIQUE ("username");
 
-CREATE TABLE questions (
-    id serial NOT NULL,
-    system_id integer NOT NULL, 
-    body character varying(64) NOT NULL,
-    with_chooses boolean NOT NULL DEFAULT False,
-    CONSTRAINT id_questions_pkey PRIMARY KEY (id),
-    CONSTRAINT systems_questions_fkey FOREIGN KEY (system_id)
-        REFERENCES public.systems (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID
-);
+-- ----------------------------
+-- Primary Key structure for table users
+-- ----------------------------
+ALTER TABLE "public"."users" ADD CONSTRAINT "id_users_pkey" PRIMARY KEY ("id");
 
-----ANSWER_MODEL----
+-- ----------------------------
+-- Foreign Keys structure for table answers
+-- ----------------------------
+ALTER TABLE "public"."answers" ADD CONSTRAINT "questions_answers_fkey" FOREIGN KEY ("question_id") REFERENCES "public"."questions" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
-CREATE TABLE answers
-(
-    id serial NOT NULL,
-    question_id integer NOT NULL,
-    body character varying(128) NOT NULL,
-    CONSTRAINT id_answers_pkey PRIMARY KEY (id),
-    CONSTRAINT questions_answers_fkey FOREIGN KEY (question_id)
-        REFERENCES public.questions (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID
-);
+-- ----------------------------
+-- Foreign Keys structure for table attributes
+-- ----------------------------
+ALTER TABLE "public"."attributes" ADD CONSTRAINT "systems_attributes_fkey" FOREIGN KEY ("system_id") REFERENCES "public"."systems" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
-----QUESTION_RULE_GROUP_MODEL----
+-- ----------------------------
+-- Foreign Keys structure for table attributesvalue_object
+-- ----------------------------
+ALTER TABLE "public"."attributesvalue_object" ADD CONSTRAINT "attributesvalue_object_objects_fkey" FOREIGN KEY ("object_id") REFERENCES "public"."objects" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "public"."attributesvalue_object" ADD CONSTRAINT "attributesvalues_attribute_value_fkey" FOREIGN KEY ("attribute_value_id") REFERENCES "public"."attributesvalues" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
-CREATE TABLE questionRuleGroups (
-    id serial NOT NULL,
-    system_id integer NOT NULL,
-    CONSTRAINT id_questionRuleGroup_pkey PRIMARY KEY (id)
-);
+-- ----------------------------
+-- Foreign Keys structure for table attributesvalues
+-- ----------------------------
+ALTER TABLE "public"."attributesvalues" ADD CONSTRAINT "attributes_attributesvalues_fkey" FOREIGN KEY ("attribute_id") REFERENCES "public"."attributes" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
-----QUESTION_RULE_GROUP_ANSWER_MODEL----
+-- ----------------------------
+-- Foreign Keys structure for table clauses
+-- ----------------------------
+ALTER TABLE "public"."clauses" ADD CONSTRAINT "questions_clauses_fkey" FOREIGN KEY ("question_id") REFERENCES "public"."questions" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "public"."clauses" ADD CONSTRAINT "rules_clauses_fkey" FOREIGN KEY ("rule_id") REFERENCES "public"."rules" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
-CREATE TABLE questionRuleGroup_answer (
-    id serial NOT NULL,
-    answer_id integer NOT NULL,
-    question_rule_group_id integer NOT NULL,
-    CONSTRAINT answers_questionRuleGroup_answer_fkey FOREIGN KEY (answer_id)
-        REFERENCES public.answers (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID,
-    CONSTRAINT questionRuleGroups_questionRuleGroup_answer_fkey FOREIGN KEY (question_rule_group_id)
-        REFERENCES public.questionRuleGroups (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID,
-    CONSTRAINT questionRuleGroup_answer_pkey PRIMARY KEY (answer_id, question_rule_group_id)
-);
+-- ----------------------------
+-- Foreign Keys structure for table histories
+-- ----------------------------
+ALTER TABLE "public"."histories" ADD CONSTRAINT "systems_histories_fkey" FOREIGN KEY ("system_id") REFERENCES "public"."systems" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "public"."histories" ADD CONSTRAINT "users_histories_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
+-- ----------------------------
+-- Foreign Keys structure for table objects
+-- ----------------------------
+ALTER TABLE "public"."objects" ADD CONSTRAINT "systems_objects_fkey" FOREIGN KEY ("system_id") REFERENCES "public"."systems" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
-CREATE TABLE attributes (
-    id serial NOT NULL,
-    system_id integer NOT NULL,
-    name character varying(128) NOT NULL,
-    CONSTRAINT id_attributes_pkey PRIMARY KEY (id),
-    CONSTRAINT systems_attributes_fkey FOREIGN KEY (system_id)
-        REFERENCES public.systems (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID
-);
+-- ----------------------------
+-- Foreign Keys structure for table questions
+-- ----------------------------
+ALTER TABLE "public"."questions" ADD CONSTRAINT "systems_questions_fkey" FOREIGN KEY ("system_id") REFERENCES "public"."systems" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
-CREATE TABLE attributesValues (
-    id serial NOT NULL,
-    attribute_id integer NOT NULL,
-    value character varying(128) NOT NULL,
-    CONSTRAINT id_attributesValues_pkey PRIMARY KEY (id),
-    CONSTRAINT attributes_attributesValues_fkey FOREIGN KEY (attribute_id)
-        REFERENCES public.attributes (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID
-);
+-- ----------------------------
+-- Foreign Keys structure for table rule_answer
+-- ----------------------------
+ALTER TABLE "public"."rule_answer" ADD CONSTRAINT "answers_rule_answers_fkey" FOREIGN KEY ("answer_id") REFERENCES "public"."answers" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "public"."rule_answer" ADD CONSTRAINT "questions_rule_answers_fkey" FOREIGN KEY ("question_id") REFERENCES "public"."questions" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "public"."rule_answer" ADD CONSTRAINT "rules_rule_answers_fkey" FOREIGN KEY ("rule_id") REFERENCES "public"."rules" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
-CREATE TABLE objects (
-    id serial NOT NULL,
-    system_id integer NOT NULL,
-    name character varying(128) NOT NULL,
-    CONSTRAINT id_objects_pkey PRIMARY KEY (id),
-    CONSTRAINT systems_objects_fkey FOREIGN KEY (system_id)
-        REFERENCES public.systems (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID
-);
+-- ----------------------------
+-- Foreign Keys structure for table rule_attributevalue
+-- ----------------------------
+ALTER TABLE "public"."rule_attributevalue" ADD CONSTRAINT "atribute_values_rule_attributevalues_fkey" FOREIGN KEY ("attribute_value_id") REFERENCES "public"."attributesvalues" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "public"."rule_attributevalue" ADD CONSTRAINT "attributes_rule_attributevalues_fkey" FOREIGN KEY ("attribute_id") REFERENCES "public"."attributes" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "public"."rule_attributevalue" ADD CONSTRAINT "rules_rule_attributevalues_fkey" FOREIGN KEY ("rule_id") REFERENCES "public"."rules" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
-CREATE TABLE attributesValue_object (
-    id serial NOT NULL,
-    object_id integer NOT NULL,
-    attribute_value_id integer NOT NULL,
-    CONSTRAINT attributesValue_object_objects_fkey FOREIGN KEY (object_id)
-        REFERENCES public.objects (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID,
-    CONSTRAINT attributesValues_attribute_value_fkey FOREIGN KEY (attribute_value_id)
-        REFERENCES public.attributesValues (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID,
-    CONSTRAINT attributesValue_object_pkey PRIMARY KEY (object_id, attribute_value_id)
-);
+-- ----------------------------
+-- Foreign Keys structure for table rules
+-- ----------------------------
+ALTER TABLE "public"."rules" ADD CONSTRAINT "systems_rules_fkey" FOREIGN KEY ("system_id") REFERENCES "public"."systems" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
-
-CREATE TABLE AttributeRuleGroups (
-    id serial NOT NULL,
-    system_id integer NOT NULL,
-    CONSTRAINT id_attributeRuleGroup_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE AttributeRuleGroup_atributeValue (
-    id serial NOT NULL,
-    attribute_value_id integer NOT NULL,
-    attribute_rule_group_id integer NOT NULL,
-    CONSTRAINT attributeRuleGroup_atributeValue_atributesValues_fkey FOREIGN KEY (attribute_value_id)
-        REFERENCES public.attributesvalues (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID,
-    CONSTRAINT attributeRuleGroup_atributeValue_attributeRuleGroups_fkey FOREIGN KEY (attribute_rule_group_id)
-        REFERENCES public.attributeRuleGroups (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID,
-    CONSTRAINT attributeRuleGroup_atributeValue_pkey PRIMARY KEY (attribute_value_id, attribute_rule_group_id)
-);
-
-
-CREATE TYPE OperatorEnum AS ENUM
-    ('EQUAL', 'NOT_EQUAL', 'BELOW', 'ABOVE', 'NO_MORE_THAN', 'NO_LESS_THAN');
-
-
-
-CREATE TABLE rules (
-    id serial NOT NULL,
-    attribute_rule_group_id integer,
-    question_rule_group_id integer,
-    compared_value character varying(64) NOT NULL,
-    logical_group integer NOT NULL,
-    operator OperatorEnum NOT NULL,
-    CONSTRAINT id_rules_pkey PRIMARY KEY (id),
-    CONSTRAINT attributeRuleGroup_rules_fkey FOREIGN KEY (attribute_rule_group_id)
-        REFERENCES public.attributerulegroups (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID,
-    CONSTRAINT questionRuleGroup_rules_fkey FOREIGN KEY (question_rule_group_id)
-        REFERENCES public.questionrulegroups (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-        NOT VALID
-);
+-- ----------------------------
+-- Foreign Keys structure for table systems
+-- ----------------------------
+ALTER TABLE "public"."systems" ADD CONSTRAINT "users_systems_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
