@@ -47,7 +47,7 @@ pub struct UserLogin {
     pub password: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateUserResponse {
     pub email: Option<String>,
     pub first_name: Option<String>,

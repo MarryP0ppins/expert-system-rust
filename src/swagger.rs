@@ -63,6 +63,7 @@ use utoipa::OpenApi;
         user::user_logout,
         user::user_registration,
         user::user_get,
+        user::user_patch
     ),
     components(schemas(
         error::CustomErrors,
@@ -98,6 +99,7 @@ use utoipa::OpenApi;
         user_model::UserLogin,
         user_model::UserWithoutPassword,
         user_model::NewUser,
+        user_model::UpdateUserResponse
     ))
 )]
 pub struct ApiDoc;
