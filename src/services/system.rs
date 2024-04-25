@@ -42,6 +42,11 @@ pub async fn get_systems(
         raw_count_query = raw_count_query.filter(users::username.like(format!("%{}%", _username)));
     }
 
+    if let Some(_id) = params.user_id {
+        query = query.filter(users::id.eq(_id));
+        raw_count_query = raw_count_query.filter(users::id.eq(_id));
+    }
+
     let raw_count = raw_count_query
         .count()
         .get_result::<i64>(connection)

@@ -102,6 +102,8 @@ pub async fn update_user(
 pub async fn create_user(
     connection: &mut AsyncPgConnection,
     user_info: NewUser,
+    cookie: Cookies,
+    cookie_key: &Key,
 ) -> Result<UserWithoutPassword, Error> {
     match insert_into(users)
         .values::<NewUser>(NewUser {
@@ -117,10 +119,21 @@ pub async fn create_user(
             last_name,
             is_superuser,
         ))
-        .get_result(connection)
+        .get_result::<UserWithoutPassword>(connection)
         .await
     {
-        Ok(system) => Ok(system),
+        Ok(_user) => {
+            cookie.private(cookie_key).add(
+                Cookie::build((COOKIE_NAME, _user.id.to_string()))
+                    .path("/")
+                    .secure(true)
+                    .http_only(false)
+                    .same_site(SameSite::Strict)
+                    .expires(OffsetDateTime::now_utc() + Duration::weeks(1))
+                    .into(),
+            );
+            Ok(_user)
+        }
         Err(err) => Err(err),
     }
 }

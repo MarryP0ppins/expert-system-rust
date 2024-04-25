@@ -16,7 +16,7 @@ use diesel_async::{
 };
 use dotenv::dotenv;
 use http::{
-    header::{ACCEPT, CONTENT_TYPE, SET_COOKIE},
+    header::{ACCEPT, CONTENT_TYPE, SET_COOKIE, X_CONTENT_TYPE_OPTIONS},
     HeaderName,
 };
 use middleware::{auth, handler_404};
@@ -52,7 +52,6 @@ mod swagger;
 mod utils;
 
 type AsyncPool = bb8::Pool<AsyncPgConnection>;
-//type ResponseResult<T> = Result<Json<T>, CustomErrors>;
 
 #[derive(Clone)]
 struct AppState {
@@ -82,11 +81,7 @@ async fn main() {
     let cors = CorsLayer::new()
         .allow_origin(dotenv!("ALLOW_ORIGIN").parse::<HeaderValue>().unwrap())
         .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
-        .allow_headers([
-            CONTENT_TYPE,
-            SET_COOKIE,
-            ACCEPT
-        ])
+        .allow_headers([CONTENT_TYPE, SET_COOKIE, ACCEPT, X_CONTENT_TYPE_OPTIONS])
         .expose_headers([page_header])
         .allow_credentials(true);
 

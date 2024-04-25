@@ -3,6 +3,7 @@ use utoipa::IntoParams;
 
 #[derive(Deserialize, IntoParams)]
 pub struct SystemListPagination {
+    pub user_id: Option<i32>,
     pub name: Option<String>,
     pub username: Option<String>,
     #[param(default = json!(1))]

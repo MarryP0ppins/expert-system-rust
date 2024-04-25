@@ -80,6 +80,7 @@ pub async fn user_logout(cookie: Cookies) -> impl IntoResponse {
 #[debug_handler]
 pub async fn user_registration(
     State(state): State<AppState>,
+    cookie: Cookies,
     Json(user_info): Json<NewUser>,
 ) -> impl IntoResponse {
     let mut connection: PooledConnection<AsyncPgConnection>;
@@ -88,7 +89,7 @@ pub async fn user_registration(
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
-    match create_user(&mut connection, user_info).await {
+    match create_user(&mut connection, user_info, cookie, &state.cookie_key).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
