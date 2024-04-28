@@ -72,3 +72,8 @@ pub struct SystemData {
     pub questions: Vec<QuestionWithAnswers>,
     pub rules: Vec<RuleWithClausesAndEffects>,
 }
+
+#[derive(Deserialize, ToSchema)]
+pub struct SystemDelete {
+    pub password: String,
+}

@@ -96,6 +96,7 @@ use utoipa::OpenApi;
         system_model::NewSystemMultipart,
         system_model::UpdateSystemMultipart,
         system_model::SystemData,
+        system_model::SystemDelete,
         user_model::UserLogin,
         user_model::UserWithoutPassword,
         user_model::NewUser,

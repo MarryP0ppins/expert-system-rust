@@ -5,6 +5,7 @@ use crate::{
         user::{NewUser, UpdateUserResponse, UserLogin},
     },
     services::user::{create_user, get_user, login_user, update_user},
+    utils::auth::password_check,
     AppState,
 };
 use axum::{
@@ -160,28 +161,16 @@ pub async fn user_patch(
     cookie: Cookies,
     Json(user): Json<UpdateUserResponse>,
 ) -> impl IntoResponse {
-    let user_id: i32;
-    match cookie
-        .private(&state.cookie_key)
-        .get(COOKIE_NAME)
-        .map(|res| res.value().to_owned())
-    {
-        Some(res) => user_id = res.parse::<i32>().expect("Server Error"),
-        None => {
-            return Err(CustomErrors::StringError {
-                status: StatusCode::UNAUTHORIZED,
-                error: "Not authorized".to_string(),
-            })
-        }
-    };
-
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
-    match update_user(&mut connection, user, user_id).await {
+    let user_cookie =
+        password_check(&mut connection, cookie, &state.cookie_key, &user.password).await?;
+
+    match update_user(&mut connection, user, user_cookie.id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(err),
     }

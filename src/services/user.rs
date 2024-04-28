@@ -46,28 +46,6 @@ pub async fn update_user(
     user_data: UpdateUserResponse,
     user_id: i32,
 ) -> Result<UserWithoutPassword, CustomErrors> {
-    let old_user_data;
-    match users.find(user_id).first::<User>(connection).await {
-        Ok(user) => old_user_data = user,
-        Err(err) => {
-            return Err(CustomErrors::DieselError {
-                error: err,
-                message: None,
-            })
-        }
-    }
-
-    match check_password(&user_data.password, &old_user_data.password) {
-        Ok(()) => (),
-        Err(err) => {
-            return Err(CustomErrors::Argon2Error {
-                status: StatusCode::BAD_REQUEST,
-                error: err,
-                message: Some("Неверный пароль".to_owned()),
-            })
-        }
-    }
-
     let new_user;
     match update(users.find(user_id))
         .set::<UpdateUser>(UpdateUser {

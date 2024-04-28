@@ -1,13 +1,14 @@
 use crate::{
     models::{
         error::CustomErrors,
-        system::{NewSystemMultipart, UpdateSystemMultipart},
+        system::{NewSystemMultipart, SystemDelete, UpdateSystemMultipart},
     },
     pagination::SystemListPagination,
     services::system::{
         create_system, delete_system, get_ready_to_start_system, get_system, get_systems,
         update_system,
     },
+    utils::auth::password_check,
     AppState,
 };
 use axum::{
@@ -20,6 +21,7 @@ use axum::{
 };
 use axum_typed_multipart::TypedMultipart;
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
+use tower_cookies::Cookies;
 
 #[utoipa::path(
     post,
@@ -206,6 +208,7 @@ pub async fn system_partial_update(
     delete,
     path = "/systems/{id}",
     context_path ="/api/v1",
+    request_body=SystemDelete,
     responses(
         (status = 200, description = "System and it dependences deleted successfully", body = CustomErrors, example = json!(())),
         (status = 401, description = "Unauthorized to delete System and it dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -221,13 +224,23 @@ pub async fn system_partial_update(
 #[debug_handler]
 pub async fn system_delete(
     State(state): State<AppState>,
+    cookie: Cookies,
     Path(system_id): Path<i32>,
+    Json(system_info): Json<SystemDelete>,
 ) -> impl IntoResponse {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
         Ok(ok) => connection = ok,
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
+
+    password_check(
+        &mut connection,
+        cookie,
+        &state.cookie_key,
+        &system_info.password,
+    )
+    .await?;
 
     match delete_system(&mut connection, system_id).await {
         Ok(_) => Ok(()),
