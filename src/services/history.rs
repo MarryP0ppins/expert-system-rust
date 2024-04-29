@@ -1,5 +1,5 @@
 use crate::{
-    models::history::{HistoryWithSystemAndUser, NewHistory},
+    models::history::{HistoryWithSystem, NewHistory},
     schema::{histories::dsl::*, systems, users},
 };
 use diesel::{delete, insert_into, prelude::*, result::Error};
@@ -9,7 +9,7 @@ pub async fn get_histories(
     connection: &mut AsyncPgConnection,
     _system: Option<i32>,
     _user: Option<i32>,
-) -> Result<Vec<HistoryWithSystemAndUser>, Error> {
+) -> Result<Vec<HistoryWithSystem>, Error> {
     let mut query = histories
         .inner_join(systems::table)
         .inner_join(users::table)
@@ -26,28 +26,19 @@ pub async fn get_histories(
         .select((
             id,
             (systems::all_columns),
-            (
-                users::id,
-                users::email,
-                users::username,
-                users::created_at,
-                users::first_name,
-                users::last_name,
-                users::is_superuser,
-            ),
             answered_questions,
             results,
             started_at,
             finished_at,
         ))
-        .load::<HistoryWithSystemAndUser>(connection)
+        .load::<HistoryWithSystem>(connection)
         .await?)
 }
 
 pub async fn create_history(
     connection: &mut AsyncPgConnection,
     history_info: NewHistory,
-) -> Result<HistoryWithSystemAndUser, Error> {
+) -> Result<HistoryWithSystem, Error> {
     let insert_raw_id = insert_into(histories)
         .values::<NewHistory>(history_info)
         .returning(id)
@@ -57,25 +48,15 @@ pub async fn create_history(
     Ok(histories
         .find(insert_raw_id)
         .inner_join(systems::table)
-        .inner_join(users::table)
         .select((
             id,
             (systems::all_columns),
-            (
-                users::id,
-                users::email,
-                users::username,
-                users::created_at,
-                users::first_name,
-                users::last_name,
-                users::is_superuser,
-            ),
             answered_questions,
             results,
             started_at,
             finished_at,
         ))
-        .first::<HistoryWithSystemAndUser>(connection)
+        .first::<HistoryWithSystem>(connection)
         .await?)
 }
 

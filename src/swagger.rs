@@ -81,7 +81,7 @@ use utoipa::OpenApi;
         clause_model::UpdateClause,
         clause_model::RuleOperator,
         history_model::NewHistory,
-        history_model::HistoryWithSystemAndUser,
+        history_model::HistoryWithSystem,
         object_model::ObjectWithAttributesValues,
         object_model::UpdateObject,
         object_model::NewObjectWithAttributesValueIds,

@@ -1,4 +1,4 @@
-use super::{system::System, user::UserWithoutPassword};
+use super::system::System;
 use crate::schema::histories;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
@@ -17,13 +17,12 @@ pub struct NewHistory {
 }
 
 #[derive(Queryable, Serialize, ToSchema, Clone)]
-pub struct HistoryWithSystemAndUser {
+pub struct HistoryWithSystem {
     pub id: i32,
     pub system: System,
-    pub user: UserWithoutPassword,
     pub answered_questions: String,
     #[schema(value_type=HashMap<String, u8>)]
     pub results: Value,
     pub started_at: NaiveDateTime,
-    pub finish_at: NaiveDateTime,
+    pub finished_at: NaiveDateTime,
 }

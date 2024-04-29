@@ -20,7 +20,7 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
     context_path ="/api/v1",
     request_body = NewHistory,
     responses(
-        (status = 200, description = "Histories create successfully", body = HistoryWithSystemAndUser),
+        (status = 200, description = "Histories create successfully", body = HistoryWithSystem),
         (status = 401, description = "Unauthorized to create Histories", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -52,7 +52,7 @@ pub async fn history_create(
     path = "/histories",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching Histories by query", body = [HistoryWithSystemAndUser]),
+        (status = 200, description = "List matching Histories by query", body = [HistoryWithSystem]),
         (status = 401, description = "Unauthorized to list Histories", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
