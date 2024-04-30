@@ -50,7 +50,7 @@ pub async fn password_check<'a>(
 ) -> Result<User, CustomErrors> {
     let user_cookie = cookie_check(connection, cookie, cookie_key).await?;
 
-    match check_password(&user_cookie.password, password_to_check) {
+    match check_password(password_to_check, &user_cookie.password) {
         Ok(_) => Ok(user_cookie),
         Err(err) => Err(CustomErrors::Argon2Error {
             status: StatusCode::BAD_REQUEST,

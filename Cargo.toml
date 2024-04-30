@@ -24,9 +24,9 @@ chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1" }
 argon2 = { version = "0.5" }
-http = "1.1.0"
-dotenv = "0.15.0"
-dotenv_codegen = "0.15.0"
+http = "1.1"
+dotenv = "0.15"
+dotenv_codegen = "0.15"
 
 [profile.release]
 strip = true
