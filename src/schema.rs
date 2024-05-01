@@ -125,7 +125,7 @@ diesel::table! {
         name -> Varchar,
         private -> Bool,
         #[max_length = 128]
-        image_uri -> Varchar,
+        image_uri -> Nullable<Varchar>,
     }
 }
 

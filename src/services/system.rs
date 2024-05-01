@@ -32,6 +32,21 @@ pub async fn get_systems(
     let mut query = systems.inner_join(users::table).into_boxed();
     let mut raw_count_query = systems.inner_join(users::table).into_boxed();
 
+    if let Some(_id) = params.user_id {
+        query = query.filter(users::id.eq(_id));
+        raw_count_query = raw_count_query.filter(users::id.eq(_id));
+    }
+
+    if let Some(all_types) = params.all_types {
+        if !all_types {
+            query = query.filter(private.eq(false));
+            raw_count_query = raw_count_query.filter(private.eq(false));
+        }
+    } else {
+        query = query.filter(private.eq(false));
+        raw_count_query = raw_count_query.filter(private.eq(false));
+    }
+
     if let Some(_name) = params.name {
         query = query.filter(name.like(format!("%{}%", _name)));
         raw_count_query = raw_count_query.filter(name.like(format!("%{}%", _name)));
@@ -40,11 +55,6 @@ pub async fn get_systems(
     if let Some(_username) = params.username {
         query = query.filter(users::username.like(format!("%{}%", _username)));
         raw_count_query = raw_count_query.filter(users::username.like(format!("%{}%", _username)));
-    }
-
-    if let Some(_id) = params.user_id {
-        query = query.filter(users::id.eq(_id));
-        raw_count_query = raw_count_query.filter(users::id.eq(_id));
     }
 
     let raw_count = raw_count_query
@@ -179,21 +189,26 @@ pub async fn get_ready_to_start_system(
 pub async fn create_system(
     connection: &mut AsyncPgConnection,
     system_info: NewSystemMultipart,
+    cookie_user_id: i32,
 ) -> Result<System, Error> {
     let image_info = system_info.image;
-    let image_name = format!(
-        "{}_{}_{}",
-        chrono::Utc::now().timestamp_millis(),
-        image_info.metadata.name.clone().expect("No name"),
-        image_info.metadata.file_name.clone().expect("No file name")
-    );
+    let image_name = image_info.as_ref().and_then(|info| {
+        Some(format!(
+            "{}_{}_{}",
+            chrono::Utc::now().timestamp_millis(),
+            info.metadata.name.clone().expect("No name"),
+            info.metadata.file_name.clone().expect("No file name")
+        ))
+    });
 
     let result = insert_into(systems)
         .values::<NewSystem>(NewSystem {
-            user_id: system_info.user_id,
+            user_id: cookie_user_id,
             about: system_info.about,
             name: system_info.name,
-            image_uri: format!("/images/{}", image_name),
+            image_uri: image_name
+                .as_ref()
+                .and_then(|img_name| Some(format!("/images/{}", img_name))),
             private: system_info.private,
         })
         .get_result::<System>(connection)
@@ -201,12 +216,14 @@ pub async fn create_system(
 
     let _ = fs::create_dir_all(IMAGE_DIR).await;
 
-    let mut file = File::create(format!("{IMAGE_DIR}/{}", image_name))
-        .await
-        .expect("Unable to create file");
-    file.write(&image_info.contents)
-        .await
-        .expect("Error while create file");
+    if let (Some(image_name), Some(image_info)) = (image_name, image_info) {
+        let mut file = File::create(format!("{IMAGE_DIR}/{}", image_name))
+            .await
+            .expect("Unable to create file");
+        file.write(&image_info.contents)
+            .await
+            .expect("Error while create file");
+    }
 
     Ok(result)
 }
@@ -230,7 +247,7 @@ pub async fn update_system(
     let system_image_uri_old = systems
         .find(system_id)
         .select(image_uri)
-        .first::<String>(connection)
+        .first::<Option<String>>(connection)
         .await?;
 
     let result = update(systems.find(system_id))
@@ -246,7 +263,9 @@ pub async fn update_system(
         .await?;
 
     if let (Some(img_info), Some(img_name)) = (image_info, image_name) {
-        let _ = fs::remove_file(format!(".{}", system_image_uri_old)).await;
+        if let Some(system_image_uri_old) = system_image_uri_old {
+            let _ = fs::remove_file(format!(".{}", system_image_uri_old)).await;
+        }
 
         let mut file = File::create(format!("{IMAGE_DIR}/{}", img_name))
             .await

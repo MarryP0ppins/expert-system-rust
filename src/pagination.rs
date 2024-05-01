@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use utoipa::IntoParams;
 
-#[derive(Deserialize, IntoParams)]
+#[derive(Deserialize, IntoParams, Debug)]
 pub struct SystemListPagination {
     pub user_id: Option<i32>,
     pub name: Option<String>,
@@ -10,6 +10,7 @@ pub struct SystemListPagination {
     pub page: Option<i32>,
     #[param(default = json!(20))]
     pub per_page: Option<i32>,
+    pub all_types: Option<bool>,
 }
 
 #[derive(Deserialize, IntoParams)]

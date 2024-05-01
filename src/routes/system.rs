@@ -8,7 +8,7 @@ use crate::{
         create_system, delete_system, get_ready_to_start_system, get_system, get_systems,
         update_system,
     },
-    utils::auth::password_check,
+    utils::auth::{cookie_check, password_check},
     AppState,
 };
 use axum::{
@@ -39,6 +39,7 @@ use tower_cookies::Cookies;
 #[debug_handler]
 pub async fn system_create(
     State(state): State<AppState>,
+    cookie: Cookies,
     TypedMultipart(system_info): TypedMultipart<NewSystemMultipart>,
 ) -> impl IntoResponse {
     let mut connection: PooledConnection<AsyncPgConnection>;
@@ -47,7 +48,9 @@ pub async fn system_create(
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
-    match create_system(&mut connection, system_info).await {
+    let user = cookie_check(&mut connection, cookie, &state.cookie_key).await?;
+
+    match create_system(&mut connection, system_info, user.id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
