@@ -5,7 +5,7 @@ use utoipa::ToSchema;
 
 use super::{attribute_value::AttributeValue, system::System};
 
-#[derive(Queryable, Serialize, Identifiable, Associations, Selectable)]
+#[derive(Queryable, Serialize, Deserialize, Identifiable, Associations, Selectable, Debug)]
 #[diesel(belongs_to(System))]
 #[diesel(table_name=objects)]
 pub struct Object {
@@ -28,7 +28,7 @@ pub struct NewObjectWithAttributesValueIds {
     pub attributes_values_ids: Vec<i32>,
 }
 
-#[derive(Serialize, Queryable, ToSchema, Clone)]
+#[derive(Serialize, Deserialize, Queryable, ToSchema, Clone)]
 pub struct ObjectWithAttributesValues {
     pub id: i32,
     pub system_id: i32,

@@ -1,11 +1,11 @@
 use crate::schema::attributesvalue_object;
 use diesel::prelude::*;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::attribute_value::AttributeValue;
 use super::object::Object;
 
-#[derive(Queryable, Identifiable, Associations, Selectable)]
+#[derive(Queryable, Identifiable, Associations, Selectable, Serialize, Deserialize, Debug)]
 #[diesel(belongs_to(Object))]
 #[diesel(belongs_to(AttributeValue))]
 #[diesel(table_name=attributesvalue_object)]

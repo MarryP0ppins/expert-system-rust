@@ -5,8 +5,8 @@ use crate::{
     },
     pagination::SystemListPagination,
     services::system::{
-        create_system, delete_system, get_ready_to_start_system, get_system, get_systems,
-        update_system,
+        backup_from_system, create_system, delete_system, get_ready_to_start_system, get_system,
+        get_systems, update_system,
     },
     utils::auth::{cookie_check, password_check},
     AppState,
@@ -170,6 +170,38 @@ pub async fn system_start(
 }
 
 #[utoipa::path(
+    get,
+    path = "/systems/{id}/backup",
+    context_path ="/api/v1",
+    responses(
+        (status = 200, description = "Matching System by query", body=Vec<u8>),
+        (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
+    ),
+    params(
+        ("id" = u32, Path, description = "System database id")
+    ),
+)]
+#[debug_handler]
+pub async fn system_backup(
+    State(state): State<AppState>,
+    Path(system_id): Path<i32>,
+) -> impl IntoResponse {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
+        Ok(ok) => connection = ok,
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
+    };
+
+    match backup_from_system(&mut connection, system_id).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(err),
+    }
+}
+
+#[utoipa::path(
     patch,
     path = "/systems/{id}",
     context_path ="/api/v1",
@@ -264,4 +296,5 @@ pub fn system_routes() -> Router<AppState> {
                 .delete(system_delete),
         )
         .route("/:system_id/start", get(system_start))
+        .route("/:system_id/backup", get(system_backup))
 }

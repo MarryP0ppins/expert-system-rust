@@ -4,7 +4,9 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Queryable, Serialize, Identifiable, Associations, Selectable, Clone)]
+#[derive(
+    Queryable, Serialize, Deserialize, Identifiable, Associations, Selectable, Clone, Debug,
+)]
 #[diesel(belongs_to(System))]
 #[diesel(table_name=rules)]
 pub struct Rule {

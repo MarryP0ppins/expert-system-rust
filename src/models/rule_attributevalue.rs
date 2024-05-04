@@ -1,13 +1,13 @@
 use crate::schema::rule_attributevalue;
 use diesel::prelude::*;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::attribute::Attribute;
 use super::attribute_value::AttributeValue;
 use super::rule::Rule;
 
-#[derive(Queryable, Identifiable, Associations, Selectable)]
+#[derive(Queryable, Identifiable, Associations, Selectable, Serialize, Deserialize, Debug)]
 #[diesel(belongs_to(AttributeValue))]
 #[diesel(belongs_to(Rule))]
 #[diesel(belongs_to(Attribute))]

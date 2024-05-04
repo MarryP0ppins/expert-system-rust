@@ -6,9 +6,20 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use super::{question::QuestionWithAnswers, rule::RuleWithClausesAndEffects};
+use super::{
+    answer::Answer,
+    attribute::Attribute,
+    attribute_value::AttributeValue,
+    attribute_value_object::AttributeValueObject,
+    clause::Clause,
+    object::Object,
+    question::{Question, QuestionWithAnswers},
+    rule::{Rule, RuleWithClausesAndEffects},
+    rule_answer::RuleAnswer,
+    rule_attributevalue::RuleAttributeValue,
+};
 
-#[derive(Queryable, Serialize, Identifiable, ToSchema, Clone)]
+#[derive(Queryable, Serialize, Deserialize, Identifiable, ToSchema, Clone, Debug)]
 #[diesel(table_name=systems)]
 pub struct System {
     pub id: i32,
@@ -75,4 +86,19 @@ pub struct SystemData {
 #[derive(Deserialize, ToSchema)]
 pub struct SystemDelete {
     pub password: String,
+}
+
+#[derive(Deserialize, Serialize, ToSchema, Debug)]
+pub struct SystemBackup {
+    pub system: System,
+    pub objects: Vec<Object>,
+    pub attributes_values_objects: Vec<AttributeValueObject>,
+    pub attributes: Vec<Attribute>,
+    pub attributes_values: Vec<AttributeValue>,
+    pub rules: Vec<Rule>,
+    pub rule_attributes_values: Vec<RuleAttributeValue>,
+    pub clauses: Vec<Clause>,
+    pub questions: Vec<Question>,
+    pub answers: Vec<Answer>,
+    pub rules_answers: Vec<RuleAnswer>,
 }

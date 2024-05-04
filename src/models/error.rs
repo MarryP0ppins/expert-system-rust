@@ -31,6 +31,11 @@ pub enum CustomErrors {
     },
     #[schema(value_type=String)]
     PoolConnectionError(diesel_async::pooled_connection::bb8::RunError),
+    AesGsmError {
+        #[schema(value_type=String)]
+        error: aes_gcm::Error,
+        message: Option<String>,
+    },
 }
 
 impl Serialize for CustomErrors {
@@ -74,6 +79,15 @@ impl Serialize for CustomErrors {
                 state.serialize_field("extra", "Failed to get a database connection")?;
                 state.end()
             }
+            CustomErrors::AesGsmError { error, message } => {
+                let mut state = serializer.serialize_struct("AesGsmError", 3)?;
+                state.serialize_field("status", &StatusCode::BAD_REQUEST.as_u16())?;
+                state.serialize_field("error", &error.to_string())?;
+                if let Some(msg) = message {
+                    state.serialize_field("extra", msg)?;
+                }
+                state.end()
+            }
         }
     }
 }
@@ -114,6 +128,14 @@ impl IntoResponse for CustomErrors {
                     "status": StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
                     "error": error.to_string(),
                     "extra": Some("Failed to get a database connection".to_string()),
+                })),
+            ),
+            CustomErrors::AesGsmError { error, message } => (
+                StatusCode::BAD_REQUEST,
+                Json(json!({
+                    "status": StatusCode::BAD_REQUEST.as_u16(),
+                    "error": error.to_string(),
+                    "extra": message,
                 })),
             ),
         };

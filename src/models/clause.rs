@@ -16,7 +16,17 @@ pub enum RuleOperator {
     NoLessThan,
 }
 
-#[derive(Queryable, Serialize, Identifiable, Associations, Selectable, Clone, ToSchema)]
+#[derive(
+    Queryable,
+    Serialize,
+    Deserialize,
+    Identifiable,
+    Associations,
+    Selectable,
+    Clone,
+    ToSchema,
+    Debug,
+)]
 #[diesel(belongs_to(Rule))]
 #[diesel(table_name=clauses)]
 pub struct Clause {

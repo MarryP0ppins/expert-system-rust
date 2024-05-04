@@ -5,7 +5,17 @@ use utoipa::ToSchema;
 
 use super::question::Question;
 
-#[derive(Queryable, Serialize, Identifiable, Associations, Selectable, Clone, ToSchema)]
+#[derive(
+    Queryable,
+    Serialize,
+    Deserialize,
+    Identifiable,
+    Associations,
+    Selectable,
+    Clone,
+    ToSchema,
+    Debug,
+)]
 #[diesel(belongs_to(Question))]
 #[diesel(table_name=answers)]
 pub struct Answer {

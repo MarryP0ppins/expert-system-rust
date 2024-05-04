@@ -1,13 +1,13 @@
 use crate::schema::rule_answer;
 use diesel::prelude::*;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::answer::Answer;
 use super::question::Question;
 use super::rule::Rule;
 
-#[derive(Queryable, Identifiable, Associations, Selectable)]
+#[derive(Queryable, Identifiable, Associations, Selectable, Serialize, Deserialize, Debug)]
 #[diesel(belongs_to(Answer))]
 #[diesel(belongs_to(Rule))]
 #[diesel(belongs_to(Question))]
