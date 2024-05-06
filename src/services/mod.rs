@@ -1,6 +1,7 @@
 pub mod answer;
 pub mod attribute;
 pub mod attribute_value;
+pub mod backup;
 pub mod clause;
 pub mod history;
 pub mod object;

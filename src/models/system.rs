@@ -75,6 +75,7 @@ pub struct UpdateSystemMultipart {
     #[form_data(limit = "1MiB")]
     pub image: Option<FieldData<Bytes>>,
     pub private: Option<bool>,
+    pub is_image_removed: Option<bool>,
 }
 
 #[derive(Queryable, Serialize, ToSchema, Clone)]
