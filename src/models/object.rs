@@ -3,7 +3,10 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use super::{attribute_value::AttributeValue, system::System};
+use super::{
+    attribute_value_object::{AttributeValueObject, NewAttributeValueObject},
+    system::System,
+};
 
 #[derive(Queryable, Serialize, Deserialize, Identifiable, Associations, Selectable, Debug)]
 #[diesel(belongs_to(System))]
@@ -25,7 +28,7 @@ pub struct NewObject {
 pub struct NewObjectWithAttributesValueIds {
     pub system_id: i32,
     pub name: String,
-    pub attributes_values_ids: Vec<i32>,
+    pub attributes_ids: Vec<NewAttributeValueObject>,
 }
 
 #[derive(Serialize, Deserialize, Queryable, ToSchema, Clone)]
@@ -33,7 +36,7 @@ pub struct ObjectWithAttributesValues {
     pub id: i32,
     pub system_id: i32,
     pub name: String,
-    pub attributes_values: Vec<AttributeValue>,
+    pub attributes_ids: Vec<AttributeValueObject>,
 }
 
 #[derive(Deserialize, AsChangeset, Clone, ToSchema)]

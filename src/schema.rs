@@ -19,16 +19,17 @@ diesel::table! {
     attributes (id) {
         id -> Int4,
         system_id -> Int4,
-        #[max_length = 128]
+        #[max_length = 64]
         name -> Varchar,
     }
 }
 
 diesel::table! {
-    attributesvalue_object (object_id, attribute_value_id) {
+    attributesvalue_object (object_id, attribute_value_id, attribute_id) {
         id -> Int4,
         object_id -> Int4,
         attribute_value_id -> Int4,
+        attribute_id -> Int4,
     }
 }
 
@@ -36,7 +37,7 @@ diesel::table! {
     attributesvalues (id) {
         id -> Int4,
         attribute_id -> Int4,
-        #[max_length = 128]
+        #[max_length = 64]
         value -> Varchar,
     }
 }
@@ -61,7 +62,7 @@ diesel::table! {
         id -> Int4,
         system_id -> Int4,
         user_id -> Int4,
-        #[max_length = 8]
+        #[max_length = 9]
         answered_questions -> Varchar,
         results -> Json,
         started_at -> Timestamp,
@@ -82,7 +83,7 @@ diesel::table! {
     questions (id) {
         id -> Int4,
         system_id -> Int4,
-        #[max_length = 64]
+        #[max_length = 128]
         body -> Varchar,
         with_chooses -> Bool,
     }
@@ -149,6 +150,7 @@ diesel::table! {
 
 diesel::joinable!(answers -> questions (question_id));
 diesel::joinable!(attributes -> systems (system_id));
+diesel::joinable!(attributesvalue_object -> attributes (attribute_id));
 diesel::joinable!(attributesvalue_object -> attributesvalues (attribute_value_id));
 diesel::joinable!(attributesvalue_object -> objects (object_id));
 diesel::joinable!(attributesvalues -> attributes (attribute_id));

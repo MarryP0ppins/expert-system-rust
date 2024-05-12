@@ -1,15 +1,16 @@
 use crate::{
     models::{
         answer as answer_model, attribute as attribute_model,
-        attribute_value as attribute_value_model, clause as clause_model, error,
+        attribute_value as attribute_value_model,
+        attribute_value_object as attribute_value_object_model, clause as clause_model, error,
         history as history_model, object as object_model, question as question_model,
         rule as rule_model, rule_answer as rule_answer_model,
         rule_attributevalue as rule_attributevalue_model, system as system_model,
         user as user_model,
     },
     routes::{
-        answer, attribute, attribute_value, clause, history, object, question, rule, rule_answer,
-        rule_attributevalue, system, user,
+        answer, attribute, attribute_value, attribute_value_object, clause, history, object,
+        question, rule, rule_answer, rule_attributevalue, system, user,
     },
 };
 #[cfg(not(debug_assertions))]
@@ -31,6 +32,8 @@ use utoipa::OpenApi;
         attribute::attribute_list,
         attribute::attribute_multiple_delete,
         attribute::attribute_multiple_update,
+        attribute_value_object::attribute_values_objects_create,
+        attribute_value_object::attribute_values_objects_multiple_delete,
         clause::clause_create,
         clause::clause_list,
         clause::clause_multiple_delete,
@@ -76,6 +79,8 @@ use utoipa::OpenApi;
         attribute_model::AttributeWithAttributeValues,
         attribute_model::NewAttributeWithAttributeValuesName,
         attribute_model::UpdateAttribute,
+        attribute_value_object_model::AttributeValueObject,
+        attribute_value_object_model::NewAttributeValueObject,
         clause_model::Clause,
         clause_model::NewClause,
         clause_model::UpdateClause,

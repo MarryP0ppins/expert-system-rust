@@ -23,9 +23,10 @@ use middleware::{auth, handler_404};
 
 use routes::{
     answer::answer_routes, attribute::attribute_routes, attribute_value::attribute_value_routes,
-    clause::clause_routes, history::history_routes, object::object_routes,
-    question::question_routes, rule::rule_routes, rule_answer::rule_answer_routes,
-    rule_attributevalue::rule_attributevalue_routes, system::system_routes, user::user_routes,
+    attribute_value_object::object_attributevalue_routes, clause::clause_routes,
+    history::history_routes, object::object_routes, question::question_routes, rule::rule_routes,
+    rule_answer::rule_answer_routes, rule_attributevalue::rule_attributevalue_routes,
+    system::system_routes, user::user_routes,
 };
 
 use std::net::SocketAddr;
@@ -99,6 +100,7 @@ async fn main() {
                 .nest("/clauses", clause_routes())
                 .nest("/rules", rule_routes())
                 .nest("/objects", object_routes())
+                .nest("/objects-attributevalues", object_attributevalue_routes())
                 .nest("/rule-attributevalues", rule_attributevalue_routes())
                 .nest("/rule-answers", rule_answer_routes()),
         )

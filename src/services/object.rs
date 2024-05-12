@@ -1,13 +1,12 @@
 use crate::{
     models::{
-        attribute_value::AttributeValue,
         attribute_value_object::{AttributeValueObject, NewAttributeValueObject},
         object::{
             NewObject, NewObjectWithAttributesValueIds, Object, ObjectWithAttributesValues,
             UpdateObject,
         },
     },
-    schema::{attributesvalue_object, attributesvalues, objects::dsl::*},
+    schema::{attributesvalue_object, objects::dsl::*},
 };
 use diesel::{delete, insert_into, prelude::*, result::Error, update};
 use diesel_async::{
@@ -23,32 +22,25 @@ pub async fn get_objects(
         .load::<Object>(connection)
         .await?;
 
-    let _grouped_attributes_values: Vec<Vec<(AttributeValueObject, AttributeValue)>>;
+    let _attributes_values: Vec<AttributeValueObject>;
     match AttributeValueObject::belonging_to(&_object)
-        .inner_join(attributesvalues::table)
-        .select((
-            attributesvalue_object::all_columns,
-            attributesvalues::all_columns,
-        ))
-        .load::<(AttributeValueObject, AttributeValue)>(connection)
+        .load::<AttributeValueObject>(connection)
         .await
     {
-        Ok(ok) => _grouped_attributes_values = ok.grouped_by(&_object),
-        Err(_) => _grouped_attributes_values = vec![],
+        Ok(ok) => _attributes_values = ok,
+        Err(_) => _attributes_values = vec![],
     };
 
-    let result = _object
+    let result = _attributes_values
+        .grouped_by(&_object)
         .into_iter()
-        .zip(_grouped_attributes_values)
+        .zip(_object)
         .map(
-            |(_object, _attributes_values_objects)| ObjectWithAttributesValues {
+            |(_attributes_values_objects, _object)| ObjectWithAttributesValues {
                 id: _object.id,
                 system_id: _object.system_id,
                 name: _object.name,
-                attributes_values: _attributes_values_objects
-                    .into_iter()
-                    .map(|(_, attribute_values)| attribute_values)
-                    .collect(),
+                attributes_ids: _attributes_values_objects,
             },
         )
         .collect::<Vec<ObjectWithAttributesValues>>();
@@ -64,7 +56,7 @@ pub async fn create_objects(
         object_info
             .into_iter()
             .fold((vec![], vec![]), |mut acc, raw| {
-                acc.0.push(raw.attributes_values_ids);
+                acc.0.push(raw.attributes_ids);
                 acc.1.push(NewObject {
                     system_id: raw.system_id,
                     name: raw.name,
@@ -86,15 +78,7 @@ pub async fn create_objects(
                     .values::<Vec<NewAttributeValueObject>>(
                         attributes_values_ids
                             .into_iter()
-                            .zip(&_objects)
-                            .flat_map(|(attributes_values, object)| {
-                                attributes_values
-                                    .into_iter()
-                                    .map(|value| NewAttributeValueObject {
-                                        attribute_value_id: value,
-                                        object_id: object.id,
-                                    })
-                            })
+                            .flat_map(|attributes_values| attributes_values)
                             .collect(),
                     )
                     .execute(connection)
@@ -110,33 +94,28 @@ pub async fn create_objects(
         Err(err) => return Err(err),
     };
 
-    let _attributes_values: Vec<Vec<(AttributeValueObject, AttributeValue)>>;
+    let _attributes_values: Vec<AttributeValueObject>;
     match AttributeValueObject::belonging_to(&_objects)
-        .inner_join(attributesvalues::table)
-        .select((
-            attributesvalue_object::all_columns,
-            attributesvalues::all_columns,
-        ))
-        .load::<(AttributeValueObject, AttributeValue)>(connection)
+        .load::<AttributeValueObject>(connection)
         .await
     {
-        Ok(ok) => _attributes_values = ok.grouped_by(&_objects),
+        Ok(ok) => _attributes_values = ok,
         Err(_) => _attributes_values = vec![],
     };
 
-    let result = _objects
+    let result = _attributes_values
+        .grouped_by(&_objects)
         .into_iter()
-        .zip(_attributes_values)
-        .map(|(object, attribute_values)| ObjectWithAttributesValues {
-            id: object.id,
-            system_id: object.system_id,
-            name: object.name,
-            attributes_values: attribute_values
-                .into_iter()
-                .map(|(_, value)| value)
-                .collect(),
-        })
-        .collect();
+        .zip(_objects)
+        .map(
+            |(_attributes_values_objects, _object)| ObjectWithAttributesValues {
+                id: _object.id,
+                system_id: _object.system_id,
+                name: _object.name,
+                attributes_ids: _attributes_values_objects,
+            },
+        )
+        .collect::<Vec<ObjectWithAttributesValues>>();
 
     Ok(result)
 }
@@ -167,32 +146,25 @@ pub async fn multiple_update_objects(
         }
     }
 
-    let _grouped_attributes_values: Vec<Vec<(AttributeValueObject, AttributeValue)>>;
+    let _attributes_values: Vec<AttributeValueObject>;
     match AttributeValueObject::belonging_to(&_objects)
-        .inner_join(attributesvalues::table)
-        .select((
-            attributesvalue_object::all_columns,
-            attributesvalues::all_columns,
-        ))
-        .load::<(AttributeValueObject, AttributeValue)>(connection)
+        .load::<AttributeValueObject>(connection)
         .await
     {
-        Ok(ok) => _grouped_attributes_values = ok.grouped_by(&_objects),
-        Err(_) => _grouped_attributes_values = vec![],
+        Ok(ok) => _attributes_values = ok,
+        Err(_) => _attributes_values = vec![],
     };
 
-    let result = _objects
+    let result = _attributes_values
+        .grouped_by(&_objects)
         .into_iter()
-        .zip(_grouped_attributes_values)
+        .zip(_objects)
         .map(
-            |(_object, _attributes_values_objects)| ObjectWithAttributesValues {
+            |(_attributes_values_objects, _object)| ObjectWithAttributesValues {
                 id: _object.id,
                 system_id: _object.system_id,
                 name: _object.name,
-                attributes_values: _attributes_values_objects
-                    .into_iter()
-                    .map(|(_, attribute_values)| attribute_values)
-                    .collect(),
+                attributes_ids: _attributes_values_objects,
             },
         )
         .collect::<Vec<ObjectWithAttributesValues>>();
