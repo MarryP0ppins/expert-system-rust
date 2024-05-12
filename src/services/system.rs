@@ -240,7 +240,6 @@ pub async fn update_system(
     let image_info = system_info.image;
 
     let image_name = image_info.as_ref().and_then(|info| {
-        println!("{:?}", &info.metadata);
         Some(format!(
             "{}_{}_{}",
             chrono::Utc::now().timestamp_millis(),
