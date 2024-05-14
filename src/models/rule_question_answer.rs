@@ -7,7 +7,17 @@ use super::answer::Answer;
 use super::question::Question;
 use super::rule::Rule;
 
-#[derive(Queryable, Identifiable, Associations, Selectable, Serialize, Deserialize, Debug)]
+#[derive(
+    Queryable,
+    Identifiable,
+    Associations,
+    Selectable,
+    Serialize,
+    Deserialize,
+    Clone,
+    Debug,
+    ToSchema,
+)]
 #[diesel(belongs_to(Answer))]
 #[diesel(belongs_to(Rule))]
 #[diesel(belongs_to(Question))]
@@ -24,5 +34,11 @@ pub struct RuleQuestionAnswer {
 pub struct NewRuleQuestionAnswer {
     pub answer_id: i32,
     pub rule_id: i32,
+    pub question_id: i32,
+}
+
+#[derive(Queryable, Deserialize, ToSchema, Clone)]
+pub struct NewRuleQuestionAnswerWithoutRule {
+    pub answer_id: i32,
     pub question_id: i32,
 }

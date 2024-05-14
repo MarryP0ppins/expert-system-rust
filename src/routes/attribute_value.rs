@@ -26,7 +26,7 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
     context_path ="/api/v1",
     request_body = [NewAttributeValue],
     responses(
-        (status = 200, description = "AttributeValues create successfully", body = ResponseBodyAttributeValues),
+        (status = 200, description = "AttributeValues create successfully", body = [AttributeValue]),
         (status = 401, description = "Unauthorized to create AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -58,7 +58,7 @@ pub async fn attribute_value_create(
     path = "/attributevalues",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching AttributeValues by query", body = ResponseBodyAttributeValues),
+        (status = 200, description = "List matching AttributeValues by query", body = [AttributeValue]),
         (status = 401, description = "Unauthorized to list AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),

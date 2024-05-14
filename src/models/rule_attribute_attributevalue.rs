@@ -7,7 +7,17 @@ use super::attribute::Attribute;
 use super::attribute_value::AttributeValue;
 use super::rule::Rule;
 
-#[derive(Queryable, Identifiable, Associations, Selectable, Serialize, Deserialize, Debug)]
+#[derive(
+    Queryable,
+    Identifiable,
+    Associations,
+    Selectable,
+    Serialize,
+    Deserialize,
+    Clone,
+    ToSchema,
+    Debug,
+)]
 #[diesel(belongs_to(AttributeValue))]
 #[diesel(belongs_to(Rule))]
 #[diesel(belongs_to(Attribute))]
@@ -24,5 +34,11 @@ pub struct RuleAttributeAttributeValue {
 pub struct NewRuleAttributeAttributeValue {
     pub attribute_value_id: i32,
     pub rule_id: i32,
+    pub attribute_id: i32,
+}
+
+#[derive(Queryable, Deserialize, ToSchema, Clone)]
+pub struct NewRuleAttributeAttributeValueWithoutRule {
+    pub attribute_value_id: i32,
     pub attribute_id: i32,
 }

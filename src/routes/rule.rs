@@ -1,5 +1,5 @@
 use crate::{
-    models::{error::CustomErrors, rule::NewRule},
+    models::{error::CustomErrors, rule::NewRuleWithClausesAndEffects},
     pagination::RuleListPagination,
     services::rule::{create_rule, get_rules, multiple_delete_rules},
     AppState,
@@ -18,7 +18,7 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
     post,
     path = "/rule",
     context_path ="/api/v1",
-    request_body = [NewRule],
+    request_body = [NewRuleWithClausesAndEffects],
     responses(
         (status = 200, description = "Rule create successfully", body = RuleWithClausesAndEffects),
         (status = 401, description = "Unauthorized to create Rule", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -30,7 +30,7 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 #[debug_handler]
 pub async fn rule_create(
     State(state): State<AppState>,
-    Json(rule_info): Json<NewRule>,
+    Json(rule_info): Json<Vec<NewRuleWithClausesAndEffects>>,
 ) -> impl IntoResponse {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {

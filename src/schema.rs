@@ -42,7 +42,8 @@ diesel::table! {
         rule_id -> Int4,
         #[max_length = 64]
         compared_value -> Varchar,
-        logical_group -> Int4,
+        #[max_length = 36]
+        logical_group -> Varchar,
         operator -> Operatorenum,
         question_id -> Int4,
     }

@@ -42,7 +42,7 @@ pub async fn get_objects(
                 id: _object.id,
                 system_id: _object.system_id,
                 name: _object.name,
-                obeject_attribute_attributevalue_ids: _object_attribute_attributevalue,
+                object_attribute_attributevalue_ids: _object_attribute_attributevalue,
             },
         )
         .collect::<Vec<ObjectWithAttributesValues>>();
@@ -58,7 +58,7 @@ pub async fn create_objects(
         object_info
             .into_iter()
             .fold((vec![], vec![]), |mut acc, raw| {
-                acc.0.push(raw.obeject_attribute_attributevalue_ids);
+                acc.0.push(raw.object_attribute_attributevalue_ids);
                 acc.1.push(NewObject {
                     system_id: raw.system_id,
                     name: raw.name,
@@ -123,7 +123,7 @@ pub async fn create_objects(
                 id: _object.id,
                 system_id: _object.system_id,
                 name: _object.name,
-                obeject_attribute_attributevalue_ids: _object_attribute_attributevalue,
+                object_attribute_attributevalue_ids: _object_attribute_attributevalue,
             },
         )
         .collect::<Vec<ObjectWithAttributesValues>>();
@@ -175,7 +175,7 @@ pub async fn multiple_update_objects(
                 id: _object.id,
                 system_id: _object.system_id,
                 name: _object.name,
-                obeject_attribute_attributevalue_ids: _object_attribute_attributevalue,
+                object_attribute_attributevalue_ids: _object_attribute_attributevalue,
             },
         )
         .collect::<Vec<ObjectWithAttributesValues>>();

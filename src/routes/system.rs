@@ -32,7 +32,7 @@ use tower_cookies::Cookies;
     context_path ="/api/v1",
     request_body(content = NewSystemMultipart, description = "Multipart file", content_type = "multipart/form-data"),
     responses(
-        (status = 200, description = "System create successfully", body=ResponseBodySystem),
+        (status = 200, description = "System create successfully", body=System),
         (status = 401, description = "Unauthorized to create System", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -107,7 +107,7 @@ pub async fn system_list(
     path = "/systems/{id}",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "Matching System by query", body=ResponseBodySystem),
+        (status = 200, description = "Matching System by query", body=System),
         (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -142,7 +142,7 @@ pub async fn system_retrieve(
     path = "/systems/{id}/start",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "Matching System by query", body=ResponseBodyStartSystem),
+        (status = 200, description = "Matching System by query", body=System),
         (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -210,7 +210,7 @@ pub async fn system_backup(
     context_path ="/api/v1",
     request_body(content = UpdateSystemMultipart, description = "Multipart file", content_type = "multipart/form-data"),
     responses(
-        (status = 200, description = "System and it dependences updated successfully", body = ResponseBodySystem),
+        (status = 200, description = "System and it dependences updated successfully", body = System),
         (status = 401, description = "Unauthorized to update System and it dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),

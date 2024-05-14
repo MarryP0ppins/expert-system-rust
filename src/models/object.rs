@@ -30,7 +30,7 @@ pub struct NewObject {
 pub struct NewObjectWithAttributesValueIds {
     pub system_id: i32,
     pub name: String,
-    pub obeject_attribute_attributevalue_ids: Vec<NewObjectAttributeAttributevalueWithoutObject>,
+    pub object_attribute_attributevalue_ids: Vec<NewObjectAttributeAttributevalueWithoutObject>,
 }
 
 #[derive(Serialize, Deserialize, Queryable, ToSchema, Clone)]
@@ -38,7 +38,7 @@ pub struct ObjectWithAttributesValues {
     pub id: i32,
     pub system_id: i32,
     pub name: String,
-    pub obeject_attribute_attributevalue_ids: Vec<ObjectAttributeAttributevalue>,
+    pub object_attribute_attributevalue_ids: Vec<ObjectAttributeAttributevalue>,
 }
 
 #[derive(Deserialize, AsChangeset, Clone, ToSchema)]

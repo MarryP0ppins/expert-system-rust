@@ -32,7 +32,7 @@ pub struct System {
     pub image_uri: Option<String>,
 }
 
-#[derive(Queryable, Serialize, Clone)]
+#[derive(Queryable, Serialize, Clone, ToSchema)]
 pub struct SystemsWithPageCount {
     pub systems: Vec<System>,
     pub pages: i64,

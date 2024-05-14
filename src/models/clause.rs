@@ -33,7 +33,7 @@ pub struct Clause {
     pub id: i32,
     pub rule_id: i32,
     pub compared_value: String,
-    pub logical_group: i32,
+    pub logical_group: String,
     pub operator: RuleOperator,
     pub question_id: i32,
 }
@@ -43,7 +43,15 @@ pub struct Clause {
 pub struct NewClause {
     pub rule_id: i32,
     pub compared_value: String,
-    pub logical_group: i32,
+    pub logical_group: String,
+    pub operator: RuleOperator,
+    pub question_id: i32,
+}
+
+#[derive(Queryable, Deserialize, ToSchema)]
+pub struct NewClauseWithoutRule {
+    pub compared_value: String,
+    pub logical_group: String,
     pub operator: RuleOperator,
     pub question_id: i32,
 }
@@ -53,7 +61,7 @@ pub struct NewClause {
 pub struct UpdateClause {
     pub id: i32,
     pub compared_value: Option<String>,
-    pub logical_group: Option<i32>,
+    pub logical_group: Option<String>,
     pub operator: Option<RuleOperator>,
     pub question_id: Option<i32>,
 }
