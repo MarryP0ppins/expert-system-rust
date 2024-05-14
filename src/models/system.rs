@@ -10,13 +10,13 @@ use super::{
     answer::Answer,
     attribute::Attribute,
     attribute_value::AttributeValue,
-    attribute_value_object::AttributeValueObject,
     clause::Clause,
     object::Object,
+    object_attribute_attributevalue::ObjectAttributeAttributevalue,
     question::{Question, QuestionWithAnswers},
     rule::{Rule, RuleWithClausesAndEffects},
-    rule_answer::RuleAnswer,
-    rule_attributevalue::RuleAttributeValue,
+    rule_attribute_attributevalue::RuleAttributeAttributeValue,
+    rule_question_answer::RuleQuestionAnswer,
 };
 
 #[derive(Queryable, Serialize, Deserialize, Identifiable, ToSchema, Clone, Debug)]
@@ -93,13 +93,13 @@ pub struct SystemDelete {
 pub struct SystemBackup {
     pub system: System,
     pub objects: Vec<Object>,
-    pub attributes_values_objects: Vec<AttributeValueObject>,
+    pub object_attribute_attributevalue: Vec<ObjectAttributeAttributevalue>,
     pub attributes: Vec<Attribute>,
     pub attributes_values: Vec<AttributeValue>,
     pub rules: Vec<Rule>,
-    pub rule_attributes_values: Vec<RuleAttributeValue>,
+    pub rule_attribute_attributevalue: Vec<RuleAttributeAttributeValue>,
     pub clauses: Vec<Clause>,
     pub questions: Vec<Question>,
     pub answers: Vec<Answer>,
-    pub rules_answers: Vec<RuleAnswer>,
+    pub rules_question_answer: Vec<RuleQuestionAnswer>,
 }

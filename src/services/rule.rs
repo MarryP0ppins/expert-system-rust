@@ -4,10 +4,13 @@ use crate::{
         attribute_value::AttributeValue,
         clause::Clause,
         rule::{NewRule, Rule, RuleWithClausesAndEffects},
-        rule_answer::RuleAnswer,
-        rule_attributevalue::RuleAttributeValue,
+        rule_attribute_attributevalue::RuleAttributeAttributeValue,
+        rule_question_answer::RuleQuestionAnswer,
     },
-    schema::{answers, attributesvalues, rule_answer, rule_attributevalue, rules::dsl::*},
+    schema::{
+        answers, attributesvalues, rule_attribute_attributevalue, rule_question_answer,
+        rules::dsl::*,
+    },
 };
 use diesel::{delete, insert_into, prelude::*, result::Error};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
@@ -21,25 +24,25 @@ pub async fn get_rules(
         .load::<Rule>(connection)
         .await?;
 
-    let _grouped_answers: Vec<Vec<(RuleAnswer, Answer)>>;
-    match RuleAnswer::belonging_to(&_rules)
+    let _grouped_answers: Vec<Vec<(RuleQuestionAnswer, Answer)>>;
+    match RuleQuestionAnswer::belonging_to(&_rules)
         .inner_join(answers::table)
-        .select((rule_answer::all_columns, answers::all_columns))
-        .load::<(RuleAnswer, Answer)>(connection)
+        .select((rule_question_answer::all_columns, answers::all_columns))
+        .load::<(RuleQuestionAnswer, Answer)>(connection)
         .await
     {
         Ok(ok) => _grouped_answers = ok.grouped_by(&_rules),
         Err(_) => _grouped_answers = vec![],
     };
 
-    let _grouped_attributesvalues: Vec<Vec<(RuleAttributeValue, AttributeValue)>>;
-    match RuleAttributeValue::belonging_to(&_rules)
+    let _grouped_attributesvalues: Vec<Vec<(RuleAttributeAttributeValue, AttributeValue)>>;
+    match RuleAttributeAttributeValue::belonging_to(&_rules)
         .inner_join(attributesvalues::table)
         .select((
-            rule_attributevalue::all_columns,
+            rule_attribute_attributevalue::all_columns,
             attributesvalues::all_columns,
         ))
-        .load::<(RuleAttributeValue, AttributeValue)>(connection)
+        .load::<(RuleAttributeAttributeValue, AttributeValue)>(connection)
         .await
     {
         Ok(ok) => _grouped_attributesvalues = ok.grouped_by(&_rules),
@@ -65,20 +68,12 @@ pub async fn get_rules(
                 id: _rule.id,
                 system_id: _rule.system_id,
                 attribute_rule: _rule.attribute_rule,
-                answers: match _rule.attribute_rule {
-                    false => Some(_answers.into_iter().map(|(_, answer)| answer).collect()),
-                    true => None,
-                },
+                answers: _answers.into_iter().map(|(_, answer)| answer).collect(),
                 clauses: _clauses,
-                attributes_values: match _rule.attribute_rule {
-                    true => Some(
-                        _attributesvalues
-                            .into_iter()
-                            .map(|(_, attributevalue)| attributevalue)
-                            .collect(),
-                    ),
-                    false => None,
-                },
+                attributes_values: _attributesvalues
+                    .into_iter()
+                    .map(|(_, attributevalue)| attributevalue)
+                    .collect(),
             },
         )
         .collect::<Vec<RuleWithClausesAndEffects>>();
@@ -100,14 +95,8 @@ pub async fn create_rule(
         system_id: _rule.system_id,
         attribute_rule: _rule.attribute_rule,
         clauses: vec![],
-        answers: match _rule.attribute_rule {
-            true => None,
-            false => Some(vec![]),
-        },
-        attributes_values: match _rule.attribute_rule {
-            true => Some(vec![]),
-            false => None,
-        },
+        answers: vec![],
+        attributes_values: vec![],
     })
 }
 

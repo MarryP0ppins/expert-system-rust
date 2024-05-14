@@ -1,4 +1,4 @@
-use crate::schema::rule_attributevalue;
+use crate::schema::rule_attribute_attributevalue;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -11,8 +11,8 @@ use super::rule::Rule;
 #[diesel(belongs_to(AttributeValue))]
 #[diesel(belongs_to(Rule))]
 #[diesel(belongs_to(Attribute))]
-#[diesel(table_name=rule_attributevalue)]
-pub struct RuleAttributeValue {
+#[diesel(table_name=rule_attribute_attributevalue)]
+pub struct RuleAttributeAttributeValue {
     pub id: i32,
     pub attribute_value_id: i32,
     pub rule_id: i32,
@@ -20,8 +20,8 @@ pub struct RuleAttributeValue {
 }
 
 #[derive(Queryable, Deserialize, Insertable, ToSchema)]
-#[diesel(table_name=rule_attributevalue)]
-pub struct NewRuleAttributeValue {
+#[diesel(table_name=rule_attribute_attributevalue)]
+pub struct NewRuleAttributeAttributeValue {
     pub attribute_value_id: i32,
     pub rule_id: i32,
     pub attribute_id: i32,

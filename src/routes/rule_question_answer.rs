@@ -1,6 +1,8 @@
 use crate::{
-    models::{error::CustomErrors, rule_answer::NewRuleAnswer},
-    services::rule_answer::{create_rule_answers, multiple_delete_rule_answers},
+    models::{error::CustomErrors, rule_question_answer::NewRuleQuestionAnswer},
+    services::rule_question_answer::{
+        create_rule_question_answers, multiple_delete_rule_question_answers,
+    },
     AppState,
 };
 use axum::{
@@ -17,19 +19,19 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
     post,
     path = "/rule-answer",
     context_path ="/api/v1",
-    request_body = [NewRuleAnswer],
+    request_body = [NewRuleQuestionAnswer],
     responses(
-        (status = 200, description = "RuleAnswers and their dependences create successfully", body = CustomErrors, example = json!(())),
-        (status = 401, description = "Unauthorized to create RuleAnswers and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
+        (status = 200, description = "RuleQuestionAnswers and their dependences create successfully", body = CustomErrors, example = json!(())),
+        (status = 401, description = "Unauthorized to create RuleQuestionAnswers and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         }))
     )
 )]
 #[debug_handler]
-pub async fn rule_answer_create(
+pub async fn rule_question_answer_create(
     State(state): State<AppState>,
-    Json(rule_answer_info): Json<Vec<NewRuleAnswer>>,
+    Json(rule_question_answer_info): Json<Vec<NewRuleQuestionAnswer>>,
 ) -> impl IntoResponse {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
@@ -37,7 +39,7 @@ pub async fn rule_answer_create(
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
-    match create_rule_answers(&mut connection, rule_answer_info).await {
+    match create_rule_question_answers(&mut connection, rule_question_answer_info).await {
         Ok(_) => Ok(()),
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
@@ -52,18 +54,18 @@ pub async fn rule_answer_create(
     context_path ="/api/v1",
     request_body = [i32],
     responses(
-        (status = 200, description = "RuleAnswers and their dependences deleted successfully", body = CustomErrors, example = json!(())),
-        (status = 401, description = "Unauthorized to delete RuleAnswers and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
+        (status = 200, description = "RuleQuestionAnswers and their dependences deleted successfully", body = CustomErrors, example = json!(())),
+        (status = 401, description = "Unauthorized to delete RuleQuestionAnswers and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         })),
-        (status = 404, description = "RuleAnswers not found")
+        (status = 404, description = "RuleQuestionAnswers not found")
     )
 )]
 #[debug_handler]
-pub async fn rule_answer_multiple_delete(
+pub async fn rule_question_answer_multiple_delete(
     State(state): State<AppState>,
-    Json(rule_answer_info): Json<Vec<i32>>,
+    Json(rule_question_answer_info): Json<Vec<i32>>,
 ) -> impl IntoResponse {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
@@ -71,7 +73,7 @@ pub async fn rule_answer_multiple_delete(
         Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
     };
 
-    match multiple_delete_rule_answers(&mut connection, rule_answer_info).await {
+    match multiple_delete_rule_question_answers(&mut connection, rule_question_answer_info).await {
         Ok(_) => Ok(()),
         Err(err) => Err(CustomErrors::DieselError {
             error: err,
@@ -80,8 +82,11 @@ pub async fn rule_answer_multiple_delete(
     }
 }
 
-pub fn rule_answer_routes() -> Router<AppState> {
+pub fn rule_question_answer_routes() -> Router<AppState> {
     Router::new()
-        .route("/", post(rule_answer_create))
-        .route("/multiple_delete", delete(rule_answer_multiple_delete))
+        .route("/", post(rule_question_answer_create))
+        .route(
+            "/multiple_delete",
+            delete(rule_question_answer_multiple_delete),
+        )
 }

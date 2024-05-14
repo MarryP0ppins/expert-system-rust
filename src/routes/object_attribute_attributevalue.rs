@@ -1,6 +1,8 @@
 use crate::{
-    models::{attribute_value_object::NewAttributeValueObject, error::CustomErrors},
-    services::attribute_value_object::{
+    models::{
+        error::CustomErrors, object_attribute_attributevalue::NewObjectAttributeAttributevalue,
+    },
+    services::object_attribute_attributevalue::{
         create_attribute_values_objects, multiple_delete_attribute_values_objects,
     },
     AppState,
@@ -19,7 +21,7 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
     post,
     path = "/object-attributevalue",
     context_path ="/api/v1",
-    request_body = [NewAttributeValueObject],
+    request_body = [NewObjectAttributeAttributevalue],
     responses(
         (status = 200, description = "AttributeValuesObjects and their dependences create successfully", body = CustomErrors, example = json!(())),
         (status = 401, description = "Unauthorized to create AttributeValuesObjects and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -31,7 +33,7 @@ use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 #[debug_handler]
 pub async fn attribute_values_objects_create(
     State(state): State<AppState>,
-    Json(attribute_values_objects_info): Json<Vec<NewAttributeValueObject>>,
+    Json(attribute_values_objects_info): Json<Vec<NewObjectAttributeAttributevalue>>,
 ) -> impl IntoResponse {
     let mut connection: PooledConnection<AsyncPgConnection>;
     match state.db_pool.get().await {
@@ -84,7 +86,7 @@ pub async fn attribute_values_objects_multiple_delete(
     }
 }
 
-pub fn object_attributevalue_routes() -> Router<AppState> {
+pub fn object_attribute_attributevalue_routes() -> Router<AppState> {
     Router::new()
         .route("/", post(attribute_values_objects_create))
         .route(

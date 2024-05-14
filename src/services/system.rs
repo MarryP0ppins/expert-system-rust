@@ -5,7 +5,7 @@ use crate::{
         clause::Clause,
         question::QuestionWithAnswers,
         rule::Rule,
-        rule_answer::RuleAnswer,
+        rule_question_answer::RuleQuestionAnswer,
         system::{
             NewSystem, NewSystemMultipart, System, SystemData, SystemsWithPageCount, UpdateSystem,
             UpdateSystemMultipart,
@@ -13,7 +13,7 @@ use crate::{
     },
     pagination::SystemListPagination,
     schema::{
-        rule_answer, rules,
+        rule_question_answer, rules,
         systems::{self, dsl::*},
         users,
     },
@@ -123,13 +123,13 @@ pub async fn get_ready_to_start_system(
     };
 
     let mut rules_belonging_questions: HashMap<i32, Vec<i32>> = HashMap::new();
-    match RuleAnswer::belonging_to(&_rules_with_question_rule)
-        .select(rule_answer::all_columns)
-        .load::<RuleAnswer>(connection)
+    match RuleQuestionAnswer::belonging_to(&_rules_with_question_rule)
+        .select(rule_question_answer::all_columns)
+        .load::<RuleQuestionAnswer>(connection)
         .await
     {
         Ok(ok) => {
-            (ok as Vec<RuleAnswer>)
+            (ok as Vec<RuleQuestionAnswer>)
                 .grouped_by(&_rules_with_question_rule)
                 .into_iter()
                 .zip(&_rules_with_question_rule)

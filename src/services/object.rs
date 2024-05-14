@@ -1,12 +1,14 @@
 use crate::{
     models::{
-        attribute_value_object::{AttributeValueObject, NewAttributeValueObject},
         object::{
             NewObject, NewObjectWithAttributesValueIds, Object, ObjectWithAttributesValues,
             UpdateObject,
         },
+        object_attribute_attributevalue::{
+            NewObjectAttributeAttributevalue, ObjectAttributeAttributevalue,
+        },
     },
-    schema::{attributesvalue_object, objects::dsl::*},
+    schema::{object_attribute_attributevalue, objects::dsl::*},
 };
 use diesel::{delete, insert_into, prelude::*, result::Error, update};
 use diesel_async::{
@@ -22,9 +24,9 @@ pub async fn get_objects(
         .load::<Object>(connection)
         .await?;
 
-    let _attributes_values: Vec<AttributeValueObject>;
-    match AttributeValueObject::belonging_to(&_object)
-        .load::<AttributeValueObject>(connection)
+    let _attributes_values: Vec<ObjectAttributeAttributevalue>;
+    match ObjectAttributeAttributevalue::belonging_to(&_object)
+        .load::<ObjectAttributeAttributevalue>(connection)
         .await
     {
         Ok(ok) => _attributes_values = ok,
@@ -36,11 +38,11 @@ pub async fn get_objects(
         .into_iter()
         .zip(_object)
         .map(
-            |(_attributes_values_objects, _object)| ObjectWithAttributesValues {
+            |(_object_attribute_attributevalue, _object)| ObjectWithAttributesValues {
                 id: _object.id,
                 system_id: _object.system_id,
                 name: _object.name,
-                attributes_ids: _attributes_values_objects,
+                obeject_attribute_attributevalue_ids: _object_attribute_attributevalue,
             },
         )
         .collect::<Vec<ObjectWithAttributesValues>>();
@@ -56,7 +58,7 @@ pub async fn create_objects(
         object_info
             .into_iter()
             .fold((vec![], vec![]), |mut acc, raw| {
-                acc.0.push(raw.attributes_ids);
+                acc.0.push(raw.obeject_attribute_attributevalue_ids);
                 acc.1.push(NewObject {
                     system_id: raw.system_id,
                     name: raw.name,
@@ -74,11 +76,20 @@ pub async fn create_objects(
                     .get_results::<Object>(connection)
                     .await?;
 
-                insert_into(attributesvalue_object::table)
-                    .values::<Vec<NewAttributeValueObject>>(
+                insert_into(object_attribute_attributevalue::table)
+                    .values::<Vec<NewObjectAttributeAttributevalue>>(
                         attributes_values_ids
                             .into_iter()
-                            .flat_map(|attributes_values| attributes_values)
+                            .zip(&_objects)
+                            .flat_map(|(attributes_values, object)| {
+                                attributes_values.into_iter().map(|value| {
+                                    NewObjectAttributeAttributevalue {
+                                        attribute_value_id: value.attribute_value_id,
+                                        object_id: object.id,
+                                        attribute_id: value.attribute_id,
+                                    }
+                                })
+                            })
                             .collect(),
                     )
                     .execute(connection)
@@ -94,9 +105,9 @@ pub async fn create_objects(
         Err(err) => return Err(err),
     };
 
-    let _attributes_values: Vec<AttributeValueObject>;
-    match AttributeValueObject::belonging_to(&_objects)
-        .load::<AttributeValueObject>(connection)
+    let _attributes_values: Vec<ObjectAttributeAttributevalue>;
+    match ObjectAttributeAttributevalue::belonging_to(&_objects)
+        .load::<ObjectAttributeAttributevalue>(connection)
         .await
     {
         Ok(ok) => _attributes_values = ok,
@@ -108,11 +119,11 @@ pub async fn create_objects(
         .into_iter()
         .zip(_objects)
         .map(
-            |(_attributes_values_objects, _object)| ObjectWithAttributesValues {
+            |(_object_attribute_attributevalue, _object)| ObjectWithAttributesValues {
                 id: _object.id,
                 system_id: _object.system_id,
                 name: _object.name,
-                attributes_ids: _attributes_values_objects,
+                obeject_attribute_attributevalue_ids: _object_attribute_attributevalue,
             },
         )
         .collect::<Vec<ObjectWithAttributesValues>>();
@@ -146,9 +157,9 @@ pub async fn multiple_update_objects(
         }
     }
 
-    let _attributes_values: Vec<AttributeValueObject>;
-    match AttributeValueObject::belonging_to(&_objects)
-        .load::<AttributeValueObject>(connection)
+    let _attributes_values: Vec<ObjectAttributeAttributevalue>;
+    match ObjectAttributeAttributevalue::belonging_to(&_objects)
+        .load::<ObjectAttributeAttributevalue>(connection)
         .await
     {
         Ok(ok) => _attributes_values = ok,
@@ -160,11 +171,11 @@ pub async fn multiple_update_objects(
         .into_iter()
         .zip(_objects)
         .map(
-            |(_attributes_values_objects, _object)| ObjectWithAttributesValues {
+            |(_object_attribute_attributevalue, _object)| ObjectWithAttributesValues {
                 id: _object.id,
                 system_id: _object.system_id,
                 name: _object.name,
-                attributes_ids: _attributes_values_objects,
+                obeject_attribute_attributevalue_ids: _object_attribute_attributevalue,
             },
         )
         .collect::<Vec<ObjectWithAttributesValues>>();

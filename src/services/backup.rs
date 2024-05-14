@@ -3,19 +3,19 @@ use crate::{
         answer::Answer,
         attribute::Attribute,
         attribute_value::AttributeValue,
-        attribute_value_object::AttributeValueObject,
         clause::Clause,
         error::CustomErrors,
         object::Object,
+        object_attribute_attributevalue::ObjectAttributeAttributevalue,
         question::Question,
         rule::Rule,
-        rule_answer::RuleAnswer,
-        rule_attributevalue::RuleAttributeValue,
+        rule_attribute_attributevalue::RuleAttributeAttributeValue,
+        rule_question_answer::RuleQuestionAnswer,
         system::{System, SystemBackup},
     },
     schema::{
-        answers, attributes, attributesvalue_object, attributesvalues, clauses, objects, questions,
-        rule_answer, rule_attributevalue, rules, systems::dsl::*,
+        answers, attributes, attributesvalues, clauses, object_attribute_attributevalue, objects,
+        questions, rule_attribute_attributevalue, rule_question_answer, rules, systems::dsl::*,
     },
     utils::crypto::encrypt_data,
 };
@@ -58,13 +58,13 @@ pub async fn backup_from_system(
         .map(|object| object.id)
         .collect::<Vec<i32>>();
     // ----------ATTRIBUTES_VALUE_OBJECTS----------
-    let _attributes_values_objects;
-    match attributesvalue_object::table
-        .filter(attributesvalue_object::object_id.eq_any(_objects_ids))
-        .load::<AttributeValueObject>(connection)
+    let _object_attribute_attributevalue;
+    match object_attribute_attributevalue::table
+        .filter(object_attribute_attributevalue::object_id.eq_any(_objects_ids))
+        .load::<ObjectAttributeAttributevalue>(connection)
         .await
     {
-        Ok(result) => _attributes_values_objects = result,
+        Ok(result) => _object_attribute_attributevalue = result,
         Err(err) => {
             return Err(CustomErrors::DieselError {
                 error: err,
@@ -108,13 +108,13 @@ pub async fn backup_from_system(
         }
     }
     // ----------ATTRIBUTES_VALUE_OBJECTS----------
-    let _rule_attributes_values;
-    match rule_attributevalue::table
-        .filter(rule_attributevalue::attribute_id.eq_any(_attributes_ids))
-        .load::<RuleAttributeValue>(connection)
+    let _rule_attribute_attributevalue;
+    match rule_attribute_attributevalue::table
+        .filter(rule_attribute_attributevalue::attribute_id.eq_any(_attributes_ids))
+        .load::<RuleAttributeAttributeValue>(connection)
         .await
     {
-        Ok(result) => _rule_attributes_values = result,
+        Ok(result) => _rule_attribute_attributevalue = result,
         Err(err) => {
             return Err(CustomErrors::DieselError {
                 error: err,
@@ -172,14 +172,14 @@ pub async fn backup_from_system(
             })
         }
     }
-    // ----------RULES_ANSWERS----------
-    let _rules_answers;
-    match rule_answer::table
-        .filter(rule_answer::question_id.eq_any(_questions_ids.clone()))
-        .load::<RuleAnswer>(connection)
+    // ----------RULE_QUESTION_ANSWER----------
+    let _rules_question_answer;
+    match rule_question_answer::table
+        .filter(rule_question_answer::question_id.eq_any(_questions_ids.clone()))
+        .load::<RuleQuestionAnswer>(connection)
         .await
     {
-        Ok(result) => _rules_answers = result,
+        Ok(result) => _rules_question_answer = result,
         Err(err) => {
             return Err(CustomErrors::DieselError {
                 error: err,
@@ -205,15 +205,15 @@ pub async fn backup_from_system(
     let struct_to_encrypt = SystemBackup {
         system: _system,
         objects: _objects,
-        attributes_values_objects: _attributes_values_objects,
+        object_attribute_attributevalue: _object_attribute_attributevalue,
         attributes: _attributes,
         attributes_values: _attributes_values,
         rules: _rules,
-        rule_attributes_values: _rule_attributes_values,
+        rule_attribute_attributevalue: _rule_attribute_attributevalue,
         clauses: _clauses,
         questions: _questions,
         answers: _answers,
-        rules_answers: _rules_answers,
+        rules_question_answer: _rules_question_answer,
     };
     let encoded: Vec<u8> = bincode::serialize(&struct_to_encrypt).expect("serialize error");
 

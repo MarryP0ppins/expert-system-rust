@@ -25,15 +25,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    attributesvalue_object (object_id, attribute_value_id, attribute_id) {
-        id -> Int4,
-        object_id -> Int4,
-        attribute_value_id -> Int4,
-        attribute_id -> Int4,
-    }
-}
-
-diesel::table! {
     attributesvalues (id) {
         id -> Int4,
         attribute_id -> Int4,
@@ -71,6 +62,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    object_attribute_attributevalue (object_id, attribute_value_id, attribute_id) {
+        id -> Int4,
+        object_id -> Int4,
+        attribute_value_id -> Int4,
+        attribute_id -> Int4,
+    }
+}
+
+diesel::table! {
     objects (id) {
         id -> Int4,
         system_id -> Int4,
@@ -90,20 +90,20 @@ diesel::table! {
 }
 
 diesel::table! {
-    rule_answer (answer_id, rule_id, question_id) {
-        id -> Int4,
-        answer_id -> Int4,
-        rule_id -> Int4,
-        question_id -> Int4,
-    }
-}
-
-diesel::table! {
-    rule_attributevalue (attribute_value_id, rule_id, attribute_id) {
+    rule_attribute_attributevalue (attribute_value_id, rule_id, attribute_id) {
         id -> Int4,
         attribute_value_id -> Int4,
         rule_id -> Int4,
         attribute_id -> Int4,
+    }
+}
+
+diesel::table! {
+    rule_question_answer (answer_id, rule_id, question_id) {
+        id -> Int4,
+        answer_id -> Int4,
+        rule_id -> Int4,
+        question_id -> Int4,
     }
 }
 
@@ -150,36 +150,36 @@ diesel::table! {
 
 diesel::joinable!(answers -> questions (question_id));
 diesel::joinable!(attributes -> systems (system_id));
-diesel::joinable!(attributesvalue_object -> attributes (attribute_id));
-diesel::joinable!(attributesvalue_object -> attributesvalues (attribute_value_id));
-diesel::joinable!(attributesvalue_object -> objects (object_id));
 diesel::joinable!(attributesvalues -> attributes (attribute_id));
 diesel::joinable!(clauses -> questions (question_id));
 diesel::joinable!(clauses -> rules (rule_id));
 diesel::joinable!(histories -> systems (system_id));
 diesel::joinable!(histories -> users (user_id));
+diesel::joinable!(object_attribute_attributevalue -> attributes (attribute_id));
+diesel::joinable!(object_attribute_attributevalue -> attributesvalues (attribute_value_id));
+diesel::joinable!(object_attribute_attributevalue -> objects (object_id));
 diesel::joinable!(objects -> systems (system_id));
 diesel::joinable!(questions -> systems (system_id));
-diesel::joinable!(rule_answer -> answers (answer_id));
-diesel::joinable!(rule_answer -> questions (question_id));
-diesel::joinable!(rule_answer -> rules (rule_id));
-diesel::joinable!(rule_attributevalue -> attributes (attribute_id));
-diesel::joinable!(rule_attributevalue -> attributesvalues (attribute_value_id));
-diesel::joinable!(rule_attributevalue -> rules (rule_id));
+diesel::joinable!(rule_attribute_attributevalue -> attributes (attribute_id));
+diesel::joinable!(rule_attribute_attributevalue -> attributesvalues (attribute_value_id));
+diesel::joinable!(rule_attribute_attributevalue -> rules (rule_id));
+diesel::joinable!(rule_question_answer -> answers (answer_id));
+diesel::joinable!(rule_question_answer -> questions (question_id));
+diesel::joinable!(rule_question_answer -> rules (rule_id));
 diesel::joinable!(rules -> systems (system_id));
 diesel::joinable!(systems -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     answers,
     attributes,
-    attributesvalue_object,
     attributesvalues,
     clauses,
     histories,
+    object_attribute_attributevalue,
     objects,
     questions,
-    rule_answer,
-    rule_attributevalue,
+    rule_attribute_attributevalue,
+    rule_question_answer,
     rules,
     systems,
     users,

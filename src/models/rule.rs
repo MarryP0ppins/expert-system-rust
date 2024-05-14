@@ -28,6 +28,6 @@ pub struct RuleWithClausesAndEffects {
     pub system_id: i32,
     pub attribute_rule: bool,
     pub clauses: Vec<Clause>,
-    pub answers: Option<Vec<Answer>>,
-    pub attributes_values: Option<Vec<AttributeValue>>,
+    pub answers: Vec<Answer>,
+    pub attributes_values: Vec<AttributeValue>,
 }
