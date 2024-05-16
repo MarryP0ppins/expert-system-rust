@@ -139,10 +139,10 @@ pub async fn system_retrieve(
 
 #[utoipa::path(
     get,
-    path = "/systems/{id}/start",
+    path = "/systems/{id}/test",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "Matching System by query", body=System),
+        (status = 200, description = "Matching System by query", body=SystemData),
         (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -298,6 +298,6 @@ pub fn system_routes() -> Router<AppState> {
                 .patch(system_partial_update)
                 .delete(system_delete),
         )
-        .route("/:system_id/start", get(system_start))
+        .route("/:system_id/test", get(system_start))
         .route("/:system_id/backup", get(system_backup))
 }
