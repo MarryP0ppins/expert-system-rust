@@ -7,8 +7,9 @@ use utoipa::ToSchema;
 
 #[derive(Debug, DbEnum, Deserialize, Serialize, Clone, ToSchema)]
 #[ExistingTypePath = "Operatorenum"]
+#[DbValueStyle = "SCREAMING_SNAKE_CASE"]
 pub enum RuleOperator {
-    Equel,
+    Equal,
     NotEqual,
     Below,
     Above,

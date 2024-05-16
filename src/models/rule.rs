@@ -38,7 +38,7 @@ pub struct NewRuleWithClausesAndEffects {
     pub rule_attribute_attributevalue_ids: Vec<NewRuleAttributeAttributeValueWithoutRule>,
 }
 
-#[derive(Queryable, Serialize, ToSchema, Clone)]
+#[derive(Queryable, Serialize, ToSchema, Clone, Debug)]
 pub struct RuleWithClausesAndEffects {
     pub id: i32,
     pub system_id: i32,
