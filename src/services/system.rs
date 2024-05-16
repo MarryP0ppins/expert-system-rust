@@ -91,7 +91,7 @@ pub async fn get_ready_to_start_system(
     system_id: i32,
 ) -> Result<SystemData, Error> {
     let _questions_with_answers = get_questions(connection, system_id).await?;
-    println!("111111111111111111111111\n{:?}", &_questions_with_answers);
+    //println!("111111111111111111111111\n{:?}", &_questions_with_answers);
     let _rules_with_question_rule = rules::table
         .filter(rules::system_id.eq(system_id))
         .load::<Rule>(connection)
@@ -100,10 +100,10 @@ pub async fn get_ready_to_start_system(
         .filter(|rule| !rule.attribute_rule)
         .collect::<Vec<Rule>>();
 
-    println!(
-        "2222222222222222222222222\n{:?}",
-        &_rules_with_question_rule
-    );
+    // println!(
+    //     "2222222222222222222222222\n{:?}",
+    //     &_rules_with_question_rule
+    // );
     let mut _rules_with_question_deps: HashMap<i32, Vec<i32>> = HashMap::new();
     match Clause::belonging_to(&_rules_with_question_rule)
         .load::<Clause>(connection)
@@ -125,7 +125,7 @@ pub async fn get_ready_to_start_system(
             }),
         Err(err) => return Err(err),
     };
-    println!("3333333333333333333333\n{:?}", &_rules_with_question_deps);
+    //println!("3333333333333333333333\n{:?}", &_rules_with_question_deps);
     let mut rules_belonging_questions: HashMap<i32, Vec<i32>> = HashMap::new();
     match RuleQuestionAnswer::belonging_to(&_rules_with_question_rule)
         .select(rule_question_answer::all_columns)
@@ -160,39 +160,29 @@ pub async fn get_ready_to_start_system(
         }
         Err(err) => return Err(err),
     };
-    println!(
-        "44444444444444444444444444\n{:?}",
-        &rules_belonging_questions
-    );
+
+    _questions_with_answers
+        .as_slice()
+        .into_iter()
+        .for_each(|question| {
+            rules_belonging_questions
+                .entry(question.id)
+                .or_insert(vec![]);
+        });
+
+    // println!(
+    //     "44444444444444444444444444\n{:?}",
+    //     &rules_belonging_questions
+    // );
     let rules_with_clauses_and_effects = get_rules(connection, system_id).await?;
     let belonging_questions_order = topological_sort(&rules_belonging_questions);
 
-    println!(
-        "55555555555555555555555555\n{:?}",
-        &belonging_questions_order
-    );
+    // println!(
+    //     "55555555555555555555555555\n{:?}",
+    //     &belonging_questions_order
+    // );
 
-    let questions_order = (HashSet::from_iter(
-        rules_with_clauses_and_effects
-            .as_slice()
-            .into_iter()
-            .flat_map(|rule| {
-                rule.clauses
-                    .as_slice()
-                    .into_iter()
-                    .map(|_clause| _clause.question_id)
-            }),
-    ) as HashSet<i32>)
-        .difference(&HashSet::from_iter(
-            belonging_questions_order.clone().into_iter(),
-        ))
-        .cloned()
-        .chain(belonging_questions_order.into_iter())
-        .collect::<Vec<i32>>();
-
-    println!("666666666666666666666666\n{:?}", &questions_order);
-
-    let mut ordered_questions: Vec<QuestionWithAnswers> = questions_order
+    let ordered_questions: Vec<QuestionWithAnswers> = belonging_questions_order
         .into_iter()
         .filter_map(|question_order_id| {
             _questions_with_answers
@@ -202,8 +192,7 @@ pub async fn get_ready_to_start_system(
                 .and_then(|borrow| Some(borrow.clone()))
         })
         .collect();
-    println!("7777777777777777777777777777\n{:?}", &ordered_questions);
-    ordered_questions.reverse();
+    //println!("7777777777777777777777777777\n{:?}", &ordered_questions);
     Ok(SystemData {
         questions: ordered_questions,
         rules: rules_with_clauses_and_effects,
