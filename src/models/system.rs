@@ -91,15 +91,15 @@ pub struct SystemDelete {
 
 #[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub struct SystemBackup {
-    pub system: System,
-    pub objects: Vec<Object>,
-    pub object_attribute_attributevalue: Vec<ObjectAttributeAttributevalue>,
-    pub attributes: Vec<Attribute>,
-    pub attributes_values: Vec<AttributeValue>,
-    pub rules: Vec<Rule>,
-    pub rule_attribute_attributevalue: Vec<RuleAttributeAttributeValue>,
-    pub clauses: Vec<Clause>,
-    pub questions: Vec<Question>,
-    pub answers: Vec<Answer>,
-    pub rules_question_answer: Vec<RuleQuestionAnswer>,
+    pub system: System,                                                      //
+    pub objects: Vec<Object>,                                                //
+    pub object_attribute_attributevalue: Vec<ObjectAttributeAttributevalue>, //
+    pub attributes: Vec<Attribute>,                                          //
+    pub attributes_values: Vec<AttributeValue>,                              //
+    pub rules: Vec<Rule>,                                                    //
+    pub rule_attribute_attributevalue: Vec<RuleAttributeAttributeValue>,     //
+    pub clauses: Vec<Clause>,                                                //
+    pub questions: Vec<Question>,                                            //
+    pub answers: Vec<Answer>,                                                //
+    pub rule_question_answer: Vec<RuleQuestionAnswer>,
 }

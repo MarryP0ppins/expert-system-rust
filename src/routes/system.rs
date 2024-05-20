@@ -5,7 +5,7 @@ use crate::{
     },
     pagination::SystemListPagination,
     services::{
-        backup::backup_from_system,
+        backup::{backup_from_system, system_from_backup},
         system::{
             create_system, delete_system, get_ready_to_start_system, get_system, get_systems,
             update_system,
@@ -205,6 +205,35 @@ pub async fn system_backup(
 }
 
 #[utoipa::path(
+    post,
+    path = "/systems/{id}/restore",
+    context_path ="/api/v1",
+    responses(
+        (status = 200, description = "Sususfully restore", body = CustomErrors, example = json!(())),
+        (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
+    )
+)]
+#[debug_handler]
+pub async fn system_restore(
+    State(state): State<AppState>,
+    Json(system_decode): Json<Vec<u8>>,
+) -> impl IntoResponse {
+    let mut connection: PooledConnection<AsyncPgConnection>;
+    match state.db_pool.get().await {
+        Ok(ok) => connection = ok,
+        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
+    };
+
+    match system_from_backup(&mut connection, system_decode).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(err),
+    }
+}
+
+#[utoipa::path(
     patch,
     path = "/systems/{id}",
     context_path ="/api/v1",
@@ -300,4 +329,5 @@ pub fn system_routes() -> Router<AppState> {
         )
         .route("/:system_id/test", get(system_start))
         .route("/:system_id/backup", get(system_backup))
+        .route("/:system_id/restore", post(system_restore))
 }

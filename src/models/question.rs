@@ -3,9 +3,12 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use super::answer::Answer;
+use super::{answer::Answer, system::System};
 
-#[derive(Queryable, Serialize, Deserialize, Identifiable, Selectable, Clone, Debug)]
+#[derive(
+    Queryable, Serialize, Deserialize, Identifiable, Selectable, Associations, Clone, Debug,
+)]
+#[diesel(belongs_to(System))]
 #[diesel(table_name=questions)]
 pub struct Question {
     pub id: i32,

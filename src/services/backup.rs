@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     models::{
         answer::Answer,
@@ -13,14 +15,22 @@ use crate::{
         rule_question_answer::RuleQuestionAnswer,
         system::{System, SystemBackup},
     },
-    schema::{
-        answers, attributes, attributesvalues, clauses, object_attribute_attributevalue, objects,
-        questions, rule_attribute_attributevalue, rule_question_answer, rules, systems::dsl::*,
+    schema::systems::dsl::*,
+    utils::{
+        copy::{
+            copy_answers, copy_attribute_values, copy_attributes, copy_clauses,
+            copy_object_attribute_attributevalues, copy_objects, copy_questions,
+            copy_rule_attribute_attributevalues, copy_rule_question_answers, copy_rules,
+            copy_system,
+        },
+        crypto::{decrypt_data, encrypt_data},
     },
-    utils::crypto::encrypt_data,
 };
 use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::{
+    scoped_futures::ScopedFutureExt, AsyncConnection, AsyncPgConnection, RunQueryDsl,
+};
+use http::StatusCode;
 
 pub async fn backup_from_system(
     connection: &mut AsyncPgConnection,
@@ -39,8 +49,7 @@ pub async fn backup_from_system(
     }
     // ----------OBJECTS----------
     let _objects;
-    match objects::table
-        .filter(objects::system_id.eq(system_id))
+    match Object::belonging_to(&_system)
         .load::<Object>(connection)
         .await
     {
@@ -52,30 +61,23 @@ pub async fn backup_from_system(
             })
         }
     }
-    let _objects_ids = _objects
-        .as_slice()
-        .into_iter()
-        .map(|object| object.id)
-        .collect::<Vec<i32>>();
     // ----------ATTRIBUTES_VALUE_OBJECTS----------
     let _object_attribute_attributevalue;
-    match object_attribute_attributevalue::table
-        .filter(object_attribute_attributevalue::object_id.eq_any(_objects_ids))
+    match ObjectAttributeAttributevalue::belonging_to(&_objects)
         .load::<ObjectAttributeAttributevalue>(connection)
         .await
     {
-        Ok(result) => _object_attribute_attributevalue = result,
+        Ok(ok) => _object_attribute_attributevalue = ok,
         Err(err) => {
             return Err(CustomErrors::DieselError {
                 error: err,
                 message: None,
-            })
+            });
         }
-    }
+    };
     // ----------ATTRIBUTES----------
     let _attributes;
-    match attributes::table
-        .filter(attributes::system_id.eq(system_id))
+    match Attribute::belonging_to(&_system)
         .load::<Attribute>(connection)
         .await
     {
@@ -87,15 +89,9 @@ pub async fn backup_from_system(
             })
         }
     }
-    let _attributes_ids = _attributes
-        .as_slice()
-        .into_iter()
-        .map(|attribute| attribute.id)
-        .collect::<Vec<i32>>();
     // ----------ATTRIBUTES_VALUES----------
     let _attributes_values;
-    match attributesvalues::table
-        .filter(attributesvalues::attribute_id.eq_any(&_attributes_ids))
+    match AttributeValue::belonging_to(&_attributes)
         .load::<AttributeValue>(connection)
         .await
     {
@@ -109,8 +105,7 @@ pub async fn backup_from_system(
     }
     // ----------ATTRIBUTES_VALUE_OBJECTS----------
     let _rule_attribute_attributevalue;
-    match rule_attribute_attributevalue::table
-        .filter(rule_attribute_attributevalue::attribute_id.eq_any(_attributes_ids))
+    match RuleAttributeAttributeValue::belonging_to(&_attributes)
         .load::<RuleAttributeAttributeValue>(connection)
         .await
     {
@@ -124,11 +119,7 @@ pub async fn backup_from_system(
     }
     // ----------RULES----------
     let _rules;
-    match rules::table
-        .filter(rules::system_id.eq(system_id))
-        .load::<Rule>(connection)
-        .await
-    {
+    match Rule::belonging_to(&_system).load::<Rule>(connection).await {
         Ok(result) => _rules = result,
         Err(err) => {
             return Err(CustomErrors::DieselError {
@@ -139,8 +130,7 @@ pub async fn backup_from_system(
     }
     // ----------QUESTIONS----------
     let _questions;
-    match questions::table
-        .filter(questions::system_id.eq(system_id))
+    match Question::belonging_to(&_system)
         .load::<Question>(connection)
         .await
     {
@@ -152,15 +142,9 @@ pub async fn backup_from_system(
             })
         }
     }
-    let _questions_ids = _questions
-        .as_slice()
-        .into_iter()
-        .map(|question| question.id)
-        .collect::<Vec<i32>>();
     // ----------CLAUSES----------
     let _clauses;
-    match clauses::table
-        .filter(clauses::question_id.eq_any(_questions_ids.clone()))
+    match Clause::belonging_to(&_questions)
         .load::<Clause>(connection)
         .await
     {
@@ -173,13 +157,12 @@ pub async fn backup_from_system(
         }
     }
     // ----------RULE_QUESTION_ANSWER----------
-    let _rules_question_answer;
-    match rule_question_answer::table
-        .filter(rule_question_answer::question_id.eq_any(_questions_ids.clone()))
+    let _rule_question_answer;
+    match RuleQuestionAnswer::belonging_to(&_questions)
         .load::<RuleQuestionAnswer>(connection)
         .await
     {
-        Ok(result) => _rules_question_answer = result,
+        Ok(result) => _rule_question_answer = result,
         Err(err) => {
             return Err(CustomErrors::DieselError {
                 error: err,
@@ -189,8 +172,7 @@ pub async fn backup_from_system(
     }
     // ----------ANSWERS----------
     let _answers;
-    match answers::table
-        .filter(answers::question_id.eq_any(_questions_ids.clone()))
+    match Answer::belonging_to(&_questions)
         .load::<Answer>(connection)
         .await
     {
@@ -213,13 +195,13 @@ pub async fn backup_from_system(
         clauses: _clauses,
         questions: _questions,
         answers: _answers,
-        rules_question_answer: _rules_question_answer,
+        rule_question_answer: _rule_question_answer,
     };
     let encoded: Vec<u8> = bincode::serialize(&struct_to_encrypt).expect("serialize error");
 
-    let _encrypt_key: &[u8] = dotenv!("CRYPTO_KEY").as_bytes();
+    let _crypt_key: &[u8] = dotenv!("CRYPTO_KEY").as_bytes();
     let encrypt_backup;
-    match encrypt_data(_encrypt_key, &encoded) {
+    match encrypt_data(_crypt_key, &encoded) {
         Ok(result) => encrypt_backup = result,
         Err(err) => {
             return Err(CustomErrors::AesGsmError {
@@ -230,4 +212,108 @@ pub async fn backup_from_system(
     };
 
     Ok(encrypt_backup)
+}
+
+pub async fn system_from_backup(
+    connection: &mut AsyncPgConnection,
+    encryped_system: Vec<u8>,
+) -> Result<(), CustomErrors> {
+    let _crypt_key: &[u8] = dotenv!("CRYPTO_KEY").as_bytes();
+    let decoded_system;
+    match decrypt_data(_crypt_key, &encryped_system) {
+        Ok(result) => decoded_system = result,
+        Err(err) => {
+            return Err(CustomErrors::AesGsmError {
+                error: err,
+                message: Some("Файл поврежден или изменен".to_string()),
+            })
+        }
+    };
+
+    let _system: SystemBackup;
+    match bincode::deserialize(&decoded_system) {
+        Ok(system) => _system = system,
+        Err(err) => {
+            println!("{err}");
+            return Err(CustomErrors::StringError {
+                status: StatusCode::BAD_REQUEST,
+                error: "Ошибка декодирования".to_string(),
+            });
+        }
+    };
+
+    println!("{:?}", &_system);
+
+    match connection
+        .transaction(|connection| {
+            async {
+                let mut question_map: HashMap<i32, i32> = HashMap::new();
+                let mut attribute_map: HashMap<i32, i32> = HashMap::new();
+                let mut object_map: HashMap<i32, i32> = HashMap::new();
+                let mut rule_map: HashMap<i32, i32> = HashMap::new();
+                let mut attributevalue_map: HashMap<i32, i32> = HashMap::new();
+                let mut answer_map: HashMap<i32, i32> = HashMap::new();
+
+                let new_system = copy_system(connection, &_system.system).await?;
+                let new_system_id = new_system.id;
+                copy_questions(
+                    connection,
+                    new_system_id,
+                    &_system.questions,
+                    &mut question_map,
+                )
+                .await?;
+                copy_attributes(
+                    connection,
+                    new_system_id,
+                    &_system.attributes,
+                    &mut attribute_map,
+                )
+                .await?;
+                copy_objects(connection, new_system_id, &_system.objects, &mut object_map).await?;
+                copy_rules(connection, new_system_id, &_system.rules, &mut rule_map).await?;
+                copy_attribute_values(
+                    connection,
+                    &_system.attributes_values,
+                    &attribute_map,
+                    &mut attributevalue_map,
+                )
+                .await?;
+                copy_answers(connection, &_system.answers, &question_map, &mut answer_map).await?;
+                copy_clauses(connection, &_system.clauses, &rule_map, &question_map).await?;
+                copy_rule_attribute_attributevalues(
+                    connection,
+                    &_system.rule_attribute_attributevalue,
+                    &rule_map,
+                    &attribute_map,
+                    &attributevalue_map,
+                )
+                .await?;
+                copy_rule_question_answers(
+                    connection,
+                    &_system.rule_question_answer,
+                    &rule_map,
+                    &answer_map,
+                    &question_map,
+                )
+                .await?;
+                copy_object_attribute_attributevalues(
+                    connection,
+                    &_system.object_attribute_attributevalue,
+                    &object_map,
+                    &attribute_map,
+                    &attributevalue_map,
+                )
+                .await?;
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await
+    {
+        Ok(_) => (),
+        Err(err) => return Err(err),
+    };
+
+    return Ok(());
 }

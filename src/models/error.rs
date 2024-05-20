@@ -38,6 +38,15 @@ pub enum CustomErrors {
     },
 }
 
+impl From<diesel::result::Error> for CustomErrors {
+    fn from(error: diesel::result::Error) -> Self {
+        Self::DieselError {
+            error,
+            message: None,
+        }
+    }
+}
+
 impl Serialize for CustomErrors {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

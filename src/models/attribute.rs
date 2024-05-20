@@ -3,9 +3,12 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use super::attribute_value::AttributeValue;
+use super::{attribute_value::AttributeValue, system::System};
 
-#[derive(Queryable, Serialize, Deserialize, Identifiable, Selectable, Clone, Debug)]
+#[derive(
+    Queryable, Serialize, Deserialize, Identifiable, Selectable, Associations, Clone, Debug,
+)]
+#[diesel(belongs_to(System))]
 #[diesel(table_name=attributes)]
 pub struct Attribute {
     pub id: i32,

@@ -1,4 +1,4 @@
-use super::rule::Rule;
+use super::{question::Question, rule::Rule};
 use crate::schema::{clauses, sql_types::Operatorenum};
 use diesel::prelude::*;
 use diesel_derive_enum::DbEnum;
@@ -29,6 +29,7 @@ pub enum RuleOperator {
     Debug,
 )]
 #[diesel(belongs_to(Rule))]
+#[diesel(belongs_to(Question))]
 #[diesel(table_name=clauses)]
 pub struct Clause {
     pub id: i32,
