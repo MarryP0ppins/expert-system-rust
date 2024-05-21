@@ -24,7 +24,8 @@ use axum::{
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         }))
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn history_create(
@@ -59,7 +60,8 @@ pub async fn history_create(
     ),
     params(
         HistoryListPagination
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn history_list(
@@ -98,6 +100,7 @@ pub async fn history_list(
     params(
         ("id" = i32, Path, description = "History database id")
     ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn history_delete(

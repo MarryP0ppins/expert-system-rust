@@ -74,7 +74,8 @@ pub async fn system_create(
     ),
     params(
         SystemListPagination
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn system_list(
@@ -115,6 +116,7 @@ pub async fn system_list(
     params(
         ("id" = u32, Path, description = "System database id")
     ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn system_retrieve(
@@ -150,6 +152,7 @@ pub async fn system_retrieve(
     params(
         ("id" = u32, Path, description = "System database id")
     ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn system_start(
@@ -185,6 +188,7 @@ pub async fn system_start(
     params(
         ("id" = u32, Path, description = "System database id")
     ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn system_backup(
@@ -213,7 +217,8 @@ pub async fn system_backup(
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         }))
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn system_restore(
@@ -248,6 +253,7 @@ pub async fn system_restore(
     params(
         ("id" = u32, Path, description = "System database id")
     ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn system_partial_update(
@@ -286,6 +292,7 @@ pub async fn system_partial_update(
     params(
         ("id" = u32, Path, description = "System database id")
     ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn system_delete(

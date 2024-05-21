@@ -29,7 +29,8 @@ use axum::{
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         }))
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn clause_create(
@@ -64,7 +65,8 @@ pub async fn clause_create(
     ),
     params(
         ClauseListPagination
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn clause_list(
@@ -100,7 +102,8 @@ pub async fn clause_list(
             error: "Not authorized".to_string(),
         })),
         (status = 404, description = "Clauses not found")
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn clause_multiple_delete(
@@ -134,7 +137,8 @@ pub async fn clause_multiple_delete(
             error: "Not authorized".to_string(),
         })),
         (status = 404, description = "Clauses not found")
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn clause_multiple_update(

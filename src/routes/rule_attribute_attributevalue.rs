@@ -25,7 +25,8 @@ use axum::{
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         }))
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn rule_attribute_attributevalue_create(
@@ -62,7 +63,8 @@ pub async fn rule_attribute_attributevalue_create(
             error: "Not authorized".to_string(),
         })),
         (status = 404, description = "RuleAttributeAttributeValues not found")
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn rule_attribute_attributevalue_multiple_delete(

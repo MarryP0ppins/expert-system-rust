@@ -29,7 +29,8 @@ use axum::{
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         }))
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn question_create(
@@ -64,7 +65,8 @@ pub async fn question_create(
     ),
     params(
         QuestionListPagination
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn question_list(
@@ -100,7 +102,8 @@ pub async fn question_list(
             error: "Not authorized".to_string(),
         })),
         (status = 404, description = "Questions not found")
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn question_multiple_delete(
@@ -134,7 +137,8 @@ pub async fn question_multiple_delete(
             error: "Not authorized".to_string(),
         })),
         (status = 404, description = "Quetions and their dependences not found")
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn question_multiple_update(

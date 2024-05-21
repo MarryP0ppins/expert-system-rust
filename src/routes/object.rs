@@ -29,7 +29,8 @@ use axum::{
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         }))
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn object_create(
@@ -64,7 +65,8 @@ pub async fn object_create(
     ),
     params(
         ObjectListPagination
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn object_list(
@@ -100,7 +102,8 @@ pub async fn object_list(
             error: "Not authorized".to_string(),
         })),
         (status = 404, description = "Objects not found")
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn object_multiple_delete(
@@ -134,7 +137,8 @@ pub async fn object_multiple_delete(
             error: "Not authorized".to_string(),
         })),
         (status = 404, description = "Objects and their dependences not found")
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn object_multiple_update(

@@ -24,7 +24,8 @@ use axum::{
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         }))
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn rule_create(
@@ -59,7 +60,8 @@ pub async fn rule_create(
     ),
     params(
         RuleListPagination
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn rule_list(
@@ -95,7 +97,8 @@ pub async fn rule_list(
             error: "Not authorized".to_string(),
         })),
         (status = 404, description = "Rules not found")
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn rule_multiple_delete(

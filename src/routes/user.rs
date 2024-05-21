@@ -108,7 +108,8 @@ pub async fn user_registration(
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         }))
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn user_get(State(state): State<AppState>, cookie: Cookies) -> impl IntoResponse {
@@ -152,7 +153,8 @@ pub async fn user_get(State(state): State<AppState>, cookie: Cookies) -> impl In
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         }))
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn user_patch(

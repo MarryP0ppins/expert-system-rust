@@ -30,7 +30,8 @@ use axum::{
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         }))
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn attribute_value_create(
@@ -65,7 +66,8 @@ pub async fn attribute_value_create(
     ),
     params(
         AttributeValueListPagination
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn attribute_value_list(
@@ -100,7 +102,8 @@ pub async fn attribute_value_list(
             error: "Not authorized".to_string(),
         })),
         (status = 404, description = "AttributeValues not found")
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn attribute_value_multiple_delete(
@@ -134,7 +137,8 @@ pub async fn attribute_value_multiple_delete(
             error: "Not authorized".to_string(),
         })),
         (status = 404, description = "AttributeValues not found")
-    )
+    ),
+    security(("Cookie" = []))
 )]
 pub async fn attribute_value_multiple_update(
     State(state): State<AppState>,

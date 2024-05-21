@@ -29,7 +29,8 @@ use axum::{
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         }))
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn attribute_create(
@@ -64,7 +65,8 @@ pub async fn attribute_create(
     ),
     params(
         AttributeListPagination
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn attribute_list(
@@ -99,7 +101,8 @@ pub async fn attribute_list(
             error: "Not authorized".to_string(),
         })),
         (status = 404, description = "Answers not found")
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn attribute_multiple_delete(
@@ -133,7 +136,8 @@ pub async fn attribute_multiple_delete(
             error: "Not authorized".to_string(),
         })),
         (status = 404, description = "Attributes and their dependences not found")
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn attribute_multiple_update(

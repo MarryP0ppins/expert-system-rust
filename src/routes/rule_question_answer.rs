@@ -25,7 +25,8 @@ use axum::{
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         }))
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn rule_question_answer_create(
@@ -59,7 +60,8 @@ pub async fn rule_question_answer_create(
             error: "Not authorized".to_string(),
         })),
         (status = 404, description = "RuleQuestionAnswers not found")
-    )
+    ),
+    security(("Cookie" = []))
 )]
 #[debug_handler]
 pub async fn rule_question_answer_multiple_delete(
