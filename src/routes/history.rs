@@ -12,7 +12,6 @@ use axum::{
     routing::{delete, post},
     Json, Router,
 };
-use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 
 #[utoipa::path(
     post,
@@ -32,11 +31,11 @@ pub async fn history_create(
     State(state): State<AppState>,
     Json(history_info): Json<NewHistory>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match create_history(&mut connection, history_info).await {
         Ok(result) => Ok(Json(result)),
@@ -67,11 +66,11 @@ pub async fn history_list(
     State(state): State<AppState>,
     Query(pagination): Query<HistoryListPagination>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     let pagination: HistoryListPagination = pagination;
 
@@ -105,11 +104,11 @@ pub async fn history_delete(
     State(state): State<AppState>,
     Path(history_id): Path<i32>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match delete_history(&mut connection, history_id).await {
         Ok(_) => Ok(()),

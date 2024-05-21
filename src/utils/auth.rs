@@ -19,27 +19,24 @@ pub async fn cookie_check<'a>(
     cookie: Cookies,
     cookie_key: &'a Key,
 ) -> Result<User, CustomErrors> {
-    let user_id = match cookie
+    let user_id = cookie
         .private(&cookie_key)
         .get(COOKIE_NAME)
         .map(|res| res.value().to_owned())
-    {
-        Some(res) => res.parse::<i32>().expect("Server Error"),
-        None => {
-            return Err(CustomErrors::StringError {
-                status: StatusCode::UNAUTHORIZED,
-                error: "Not authorized".to_string(),
-            })
-        }
-    };
+        .and_then(|res| Some(res.parse::<i32>().expect("Server Error")))
+        .ok_or_else(|| CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        })?;
 
-    match users.find(user_id).first::<User>(connection).await {
-        Ok(user) => Ok(user),
-        Err(err) => Err(CustomErrors::DieselError {
+    Ok(users
+        .find(user_id)
+        .first::<User>(connection)
+        .await
+        .map_err(|err| CustomErrors::DieselError {
             error: err,
             message: Some("Invalid credentials provided".to_string()),
-        }),
-    }
+        })?)
 }
 
 pub async fn password_check<'a>(
@@ -50,14 +47,13 @@ pub async fn password_check<'a>(
 ) -> Result<User, CustomErrors> {
     let user_cookie = cookie_check(connection, cookie, cookie_key).await?;
 
-    match check_password(password_to_check, &user_cookie.password) {
-        Ok(_) => Ok(user_cookie),
-        Err(err) => Err(CustomErrors::Argon2Error {
+    Ok(check_password(password_to_check, &user_cookie.password)
+        .and(Ok(user_cookie))
+        .map_err(|err| CustomErrors::Argon2Error {
             status: StatusCode::BAD_REQUEST,
             error: err,
             message: Some("Неверный пароль".to_owned()),
-        }),
-    }
+        })?)
 }
 
 pub fn hash_password(new_password: &str) -> String {

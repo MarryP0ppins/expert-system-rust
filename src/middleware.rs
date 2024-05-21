@@ -16,11 +16,11 @@ pub async fn auth(
     req: Request,
     next: Next,
 ) -> Result<Response, impl IntoResponse> {
-    let mut connection;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     if !URI_WITHOUT_AUTH
         .into_iter()

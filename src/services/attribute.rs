@@ -22,14 +22,9 @@ pub async fn get_attributes(
         .load::<Attribute>(connection)
         .await?;
 
-    let _attributes_values: Vec<AttributeValue>;
-    match AttributeValue::belonging_to(&_attributes)
+    let _attributes_values: Vec<AttributeValue> = AttributeValue::belonging_to(&_attributes)
         .load::<AttributeValue>(connection)
-        .await
-    {
-        Ok(ok) => _attributes_values = ok,
-        Err(_) => _attributes_values = vec![],
-    };
+        .await?;
 
     let result = _attributes_values
         .grouped_by(&_attributes)
@@ -146,14 +141,9 @@ pub async fn multiple_update_attributes(
         }
     }
 
-    let _attributes_values: Vec<AttributeValue>;
-    match AttributeValue::belonging_to(&_attributes)
+    let _attributes_values: Vec<AttributeValue> = AttributeValue::belonging_to(&_attributes)
         .load::<AttributeValue>(connection)
-        .await
-    {
-        Ok(ok) => _attributes_values = ok,
-        Err(_) => _attributes_values = vec![],
-    };
+        .await?;
 
     let result = _attributes_values
         .grouped_by(&_attributes)

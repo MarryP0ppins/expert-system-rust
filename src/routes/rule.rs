@@ -12,7 +12,6 @@ use axum::{
     routing::{delete, post},
     Json, Router,
 };
-use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 
 #[utoipa::path(
     post,
@@ -32,11 +31,11 @@ pub async fn rule_create(
     State(state): State<AppState>,
     Json(rule_info): Json<Vec<NewRuleWithClausesAndEffects>>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match create_rule(&mut connection, rule_info).await {
         Ok(result) => Ok(Json(result)),
@@ -67,11 +66,11 @@ pub async fn rule_list(
     State(state): State<AppState>,
     Query(pagination): Query<RuleListPagination>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     let pagination = pagination as RuleListPagination;
 
@@ -103,11 +102,11 @@ pub async fn rule_multiple_delete(
     State(state): State<AppState>,
     Json(rule_info): Json<Vec<i32>>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match multiple_delete_rules(&mut connection, rule_info).await {
         Ok(_) => Ok(()),

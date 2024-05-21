@@ -22,7 +22,7 @@ pub async fn get_user(
     connection: &mut AsyncPgConnection,
     user_id: i32,
 ) -> Result<UserWithoutPassword, Error> {
-    match users
+    Ok(users
         .find(user_id)
         .select((
             id,
@@ -34,20 +34,15 @@ pub async fn get_user(
             is_superuser,
         ))
         .first::<UserWithoutPassword>(connection)
-        .await
-    {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
-    }
+        .await?)
 }
 
 pub async fn update_user(
     connection: &mut AsyncPgConnection,
     user_data: UpdateUserResponse,
     user_id: i32,
-) -> Result<UserWithoutPassword, CustomErrors> {
-    let new_user;
-    match update(users.find(user_id))
+) -> Result<UserWithoutPassword, Error> {
+    let new_user: User = update(users.find(user_id))
         .set::<UpdateUser>(UpdateUser {
             email: user_data.email,
             first_name: user_data.first_name,
@@ -55,16 +50,7 @@ pub async fn update_user(
             password: user_data.new_password,
         })
         .get_result::<User>(connection)
-        .await
-    {
-        Ok(user) => new_user = user,
-        Err(err) => {
-            return Err(CustomErrors::DieselError {
-                error: err,
-                message: None,
-            })
-        }
-    }
+        .await?;
 
     Ok(UserWithoutPassword {
         id: new_user.id,
@@ -122,20 +108,14 @@ pub async fn login_user(
     cookie: Cookies,
     cookie_key: &Key,
 ) -> Result<UserWithoutPassword, CustomErrors> {
-    let _user: User;
-    match users
+    let _user = users
         .filter(email.eq(user_info.email))
         .first::<User>(connection)
         .await
-    {
-        Ok(result) => _user = result,
-        Err(err) => {
-            return Err(CustomErrors::DieselError {
-                error: err,
-                message: Some("Invalid credantials provided".to_string()),
-            })
-        }
-    }
+        .map_err(|err| CustomErrors::DieselError {
+            error: err,
+            message: Some("Invalid credantials provided".to_string()),
+        })?;
 
     let null_cookie = Cookie::build((COOKIE_NAME, ""))
         .path("/")

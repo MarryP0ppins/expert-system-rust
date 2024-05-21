@@ -16,7 +16,6 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use tower_cookies::{Cookie, Cookies};
 
 #[utoipa::path(
@@ -38,11 +37,11 @@ pub async fn user_login(
     cookie: Cookies,
     Json(user_info): Json<UserLogin>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match login_user(&mut connection, user_info, cookie, &state.cookie_key).await {
         Ok(result) => Ok(Json(result)),
@@ -84,11 +83,11 @@ pub async fn user_registration(
     cookie: Cookies,
     Json(user_info): Json<NewUser>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match create_user(&mut connection, user_info, cookie, &state.cookie_key).await {
         Ok(result) => Ok(Json(result)),
@@ -128,11 +127,11 @@ pub async fn user_get(State(state): State<AppState>, cookie: Cookies) -> impl In
         }
     };
 
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match get_user(&mut connection, user_id).await {
         Ok(result) => Ok(Json(result)),
@@ -161,18 +160,21 @@ pub async fn user_patch(
     cookie: Cookies,
     Json(user): Json<UpdateUserResponse>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     let user_cookie =
         password_check(&mut connection, cookie, &state.cookie_key, &user.password).await?;
 
     match update_user(&mut connection, user, user_cookie.id).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(err),
+        Err(err) => Err(CustomErrors::DieselError {
+            error: err,
+            message: None,
+        }),
     }
 }
 

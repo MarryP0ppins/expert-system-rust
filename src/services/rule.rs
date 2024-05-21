@@ -23,32 +23,21 @@ pub async fn get_rules(
         .load::<Rule>(connection)
         .await?;
 
-    let _grouped_answers: Vec<Vec<RuleQuestionAnswer>>;
-    match RuleQuestionAnswer::belonging_to(&_rules)
+    let _grouped_answers: Vec<Vec<RuleQuestionAnswer>> = RuleQuestionAnswer::belonging_to(&_rules)
         .load::<RuleQuestionAnswer>(connection)
-        .await
-    {
-        Ok(ok) => _grouped_answers = ok.grouped_by(&_rules),
-        Err(_) => _grouped_answers = vec![],
-    };
+        .await?
+        .grouped_by(&_rules);
 
-    let _grouped_attributesvalues: Vec<Vec<RuleAttributeAttributeValue>>;
-    match RuleAttributeAttributeValue::belonging_to(&_rules)
-        .load::<RuleAttributeAttributeValue>(connection)
-        .await
-    {
-        Ok(ok) => _grouped_attributesvalues = ok.grouped_by(&_rules),
-        Err(_) => _grouped_attributesvalues = vec![],
-    };
+    let _grouped_attributesvalues: Vec<Vec<RuleAttributeAttributeValue>> =
+        RuleAttributeAttributeValue::belonging_to(&_rules)
+            .load::<RuleAttributeAttributeValue>(connection)
+            .await?
+            .grouped_by(&_rules);
 
-    let _grouped_clauses: Vec<Vec<Clause>>;
-    match Clause::belonging_to(&_rules)
+    let _grouped_clauses: Vec<Vec<Clause>> = Clause::belonging_to(&_rules)
         .load::<Clause>(connection)
-        .await
-    {
-        Ok(ok) => _grouped_clauses = ok.grouped_by(&_rules),
-        Err(_) => _grouped_clauses = vec![],
-    };
+        .await?
+        .grouped_by(&_rules);
 
     let result = _rules
         .into_iter()

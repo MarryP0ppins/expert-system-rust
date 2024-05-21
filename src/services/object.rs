@@ -24,14 +24,10 @@ pub async fn get_objects(
         .load::<Object>(connection)
         .await?;
 
-    let _attributes_values: Vec<ObjectAttributeAttributevalue>;
-    match ObjectAttributeAttributevalue::belonging_to(&_object)
-        .load::<ObjectAttributeAttributevalue>(connection)
-        .await
-    {
-        Ok(ok) => _attributes_values = ok,
-        Err(_) => _attributes_values = vec![],
-    };
+    let _attributes_values: Vec<ObjectAttributeAttributevalue> =
+        ObjectAttributeAttributevalue::belonging_to(&_object)
+            .load::<ObjectAttributeAttributevalue>(connection)
+            .await?;
 
     let result = _attributes_values
         .grouped_by(&_object)
@@ -105,14 +101,10 @@ pub async fn create_objects(
         Err(err) => return Err(err),
     };
 
-    let _attributes_values: Vec<ObjectAttributeAttributevalue>;
-    match ObjectAttributeAttributevalue::belonging_to(&_objects)
-        .load::<ObjectAttributeAttributevalue>(connection)
-        .await
-    {
-        Ok(ok) => _attributes_values = ok,
-        Err(_) => _attributes_values = vec![],
-    };
+    let _attributes_values: Vec<ObjectAttributeAttributevalue> =
+        ObjectAttributeAttributevalue::belonging_to(&_objects)
+            .load::<ObjectAttributeAttributevalue>(connection)
+            .await?;
 
     let result = _attributes_values
         .grouped_by(&_objects)
@@ -157,14 +149,10 @@ pub async fn multiple_update_objects(
         }
     }
 
-    let _attributes_values: Vec<ObjectAttributeAttributevalue>;
-    match ObjectAttributeAttributevalue::belonging_to(&_objects)
-        .load::<ObjectAttributeAttributevalue>(connection)
-        .await
-    {
-        Ok(ok) => _attributes_values = ok,
-        Err(_) => _attributes_values = vec![],
-    };
+    let _attributes_values: Vec<ObjectAttributeAttributevalue> =
+        ObjectAttributeAttributevalue::belonging_to(&_objects)
+            .load::<ObjectAttributeAttributevalue>(connection)
+            .await?;
 
     let result = _attributes_values
         .grouped_by(&_objects)

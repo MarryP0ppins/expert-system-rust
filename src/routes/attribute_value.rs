@@ -18,7 +18,6 @@ use axum::{
     routing::{delete, patch, post},
     Json, Router,
 };
-use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 
 #[utoipa::path(
     post,
@@ -38,11 +37,11 @@ pub async fn attribute_value_create(
     State(state): State<AppState>,
     Json(attribute_value_info): Json<Vec<NewAttributeValue>>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match create_attributes_values(&mut connection, attribute_value_info).await {
         Ok(result) => Ok(Json(result)),
@@ -73,11 +72,11 @@ pub async fn attribute_value_list(
     State(state): State<AppState>,
     Query(pagination): Query<AttributeValueListPagination>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     let pagination = pagination as AttributeValueListPagination;
     match get_attribute_values(&mut connection, pagination.attribute_id).await {
@@ -108,11 +107,11 @@ pub async fn attribute_value_multiple_delete(
     State(state): State<AppState>,
     Json(attribute_value_info): Json<Vec<i32>>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match multiple_delete_attributes_values(&mut connection, attribute_value_info).await {
         Ok(_) => Ok(()),
@@ -141,11 +140,11 @@ pub async fn attribute_value_multiple_update(
     State(state): State<AppState>,
     Json(attribute_value_info): Json<Vec<UpdateAttributeValue>>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match multiple_update_attributes_values(&mut connection, attribute_value_info).await {
         Ok(result) => Ok(Json(result)),

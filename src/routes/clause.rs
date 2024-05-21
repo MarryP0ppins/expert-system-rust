@@ -17,7 +17,6 @@ use axum::{
     routing::{delete, patch, post},
     Json, Router,
 };
-use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 
 #[utoipa::path(
     post,
@@ -37,11 +36,11 @@ pub async fn clause_create(
     State(state): State<AppState>,
     Json(clause_info): Json<Vec<NewClause>>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match create_clauses(&mut connection, clause_info).await {
         Ok(result) => Ok(Json(result)),
@@ -72,11 +71,11 @@ pub async fn clause_list(
     State(state): State<AppState>,
     Query(pagination): Query<ClauseListPagination>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     let pagination = pagination as ClauseListPagination;
 
@@ -108,11 +107,11 @@ pub async fn clause_multiple_delete(
     State(state): State<AppState>,
     Json(clause_info): Json<Vec<i32>>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match multiple_delete_clauses(&mut connection, clause_info).await {
         Ok(_) => Ok(()),
@@ -142,11 +141,11 @@ pub async fn clause_multiple_update(
     State(state): State<AppState>,
     Json(clause_info): Json<Vec<UpdateClause>>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match multiple_update_clauses(&mut connection, clause_info).await {
         Ok(result) => Ok(Json(result)),

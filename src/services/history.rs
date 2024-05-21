@@ -64,8 +64,7 @@ pub async fn delete_history(
     connection: &mut AsyncPgConnection,
     history_id: i32,
 ) -> Result<usize, Error> {
-    match delete(histories.find(history_id)).execute(connection).await {
-        Ok(result) => Ok(result),
-        Err(err) => Err(err),
-    }
+    Ok(delete(histories.find(history_id))
+        .execute(connection)
+        .await?)
 }

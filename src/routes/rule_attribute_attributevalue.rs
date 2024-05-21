@@ -13,7 +13,6 @@ use axum::{
     routing::{delete, post},
     Json, Router,
 };
-use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 
 #[utoipa::path(
     post,
@@ -34,11 +33,11 @@ pub async fn rule_attribute_attributevalue_create(
 
     Json(rule_attribute_attributevalue_info): Json<Vec<NewRuleAttributeAttributeValue>>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match create_rule_attribute_attributevalues(&mut connection, rule_attribute_attributevalue_info)
         .await
@@ -70,11 +69,11 @@ pub async fn rule_attribute_attributevalue_multiple_delete(
     State(state): State<AppState>,
     Json(rule_attribute_attributevalue_info): Json<Vec<i32>>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match multiple_delete_rule_attribute_attributevalues(
         &mut connection,

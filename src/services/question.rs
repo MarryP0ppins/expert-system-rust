@@ -21,14 +21,9 @@ pub async fn get_questions(
         .load::<Question>(connection)
         .await?;
 
-    let _answers: Vec<Answer>;
-    match Answer::belonging_to(&_questions)
+    let _answers: Vec<Answer> = Answer::belonging_to(&_questions)
         .load::<Answer>(connection)
-        .await
-    {
-        Ok(ok) => _answers = ok,
-        Err(_) => _answers = vec![],
-    };
+        .await?;
 
     let result = _answers
         .grouped_by(&_questions)
@@ -140,14 +135,9 @@ pub async fn multiple_update_questions(
             Err(err) => return Err(err),
         }
     }
-    let _answers: Vec<Answer>;
-    match Answer::belonging_to(&_questions)
+    let _answers: Vec<Answer> = Answer::belonging_to(&_questions)
         .load::<Answer>(connection)
-        .await
-    {
-        Ok(ok) => _answers = ok,
-        Err(_) => _answers = vec![],
-    };
+        .await?;
 
     let result = _answers
         .grouped_by(&_questions)

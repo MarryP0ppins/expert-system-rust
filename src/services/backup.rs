@@ -37,153 +37,95 @@ pub async fn backup_from_system(
     system_id: i32,
 ) -> Result<Vec<u8>, CustomErrors> {
     // ----------SYSTEM----------
-    let _system;
-    match systems.find(system_id).first::<System>(connection).await {
-        Ok(result) => _system = result,
-        Err(err) => {
-            return Err(CustomErrors::DieselError {
-                error: err,
-                message: None,
-            })
-        }
-    }
+    let _system = systems
+        .find(system_id)
+        .first::<System>(connection)
+        .await
+        .map_err(|err| CustomErrors::DieselError {
+            error: err,
+            message: None,
+        })?;
     // ----------OBJECTS----------
-    let _objects;
-    match Object::belonging_to(&_system)
+    let _objects = Object::belonging_to(&_system)
         .load::<Object>(connection)
         .await
-    {
-        Ok(result) => _objects = result,
-        Err(err) => {
-            return Err(CustomErrors::DieselError {
-                error: err,
-                message: None,
-            })
-        }
-    }
+        .map_err(|err| CustomErrors::DieselError {
+            error: err,
+            message: None,
+        })?;
     // ----------ATTRIBUTES_VALUE_OBJECTS----------
-    let _object_attribute_attributevalue;
-    match ObjectAttributeAttributevalue::belonging_to(&_objects)
+    let _object_attribute_attributevalue = ObjectAttributeAttributevalue::belonging_to(&_objects)
         .load::<ObjectAttributeAttributevalue>(connection)
         .await
-    {
-        Ok(ok) => _object_attribute_attributevalue = ok,
-        Err(err) => {
-            return Err(CustomErrors::DieselError {
-                error: err,
-                message: None,
-            });
-        }
-    };
+        .map_err(|err| CustomErrors::DieselError {
+            error: err,
+            message: None,
+        })?;
     // ----------ATTRIBUTES----------
-    let _attributes;
-    match Attribute::belonging_to(&_system)
+    let _attributes = Attribute::belonging_to(&_system)
         .load::<Attribute>(connection)
         .await
-    {
-        Ok(result) => _attributes = result,
-        Err(err) => {
-            return Err(CustomErrors::DieselError {
-                error: err,
-                message: None,
-            })
-        }
-    }
+        .map_err(|err| CustomErrors::DieselError {
+            error: err,
+            message: None,
+        })?;
     // ----------ATTRIBUTES_VALUES----------
-    let _attributes_values;
-    match AttributeValue::belonging_to(&_attributes)
+    let _attributes_values = AttributeValue::belonging_to(&_attributes)
         .load::<AttributeValue>(connection)
         .await
-    {
-        Ok(result) => _attributes_values = result,
-        Err(err) => {
-            return Err(CustomErrors::DieselError {
-                error: err,
-                message: None,
-            })
-        }
-    }
+        .map_err(|err| CustomErrors::DieselError {
+            error: err,
+            message: None,
+        })?;
     // ----------ATTRIBUTES_VALUE_OBJECTS----------
-    let _rule_attribute_attributevalue;
-    match RuleAttributeAttributeValue::belonging_to(&_attributes)
+    let _rule_attribute_attributevalue = RuleAttributeAttributeValue::belonging_to(&_attributes)
         .load::<RuleAttributeAttributeValue>(connection)
         .await
-    {
-        Ok(result) => _rule_attribute_attributevalue = result,
-        Err(err) => {
-            return Err(CustomErrors::DieselError {
-                error: err,
-                message: None,
-            })
-        }
-    }
+        .map_err(|err| CustomErrors::DieselError {
+            error: err,
+            message: None,
+        })?;
     // ----------RULES----------
-    let _rules;
-    match Rule::belonging_to(&_system).load::<Rule>(connection).await {
-        Ok(result) => _rules = result,
-        Err(err) => {
-            return Err(CustomErrors::DieselError {
-                error: err,
-                message: None,
-            })
-        }
-    }
+    let _rules = Rule::belonging_to(&_system)
+        .load::<Rule>(connection)
+        .await
+        .map_err(|err| CustomErrors::DieselError {
+            error: err,
+            message: None,
+        })?;
     // ----------QUESTIONS----------
-    let _questions;
-    match Question::belonging_to(&_system)
+    let _questions = Question::belonging_to(&_system)
         .load::<Question>(connection)
         .await
-    {
-        Ok(result) => _questions = result,
-        Err(err) => {
-            return Err(CustomErrors::DieselError {
-                error: err,
-                message: None,
-            })
-        }
-    }
+        .map_err(|err| CustomErrors::DieselError {
+            error: err,
+            message: None,
+        })?;
     // ----------CLAUSES----------
-    let _clauses;
-    match Clause::belonging_to(&_questions)
+    let _clauses = Clause::belonging_to(&_questions)
         .load::<Clause>(connection)
         .await
-    {
-        Ok(result) => _clauses = result,
-        Err(err) => {
-            return Err(CustomErrors::DieselError {
-                error: err,
-                message: None,
-            })
-        }
-    }
+        .map_err(|err| CustomErrors::DieselError {
+            error: err,
+            message: None,
+        })?;
     // ----------RULE_QUESTION_ANSWER----------
-    let _rule_question_answer;
-    match RuleQuestionAnswer::belonging_to(&_questions)
+    let _rule_question_answer = RuleQuestionAnswer::belonging_to(&_questions)
         .load::<RuleQuestionAnswer>(connection)
         .await
-    {
-        Ok(result) => _rule_question_answer = result,
-        Err(err) => {
-            return Err(CustomErrors::DieselError {
-                error: err,
-                message: None,
-            })
-        }
-    }
+        .map_err(|err| CustomErrors::DieselError {
+            error: err,
+            message: None,
+        })?;
     // ----------ANSWERS----------
-    let _answers;
-    match Answer::belonging_to(&_questions)
+    let _answers = Answer::belonging_to(&_questions)
         .load::<Answer>(connection)
         .await
-    {
-        Ok(result) => _answers = result,
-        Err(err) => {
-            return Err(CustomErrors::DieselError {
-                error: err,
-                message: None,
-            })
-        }
-    }
+        .map_err(|err| CustomErrors::DieselError {
+            error: err,
+            message: None,
+        })?;
+
     let struct_to_encrypt = SystemBackup {
         system: _system,
         objects: _objects,
@@ -200,16 +142,12 @@ pub async fn backup_from_system(
     let encoded: Vec<u8> = bincode::serialize(&struct_to_encrypt).expect("serialize error");
 
     let _crypt_key: &[u8] = dotenv!("CRYPTO_KEY").as_bytes();
-    let encrypt_backup;
-    match encrypt_data(_crypt_key, &encoded) {
-        Ok(result) => encrypt_backup = result,
-        Err(err) => {
-            return Err(CustomErrors::AesGsmError {
-                error: err,
-                message: Some("Ошибка в создании резервной копии".to_string()),
-            })
-        }
-    };
+
+    let encrypt_backup =
+        encrypt_data(_crypt_key, &encoded).map_err(|err| CustomErrors::AesGsmError {
+            error: err,
+            message: Some("Ошибка в создании резервной копии".to_string()),
+        })?;
 
     Ok(encrypt_backup)
 }

@@ -13,7 +13,6 @@ use axum::{
     routing::{delete, post},
     Json, Router,
 };
-use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 
 #[utoipa::path(
     post,
@@ -33,11 +32,11 @@ pub async fn rule_question_answer_create(
     State(state): State<AppState>,
     Json(rule_question_answer_info): Json<Vec<NewRuleQuestionAnswer>>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match create_rule_question_answers(&mut connection, rule_question_answer_info).await {
         Ok(_) => Ok(()),
@@ -67,11 +66,11 @@ pub async fn rule_question_answer_multiple_delete(
     State(state): State<AppState>,
     Json(rule_question_answer_info): Json<Vec<i32>>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match multiple_delete_rule_question_answers(&mut connection, rule_question_answer_info).await {
         Ok(_) => Ok(()),

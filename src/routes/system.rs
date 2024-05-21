@@ -23,7 +23,6 @@ use axum::{
     Json, Router,
 };
 use axum_typed_multipart::TypedMultipart;
-use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection};
 use tower_cookies::Cookies;
 
 #[utoipa::path(
@@ -45,11 +44,11 @@ pub async fn system_create(
     cookie: Cookies,
     TypedMultipart(system_info): TypedMultipart<NewSystemMultipart>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     let user = cookie_check(&mut connection, cookie, &state.cookie_key).await?;
 
@@ -82,11 +81,11 @@ pub async fn system_list(
     State(state): State<AppState>,
     Query(pagination): Query<SystemListPagination>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     let pagination: SystemListPagination = pagination;
     match get_systems(&mut connection, pagination).await {
@@ -122,11 +121,11 @@ pub async fn system_retrieve(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match get_system(&mut connection, system_id).await {
         Ok(result) => Ok(Json(result)),
@@ -157,11 +156,11 @@ pub async fn system_start(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match get_ready_to_start_system(&mut connection, system_id).await {
         Ok(result) => Ok(Json(result)),
@@ -192,11 +191,11 @@ pub async fn system_backup(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match backup_from_system(&mut connection, system_id).await {
         Ok(result) => Ok(Json(result)),
@@ -221,11 +220,11 @@ pub async fn system_restore(
     State(state): State<AppState>,
     Json(system_decode): Json<Vec<u8>>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match system_from_backup(&mut connection, system_decode).await {
         Ok(result) => Ok(Json(result)),
@@ -256,11 +255,11 @@ pub async fn system_partial_update(
     Path(system_id): Path<i32>,
     TypedMultipart(system_info): TypedMultipart<UpdateSystemMultipart>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     match update_system(&mut connection, system_id, system_info).await {
         Ok(result) => Ok(Json(result)),
@@ -295,11 +294,11 @@ pub async fn system_delete(
     Path(system_id): Path<i32>,
     Json(system_info): Json<SystemDelete>,
 ) -> impl IntoResponse {
-    let mut connection: PooledConnection<AsyncPgConnection>;
-    match state.db_pool.get().await {
-        Ok(ok) => connection = ok,
-        Err(err) => return Err(CustomErrors::PoolConnectionError(err)),
-    };
+    let mut connection = state
+        .db_pool
+        .get()
+        .await
+        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
     password_check(
         &mut connection,
