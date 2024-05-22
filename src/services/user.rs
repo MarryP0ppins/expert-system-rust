@@ -93,7 +93,7 @@ pub async fn create_user(
                     .secure(true)
                     .http_only(false)
                     .same_site(SameSite::Strict)
-                    .expires(OffsetDateTime::now_utc() + Duration::weeks(1))
+                    .expires(OffsetDateTime::now_utc() + Duration::days(2))
                     .into(),
             );
             Ok(_user)

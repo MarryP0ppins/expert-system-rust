@@ -31,7 +31,7 @@ pub struct NewAnswer {
     pub body: String,
 }
 
-#[derive(Deserialize, AsChangeset, Clone, ToSchema)]
+#[derive(Deserialize, AsChangeset, Clone, ToSchema, Debug)]
 #[diesel(table_name=answers)]
 pub struct UpdateAnswer {
     pub id: i32,

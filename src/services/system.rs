@@ -68,6 +68,7 @@ pub async fn get_systems(
 
     let _systems = query
         .select(systems::all_columns)
+        .order(updated_at.desc())
         .limit(params.per_page.unwrap_or(20).into())
         .offset((params.per_page.unwrap_or(20) * (params.page.unwrap_or(1) - 1)).into())
         .load::<System>(connection)
