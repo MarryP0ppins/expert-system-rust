@@ -33,7 +33,7 @@ pub enum CustomErrors {
     PoolConnectionError(diesel_async::pooled_connection::bb8::RunError),
     AesGsmError {
         #[schema(value_type=String)]
-        error: aes_gcm::Error,
+        error: aes_gcm_siv::Error,
         message: Option<String>,
     },
 }

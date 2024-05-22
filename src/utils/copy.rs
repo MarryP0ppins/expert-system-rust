@@ -32,11 +32,13 @@ pub async fn copy_system(
     connection: &mut AsyncPgConnection,
     old_system: &System,
 ) -> Result<System, CustomErrors> {
+    let mut split_name = old_system.name.clone();
+    let _ = split_name.split_off(94);
     Ok(insert_into(systems)
         .values::<NewSystem>(NewSystem {
             user_id: old_system.user_id,
             about: old_system.about.clone(),
-            name: format!("{} - {}", old_system.name, chrono::Utc::now()),
+            name: format!("{} - {}", split_name, chrono::Utc::now()),
             image_uri: old_system.image_uri.clone(),
             private: old_system.private,
         })

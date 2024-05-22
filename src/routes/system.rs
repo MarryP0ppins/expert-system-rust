@@ -209,10 +209,10 @@ pub async fn system_backup(
 
 #[utoipa::path(
     post,
-    path = "/systems/{id}/restore",
+    path = "/systems/restore",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "Sususfully restore", body = CustomErrors, example = json!(())),
+        (status = 200, description = "Sususfully restore", body = System),
         (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -223,6 +223,7 @@ pub async fn system_backup(
 #[debug_handler]
 pub async fn system_restore(
     State(state): State<AppState>,
+    cookie: Cookies,
     Json(system_decode): Json<Vec<u8>>,
 ) -> impl IntoResponse {
     let mut connection = state
@@ -231,7 +232,7 @@ pub async fn system_restore(
         .await
         .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
-    match system_from_backup(&mut connection, system_decode).await {
+    match system_from_backup(&mut connection, system_decode, cookie, &state.cookie_key).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(err),
     }
@@ -335,5 +336,5 @@ pub fn system_routes() -> Router<AppState> {
         )
         .route("/:system_id/test", get(system_start))
         .route("/:system_id/backup", get(system_backup))
-        .route("/:system_id/restore", post(system_restore))
+        .route("/restore", post(system_restore))
 }

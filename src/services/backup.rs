@@ -17,6 +17,7 @@ use crate::{
     },
     schema::systems::dsl::*,
     utils::{
+        auth::cookie_check,
         copy::{
             copy_answers, copy_attribute_values, copy_attributes, copy_clauses,
             copy_object_attribute_attributevalues, copy_objects, copy_questions,
@@ -31,6 +32,7 @@ use diesel_async::{
     scoped_futures::ScopedFutureExt, AsyncConnection, AsyncPgConnection, RunQueryDsl,
 };
 use http::StatusCode;
+use tower_cookies::{Cookies, Key};
 
 pub async fn backup_from_system(
     connection: &mut AsyncPgConnection,
@@ -142,12 +144,13 @@ pub async fn backup_from_system(
     let encoded: Vec<u8> = bincode::serialize(&struct_to_encrypt).expect("serialize error");
 
     let _crypt_key: &[u8] = dotenv!("CRYPTO_KEY").as_bytes();
-
-    let encrypt_backup =
-        encrypt_data(_crypt_key, &encoded).map_err(|err| CustomErrors::AesGsmError {
+    let _nonce_key: &[u8] = dotenv!("NONCE_KEY").as_bytes();
+    let encrypt_backup = encrypt_data(_crypt_key, _nonce_key, &encoded).map_err(|err| {
+        CustomErrors::AesGsmError {
             error: err,
             message: Some("Ошибка в создании резервной копии".to_string()),
-        })?;
+        }
+    })?;
 
     Ok(encrypt_backup)
 }
@@ -155,10 +158,14 @@ pub async fn backup_from_system(
 pub async fn system_from_backup(
     connection: &mut AsyncPgConnection,
     encryped_system: Vec<u8>,
-) -> Result<(), CustomErrors> {
+    cookie: Cookies,
+    cookie_key: &Key,
+) -> Result<System, CustomErrors> {
     let _crypt_key: &[u8] = dotenv!("CRYPTO_KEY").as_bytes();
+    let _nonce_key: &[u8] = dotenv!("NONCE_KEY").as_bytes();
     let decoded_system;
-    match decrypt_data(_crypt_key, &encryped_system) {
+
+    match decrypt_data(_crypt_key, _nonce_key, &encryped_system) {
         Ok(result) => decoded_system = result,
         Err(err) => {
             return Err(CustomErrors::AesGsmError {
@@ -180,7 +187,16 @@ pub async fn system_from_backup(
         }
     };
 
-    println!("{:?}", &_system);
+    let user_cookie = cookie_check(connection, cookie, cookie_key).await?;
+
+    let mut new_system = _system.system.clone();
+
+    if user_cookie.id != new_system.user_id {
+        return Err(CustomErrors::StringError {
+            status: StatusCode::BAD_REQUEST,
+            error: "Чужая система".to_string(),
+        });
+    }
 
     match connection
         .transaction(|connection| {
@@ -192,7 +208,7 @@ pub async fn system_from_backup(
                 let mut attributevalue_map: HashMap<i32, i32> = HashMap::new();
                 let mut answer_map: HashMap<i32, i32> = HashMap::new();
 
-                let new_system = copy_system(connection, &_system.system).await?;
+                new_system = copy_system(connection, &_system.system).await?;
                 let new_system_id = new_system.id;
                 copy_questions(
                     connection,
@@ -253,5 +269,5 @@ pub async fn system_from_backup(
         Err(err) => return Err(err),
     };
 
-    return Ok(());
+    return Ok(new_system);
 }
