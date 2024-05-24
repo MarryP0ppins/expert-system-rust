@@ -29,6 +29,7 @@ use routes::{
     rule_attribute_attributevalue::rule_attribute_attributevalue_routes,
     rule_question_answer::rule_question_answer_routes, system::system_routes, user::user_routes,
 };
+use sea_orm::{Database, DatabaseConnection};
 
 use std::net::SocketAddr;
 #[cfg(not(debug_assertions))]
@@ -44,6 +45,7 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 mod constants;
+mod entity;
 mod middleware;
 mod models;
 mod pagination;
@@ -58,12 +60,18 @@ type AsyncPool = bb8::Pool<AsyncPgConnection>;
 #[derive(Clone)]
 struct AppState {
     db_pool: AsyncPool,
+    db_sea: DatabaseConnection,
     cookie_key: Key,
 }
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .with_test_writer()
+        .init();
+
     let database_url = dotenv!("DATABASE_URL");
     let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(database_url);
     let pool = bb8::Pool::builder()
@@ -71,11 +79,16 @@ async fn main() {
         .await
         .expect("Failed to create pool");
 
+    let db: DatabaseConnection = Database::connect(database_url)
+        .await
+        .expect("Failed to create sea connection");
+
     let cookie_key = dotenv!("COOKIE_KEY");
     let secret_key = Key::from(cookie_key.as_bytes());
 
     let state = AppState {
         db_pool: pool,
+        db_sea: db,
         cookie_key: secret_key,
     };
 

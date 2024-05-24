@@ -1,164 +1,154 @@
-use crate::{
-    models::{
-        attribute::{
-            Attribute, AttributeWithAttributeValues, NewAttribute,
-            NewAttributeWithAttributeValuesName, UpdateAttribute,
-        },
-        attribute_value::{AttributeValue, NewAttributeValue},
-    },
-    schema::{attributes::dsl::*, attributesvalues},
-};
-use diesel::{delete, insert_into, prelude::*, result::Error, update};
-use diesel_async::{
-    scoped_futures::ScopedFutureExt, AsyncConnection, AsyncPgConnection, RunQueryDsl,
-};
+use futures::future::try_join_all;
+use sea_orm::*;
 
-pub async fn get_attributes(
-    connection: &mut AsyncPgConnection,
-    system: i32,
-) -> Result<Vec<AttributeWithAttributeValues>, Error> {
-    let _attributes = attributes
-        .filter(system_id.eq(system))
-        .load::<Attribute>(connection)
+use crate::entity::attributes::{
+    ActiveModel as AttributeActiveModel, AttributeWithAttributeValuesModel,
+    Column as AttributeColumn, Entity as AttributeEntity, Model as AttributeModel,
+    UpdateAttributeModel,
+};
+use crate::entity::attributesvalues::Entity as AttributeValueEntity;
+
+use super::attribute_value::create_attributes_values;
+
+pub async fn get_attributes<C>(
+    db: &C,
+    system_id: i32,
+) -> Result<Vec<AttributeWithAttributeValuesModel>, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let attribute_with_attributevalues = AttributeEntity::find()
+        .filter(AttributeColumn::SystemId.eq(system_id))
+        .find_with_related(AttributeValueEntity)
+        .all(db)
         .await?;
 
-    let _attributes_values: Vec<AttributeValue> = AttributeValue::belonging_to(&_attributes)
-        .load::<AttributeValue>(connection)
-        .await?;
-
-    let result = _attributes_values
-        .grouped_by(&_attributes)
+    let result = attribute_with_attributevalues
         .into_iter()
-        .zip(_attributes)
         .map(
-            |(attribute_values, attribute)| AttributeWithAttributeValues {
+            |(attribute, attribute_values)| AttributeWithAttributeValuesModel {
                 id: attribute.id,
                 system_id: attribute.system_id,
                 name: attribute.name,
                 values: attribute_values,
             },
         )
-        .collect::<Vec<AttributeWithAttributeValues>>();
+        .collect::<Vec<AttributeWithAttributeValuesModel>>();
 
     Ok(result)
 }
 
-pub async fn create_attributes(
-    connection: &mut AsyncPgConnection,
-    attribute_info: Vec<NewAttributeWithAttributeValuesName>,
-) -> Result<Vec<AttributeWithAttributeValues>, Error> {
+pub async fn create_attributes<C>(
+    db: &C,
+    attribute_info: Vec<AttributeWithAttributeValuesModel>,
+) -> Result<Vec<AttributeWithAttributeValuesModel>, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
     let (attributes_values_bodies, attributes_raws) =
         attribute_info
             .into_iter()
             .fold((vec![], vec![]), |mut acc, raw| {
-                acc.0.push(raw.values_name);
-                acc.1.push(NewAttribute {
-                    system_id: raw.system_id,
-                    name: raw.name,
+                acc.0.extend_from_slice(&raw.values);
+                acc.1.push(AttributeActiveModel {
+                    system_id: Set(raw.system_id),
+                    name: Set(raw.name),
+                    ..Default::default()
                 });
                 acc
             });
 
-    let mut new_attributes: Vec<Attribute> = vec![];
-    let mut attributes_values: Vec<Vec<AttributeValue>> = vec![];
+    let new_attributes = db
+        .transaction::<_, Vec<AttributeModel>, DbErr>(|txn| {
+            Box::pin(async move {
+                let new_attribute = attributes_raws
+                    .into_iter()
+                    .map(|new_attribute| async move { new_attribute.insert(txn).await });
 
-    match connection
-        .transaction(|connection| {
-            async {
-                new_attributes = insert_into(attributes)
-                    .values::<Vec<NewAttribute>>(attributes_raws)
-                    .get_results::<Attribute>(connection)
-                    .await?;
+                let mut result = try_join_all(new_attribute).await?;
+                result.sort_by(|a, b| a.id.cmp(&b.id));
+                create_attributes_values(txn, attributes_values_bodies).await?;
 
-                attributes_values = insert_into(attributesvalues::table)
-                    .values::<Vec<NewAttributeValue>>(
-                        attributes_values_bodies
-                            .into_iter()
-                            .zip(&new_attributes)
-                            .flat_map(|(attribute_value_bodies, attribute)| {
-                                attribute_value_bodies
-                                    .into_iter()
-                                    .map(|value| NewAttributeValue {
-                                        attribute_id: attribute.id,
-                                        value,
-                                    })
-                            })
-                            .collect(),
-                    )
-                    .get_results::<AttributeValue>(connection)
-                    .await?
-                    .grouped_by(&new_attributes);
-
-                Ok(())
-            }
-            .scope_boxed()
+                Ok(result)
+            })
         })
         .await
-    {
-        Ok(_) => (),
-        Err(err) => return Err(err),
-    };
+        .or_else(|err| {
+            Err(DbErr::Custom(format!(
+                "Transaction error: {}",
+                err.to_string()
+            )))
+        })?;
+
+    let new_attributes_values = new_attributes.load_many(AttributeValueEntity, db).await?;
 
     let result = new_attributes
         .into_iter()
-        .zip(attributes_values)
-        .map(
-            |(attribute, attribute_values)| AttributeWithAttributeValues {
+        .zip(new_attributes_values)
+        .map(|(attribute, attribute_values)| {
+            let mut values = attribute_values;
+            values.sort_by(|a, b| a.id.cmp(&b.id));
+            AttributeWithAttributeValuesModel {
                 id: attribute.id,
                 system_id: attribute.system_id,
                 name: attribute.name,
-                values: attribute_values,
-            },
-        )
+                values,
+            }
+        })
         .collect();
 
     Ok(result)
 }
 
-pub async fn multiple_delete_attributes(
-    connection: &mut AsyncPgConnection,
-    attributes_ids: Vec<i32>,
-) -> Result<usize, Error> {
-    Ok(delete(attributes.filter(id.eq_any(attributes_ids)))
-        .execute(connection)
-        .await?)
+pub async fn multiple_delete_attributes<C>(db: &C, attributes_ids: Vec<i32>) -> Result<u64, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    Ok(AttributeEntity::delete_many()
+        .filter(AttributeColumn::Id.is_in(attributes_ids))
+        .exec(db)
+        .await?
+        .rows_affected)
 }
 
-pub async fn multiple_update_attributes(
-    connection: &mut AsyncPgConnection,
-    attributes_info: Vec<UpdateAttribute>,
-) -> Result<Vec<AttributeWithAttributeValues>, Error> {
-    let mut _attributes: Vec<Attribute> = vec![];
-
-    for attribute_raw in attributes_info.into_iter() {
-        match update(attributes.find(attribute_raw.id))
-            .set::<UpdateAttribute>(attribute_raw)
-            .get_result::<Attribute>(connection)
-            .await
-        {
-            Ok(result) => _attributes.push(result),
-            Err(err) => return Err(err),
-        }
-    }
-
-    let _attributes_values: Vec<AttributeValue> = AttributeValue::belonging_to(&_attributes)
-        .load::<AttributeValue>(connection)
-        .await?;
-
-    let result = _attributes_values
-        .grouped_by(&_attributes)
+pub async fn multiple_update_attributes<C>(
+    db: &C,
+    attributes_info: Vec<UpdateAttributeModel>,
+) -> Result<Vec<AttributeWithAttributeValuesModel>, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let updated_attributes = attributes_info
         .into_iter()
-        .zip(_attributes)
-        .map(
-            |(attribute_values, attribute)| AttributeWithAttributeValues {
-                id: attribute.id,
+        .map(|attributes_for_update| async move {
+            let mut model = AttributeEntity::find_by_id(attributes_for_update.id)
+                .one(db)
+                .await?
+                .ok_or(DbErr::Custom("Cannot find attribute".to_owned()))?
+                .into_active_model();
+            model.name = Set(attributes_for_update.name);
+            model.update(db).await
+        });
 
+    let mut attributes = try_join_all(updated_attributes).await?;
+    attributes.sort_by(|a, b| a.id.cmp(&b.id));
+
+    let attributes_values = attributes.load_many(AttributeValueEntity, db).await?;
+
+    let result = attributes
+        .into_iter()
+        .zip(attributes_values)
+        .map(|(attribute, attribute_values)| {
+            let mut values = attribute_values;
+            values.sort_by(|a, b| a.id.cmp(&b.id));
+            AttributeWithAttributeValuesModel {
+                id: attribute.id,
                 system_id: attribute.system_id,
                 name: attribute.name,
-                values: attribute_values,
-            },
-        )
-        .collect::<Vec<AttributeWithAttributeValues>>();
+                values,
+            }
+        })
+        .collect();
 
     Ok(result)
 }

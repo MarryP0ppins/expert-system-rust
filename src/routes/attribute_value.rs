@@ -1,8 +1,6 @@
 use crate::{
-    models::{
-        attribute_value::{NewAttributeValue, UpdateAttributeValue},
-        error::CustomErrors,
-    },
+    entity::attributesvalues::{Model as AttributeValueModel, UpdateAttributeValueModel},
+    models::error::CustomErrors,
     pagination::AttributeValueListPagination,
     services::attribute_value::{
         create_attributes_values, get_attribute_values, multiple_delete_attributes_values,
@@ -23,9 +21,9 @@ use axum::{
     post,
     path = "/attributevalues",
     context_path ="/api/v1",
-    request_body = [NewAttributeValue],
+    request_body = [AttributeValueModel],
     responses(
-        (status = 200, description = "AttributeValues create successfully", body = [AttributeValue]),
+        (status = 200, description = "AttributeValues create successfully", body = [AttributeValueModel]),
         (status = 401, description = "Unauthorized to create AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -36,17 +34,11 @@ use axum::{
 #[debug_handler]
 pub async fn attribute_value_create(
     State(state): State<AppState>,
-    Json(attribute_value_info): Json<Vec<NewAttributeValue>>,
+    Json(attribute_value_info): Json<Vec<AttributeValueModel>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match create_attributes_values(&mut connection, attribute_value_info).await {
+    match create_attributes_values(&state.db_sea, attribute_value_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -58,7 +50,7 @@ pub async fn attribute_value_create(
     path = "/attributevalues",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching AttributeValues by query", body = [AttributeValue]),
+        (status = 200, description = "List matching AttributeValues by query", body = [AttributeValueModel]),
         (status = 401, description = "Unauthorized to list AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -74,16 +66,10 @@ pub async fn attribute_value_list(
     State(state): State<AppState>,
     Query(pagination): Query<AttributeValueListPagination>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
     let pagination = pagination as AttributeValueListPagination;
-    match get_attribute_values(&mut connection, pagination.attribute_id).await {
+    match get_attribute_values(&state.db_sea, pagination.attribute_id).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -96,7 +82,7 @@ pub async fn attribute_value_list(
     context_path ="/api/v1",
     request_body = [i32],
     responses(
-        (status = 200, description = "AttributeValues deleted successfully", body = CustomErrors, example = json!(())),
+        (status = 200, description = "AttributeValues deleted successfully", body = u64),
         (status = 401, description = "Unauthorized to delete AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -110,15 +96,9 @@ pub async fn attribute_value_multiple_delete(
     State(state): State<AppState>,
     Json(attribute_value_info): Json<Vec<i32>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match multiple_delete_attributes_values(&mut connection, attribute_value_info).await {
-        Ok(_) => Ok(()),
-        Err(err) => Err(CustomErrors::DieselError {
+    match multiple_delete_attributes_values(&state.db_sea, attribute_value_info).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -129,9 +109,9 @@ pub async fn attribute_value_multiple_delete(
     patch,
     path = "/attributevalues/multiple_update",
     context_path ="/api/v1",
-    request_body = [UpdateAttributeValue],
+    request_body = [UpdateAttributeValueModel],
     responses(
-        (status = 200, description = "AttributeValues updated successfully", body = [AttributeValue]),
+        (status = 200, description = "AttributeValues updated successfully", body = [AttributeValueModel]),
         (status = 401, description = "Unauthorized to update AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -142,17 +122,11 @@ pub async fn attribute_value_multiple_delete(
 )]
 pub async fn attribute_value_multiple_update(
     State(state): State<AppState>,
-    Json(attribute_value_info): Json<Vec<UpdateAttributeValue>>,
+    Json(attribute_value_info): Json<Vec<UpdateAttributeValueModel>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match multiple_update_attributes_values(&mut connection, attribute_value_info).await {
+    match multiple_update_attributes_values(&state.db_sea, attribute_value_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),

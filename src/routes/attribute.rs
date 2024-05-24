@@ -1,8 +1,6 @@
 use crate::{
-    models::{
-        attribute::{NewAttributeWithAttributeValuesName, UpdateAttribute},
-        error::CustomErrors,
-    },
+    entity::attributes::{AttributeWithAttributeValuesModel, UpdateAttributeModel},
+    models::error::CustomErrors,
     pagination::AttributeListPagination,
     services::attribute::{
         create_attributes, get_attributes, multiple_delete_attributes, multiple_update_attributes,
@@ -22,9 +20,9 @@ use axum::{
     post,
     path = "/attributes",
     context_path ="/api/v1",
-    request_body = [NewAttributeWithAttributeValuesName],
+    request_body = [AttributeWithAttributeValuesModel],
     responses(
-        (status = 200, description = "Attributes and their dependences create successfully", body = [AttributeWithAttributeValues]),
+        (status = 200, description = "Attributes and their dependences create successfully", body = [AttributeWithAttributeValuesModel]),
         (status = 401, description = "Unauthorized to create Attributes and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -35,17 +33,11 @@ use axum::{
 #[debug_handler]
 pub async fn attribute_create(
     State(state): State<AppState>,
-    Json(attribute_info): Json<Vec<NewAttributeWithAttributeValuesName>>,
+    Json(attribute_info): Json<Vec<AttributeWithAttributeValuesModel>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match create_attributes(&mut connection, attribute_info).await {
+    match create_attributes(&state.db_sea, attribute_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -73,16 +65,10 @@ pub async fn attribute_list(
     State(state): State<AppState>,
     Query(pagination): Query<AttributeListPagination>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
     let pagination = pagination as AttributeListPagination;
-    match get_attributes(&mut connection, pagination.system_id).await {
+    match get_attributes(&state.db_sea, pagination.system_id).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -109,15 +95,9 @@ pub async fn attribute_multiple_delete(
     State(state): State<AppState>,
     Json(attribute_info): Json<Vec<i32>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match multiple_delete_attributes(&mut connection, attribute_info).await {
-        Ok(_) => Ok(()),
-        Err(err) => Err(CustomErrors::DieselError {
+    match multiple_delete_attributes(&state.db_sea, attribute_info).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -128,9 +108,9 @@ pub async fn attribute_multiple_delete(
     patch,
     path = "/attributes/multiple_update",
     context_path ="/api/v1",
-    request_body = [UpdateAttribute],
+    request_body = [UpdateAttributeModel],
     responses(
-        (status = 200, description = "Attributes and their dependences updated successfully", body = [AttributeWithAttributeValues]),
+        (status = 200, description = "Attributes and their dependences updated successfully", body = [AttributeWithAttributeValuesModel]),
         (status = 401, description = "Unauthorized to update Attributes and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -142,17 +122,11 @@ pub async fn attribute_multiple_delete(
 #[debug_handler]
 pub async fn attribute_multiple_update(
     State(state): State<AppState>,
-    Json(attribute_info): Json<Vec<UpdateAttribute>>,
+    Json(attribute_info): Json<Vec<UpdateAttributeModel>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match multiple_update_attributes(&mut connection, attribute_info).await {
+    match multiple_update_attributes(&state.db_sea, attribute_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
