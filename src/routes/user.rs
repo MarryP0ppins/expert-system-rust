@@ -92,7 +92,7 @@ pub async fn user_registration(
     path = "/user",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "Matching User", body = UserWithoutPassword),
+        (status = 200, description = "Matching User", body = UserModel),
         (status = 401, description = "Unauthorized to User", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -129,7 +129,7 @@ pub async fn user_get(State(state): State<AppState>, cookie: Cookies) -> impl In
     path = "/user",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "Matching User", body = UserWithoutPassword),
+        (status = 200, description = "Matching User", body = UserModel),
         (status = 401, description = "Unauthorized to User", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),

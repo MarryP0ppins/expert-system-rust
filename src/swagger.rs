@@ -1,7 +1,7 @@
 use crate::{
     entity::{
         answers as answer_model, attributes as attributes_model,
-        attributesvalues as attributesvalues_model,
+        attributesvalues as attributesvalues_model, users as user_model
     },
     models::{
         clause as clause_model, error, history as history_model, object as object_model,
@@ -9,7 +9,6 @@ use crate::{
         question as question_model, rule as rule_model,
         rule_attribute_attributevalue as rule_attribute_attributevalue_model,
         rule_question_answer as rule_question_answer_model, system as system_model,
-        user as user_model,
     },
     routes::{
         answer, attribute, attribute_value, clause, history, object,
@@ -116,9 +115,8 @@ use utoipa::{
         system_model::SystemData,
         system_model::SystemDelete,
         system_model::SystemsWithPageCount,
-        user_model::UserLogin,
-        user_model::UserWithoutPassword,
-        user_model::NewUser,
+        user_model::Model,
+        user_model::LoginUserModel,
         user_model::UpdateUserResponse
     ))
 )]
