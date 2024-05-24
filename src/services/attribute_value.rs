@@ -70,13 +70,10 @@ where
         attributes_values_info
             .into_iter()
             .map(|attributes_values_for_update| async move {
-                let mut model = AttributeValueEntity::find_by_id(attributes_values_for_update.id)
-                    .one(db)
-                    .await?
-                    .ok_or(DbErr::Custom("Cannot find attribute value".to_owned()))?
-                    .into_active_model();
-                model.value = Set(attributes_values_for_update.value);
-                model.update(db).await
+                attributes_values_for_update
+                    .into_active_model()
+                    .update(db)
+                    .await
             });
 
     let mut result = try_join_all(new_attributes_values).await?;

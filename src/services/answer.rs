@@ -59,13 +59,7 @@ where
     C: ConnectionTrait + TransactionTrait,
 {
     let new_answers = answer_info.into_iter().map(|answer_for_update| async move {
-        let mut model = AnswerEntity::find_by_id(answer_for_update.id)
-            .one(db)
-            .await?
-            .ok_or(DbErr::Custom("Cannot find answer".to_owned()))?
-            .into_active_model();
-        model.body = Set(answer_for_update.body);
-        model.update(db).await
+        answer_for_update.into_active_model().update(db).await
     });
 
     let mut result = try_join_all(new_answers).await?;

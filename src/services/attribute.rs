@@ -121,13 +121,7 @@ where
     let updated_attributes = attributes_info
         .into_iter()
         .map(|attributes_for_update| async move {
-            let mut model = AttributeEntity::find_by_id(attributes_for_update.id)
-                .one(db)
-                .await?
-                .ok_or(DbErr::Custom("Cannot find attribute".to_owned()))?
-                .into_active_model();
-            model.name = Set(attributes_for_update.name);
-            model.update(db).await
+            attributes_for_update.into_active_model().update(db).await
         });
 
     let mut attributes = try_join_all(updated_attributes).await?;
