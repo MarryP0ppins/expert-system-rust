@@ -7,15 +7,9 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::{
-    answer::Answer,
-    attribute::Attribute,
-    attribute_value::AttributeValue,
-    clause::Clause,
-    object::Object,
-    object_attribute_attributevalue::ObjectAttributeAttributevalue,
-    question::{Question, QuestionWithAnswers},
-    rule::{Rule, RuleWithClausesAndEffects},
-    rule_attribute_attributevalue::RuleAttributeAttributeValue,
+    answer::Answer, attribute::Attribute, attribute_value::AttributeValue, clause::Clause,
+    object::Object, object_attribute_attributevalue::ObjectAttributeAttributevalue,
+    question::Question, rule::Rule, rule_attribute_attributevalue::RuleAttributeAttributeValue,
     rule_question_answer::RuleQuestionAnswer,
 };
 
@@ -76,12 +70,6 @@ pub struct UpdateSystemMultipart {
     pub image: Option<FieldData<Bytes>>,
     pub private: Option<bool>,
     pub is_image_removed: Option<bool>,
-}
-
-#[derive(Queryable, Serialize, ToSchema, Clone)]
-pub struct SystemData {
-    pub questions: Vec<QuestionWithAnswers>,
-    pub rules: Vec<RuleWithClausesAndEffects>,
 }
 
 #[derive(Deserialize, ToSchema)]

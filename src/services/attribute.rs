@@ -3,10 +3,12 @@ use sea_orm::*;
 
 use crate::entity::attributes::{
     ActiveModel as AttributeActiveModel, AttributeWithAttributeValuesModel,
-    Column as AttributeColumn, Entity as AttributeEntity, Model as AttributeModel,
-    UpdateAttributeModel,
+    Column as AttributeColumn, Entity as AttributeEntity,
+    NewAttributeWithAttributeValuesModel, UpdateAttributeModel,
 };
-use crate::entity::attributesvalues::Entity as AttributeValueEntity;
+use crate::entity::attributesvalues::{
+    Entity as AttributeValueEntity, Model as AttributeValueModel,
+};
 
 use super::attribute_value::create_attributes_values;
 
@@ -40,34 +42,46 @@ where
 
 pub async fn create_attributes<C>(
     db: &C,
-    attribute_info: Vec<AttributeWithAttributeValuesModel>,
+    attribute_info: Vec<NewAttributeWithAttributeValuesModel>,
 ) -> Result<Vec<AttributeWithAttributeValuesModel>, DbErr>
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let (attributes_values_bodies, attributes_raws) =
-        attribute_info
-            .into_iter()
-            .fold((vec![], vec![]), |mut acc, raw| {
-                acc.0.extend_from_slice(&raw.values);
-                acc.1.push(AttributeActiveModel {
-                    system_id: Set(raw.system_id),
-                    name: Set(raw.name),
-                    ..Default::default()
-                });
-                acc
-            });
-
     let new_attributes = db
-        .transaction::<_, Vec<AttributeModel>, DbErr>(|txn| {
+        .transaction::<_, Vec<AttributeWithAttributeValuesModel>, DbErr>(|txn| {
             Box::pin(async move {
-                let new_attribute = attributes_raws
-                    .into_iter()
-                    .map(|new_attribute| async move { new_attribute.insert(txn).await });
+                let new_attribute = attribute_info.into_iter().map(|attribute_raw| async move {
+                    let new_attribute = AttributeActiveModel {
+                        system_id: Set(attribute_raw.system_id),
+                        name: Set(attribute_raw.name),
+                        ..Default::default()
+                    };
+                    let created_attribute = new_attribute.insert(txn).await;
+                    match created_attribute {
+                        Ok(result) => {
+                            let values_to_create = attribute_raw
+                                .values_name
+                                .into_iter()
+                                .map(|value_name| AttributeValueModel {
+                                    id: -1,
+                                    attribute_id: result.id,
+                                    value: value_name,
+                                })
+                                .collect();
+                            let values = create_attributes_values(txn, values_to_create).await?;
+                            Ok(AttributeWithAttributeValuesModel {
+                                id: result.id,
+                                system_id: result.system_id,
+                                name: result.name,
+                                values,
+                            })
+                        }
+                        Err(err) => Err(err),
+                    }
+                });
 
                 let mut result = try_join_all(new_attribute).await?;
                 result.sort_by(|a, b| a.id.cmp(&b.id));
-                create_attributes_values(txn, attributes_values_bodies).await?;
 
                 Ok(result)
             })
@@ -80,24 +94,7 @@ where
             )))
         })?;
 
-    let new_attributes_values = new_attributes.load_many(AttributeValueEntity, db).await?;
-
-    let result = new_attributes
-        .into_iter()
-        .zip(new_attributes_values)
-        .map(|(attribute, attribute_values)| {
-            let mut values = attribute_values;
-            values.sort_by(|a, b| a.id.cmp(&b.id));
-            AttributeWithAttributeValuesModel {
-                id: attribute.id,
-                system_id: attribute.system_id,
-                name: attribute.name,
-                values,
-            }
-        })
-        .collect();
-
-    Ok(result)
+    Ok(new_attributes)
 }
 
 pub async fn multiple_delete_attributes<C>(db: &C, attributes_ids: Vec<i32>) -> Result<u64, DbErr>

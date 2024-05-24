@@ -1,5 +1,5 @@
 use crate::{
-    entity::attributes::{AttributeWithAttributeValuesModel, UpdateAttributeModel},
+    entity::attributes::{NewAttributeWithAttributeValuesModel, UpdateAttributeModel},
     models::error::CustomErrors,
     pagination::AttributeListPagination,
     services::attribute::{
@@ -33,7 +33,7 @@ use axum::{
 #[debug_handler]
 pub async fn attribute_create(
     State(state): State<AppState>,
-    Json(attribute_info): Json<Vec<AttributeWithAttributeValuesModel>>,
+    Json(attribute_info): Json<Vec<NewAttributeWithAttributeValuesModel>>,
 ) -> impl IntoResponse {
     match create_attributes(&state.db_sea, attribute_info).await {
         Ok(result) => Ok(Json(result)),

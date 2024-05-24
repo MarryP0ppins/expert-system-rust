@@ -7,7 +7,7 @@ use crate::{
         rule::Rule,
         rule_question_answer::RuleQuestionAnswer,
         system::{
-            NewSystem, NewSystemMultipart, System, SystemData, SystemsWithPageCount, UpdateSystem,
+            NewSystem, NewSystemMultipart, System, SystemsWithPageCount, UpdateSystem,
             UpdateSystemMultipart,
         },
     },
@@ -27,7 +27,7 @@ use tokio::{
     io::AsyncWriteExt,
 };
 
-use super::{question::get_questions, rule::get_rules};
+use super::question::get_questions;
 
 pub async fn get_systems(
     connection: &mut AsyncPgConnection,
@@ -90,7 +90,7 @@ pub async fn get_system(
 pub async fn get_ready_to_start_system(
     connection: &mut AsyncPgConnection,
     system_id: i32,
-) -> Result<SystemData, Error> {
+) -> Result<Vec<QuestionWithAnswers>, Error> {
     let _questions_with_answers = get_questions(connection, system_id).await?;
     //println!("111111111111111111111111\n{:?}", &_questions_with_answers);
     let _rules_with_question_rule = rules::table
@@ -175,7 +175,6 @@ pub async fn get_ready_to_start_system(
     //     "44444444444444444444444444\n{:?}",
     //     &rules_belonging_questions
     // );
-    let rules_with_clauses_and_effects = get_rules(connection, system_id).await?;
     let belonging_questions_order = topological_sort(&rules_belonging_questions);
 
     // println!(
@@ -194,10 +193,7 @@ pub async fn get_ready_to_start_system(
         })
         .collect();
     //println!("7777777777777777777777777777\n{:?}", &ordered_questions);
-    Ok(SystemData {
-        questions: ordered_questions,
-        rules: rules_with_clauses_and_effects,
-    })
+    Ok(ordered_questions)
 }
 
 pub async fn create_system(

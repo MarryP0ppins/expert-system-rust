@@ -66,7 +66,7 @@ pub async fn system_create(
     path = "/systems",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching Systems by query", body = SystemsWithPageCount),
+        (status = 200, description = "List matching Systems by query", body = [TSystem]),
         (status = 401, description = "Unauthorized to list Systems", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),

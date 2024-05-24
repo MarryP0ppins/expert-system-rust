@@ -112,7 +112,6 @@ use utoipa::{
         system_model::System,
         system_model::NewSystemMultipart,
         system_model::UpdateSystemMultipart,
-        system_model::SystemData,
         system_model::SystemDelete,
         system_model::SystemsWithPageCount,
         user_model::Model,

@@ -24,11 +24,17 @@ pub struct UpdateAttributeModel {
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct AttributeWithAttributeValuesModel {
-    #[serde(skip_deserializing)]
     pub id: i32,
     pub system_id: i32,
     pub name: String,
     pub values: Vec<attributesvalues::Model>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct NewAttributeWithAttributeValuesModel {
+    pub system_id: i32,
+    pub name: String,
+    pub values_name: Vec<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
