@@ -1,51 +1,58 @@
+use crate::{
+    constants::COOKIE_NAME,
+    entity::users::{Entity as UserEntity, Model as UserModel},
+    models::error::CustomErrors,
+};
 use argon2::{
     password_hash::{rand_core::OsRng, Error, PasswordHasher, SaltString},
     Argon2, PasswordHash, PasswordVerifier,
 };
 use axum::http::StatusCode;
-use diesel_async::AsyncPgConnection;
+use sea_orm::*;
 use tower_cookies::{Cookies, Key};
 
-use crate::{
-    constants::COOKIE_NAME,
-    models::{error::CustomErrors, user::User},
-    schema::users::dsl::*,
-};
-use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
-
-pub async fn cookie_check<'a>(
-    connection: &'a mut AsyncPgConnection,
+pub async fn cookie_check<'a, C>(
+    db: &'a C,
     cookie: Cookies,
     cookie_key: &'a Key,
-) -> Result<User, CustomErrors> {
+) -> Result<UserModel, CustomErrors>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
     let user_id = cookie
         .private(&cookie_key)
         .get(COOKIE_NAME)
         .map(|res| res.value().to_owned())
         .and_then(|res| Some(res.parse::<i32>().expect("Server Error")))
-        .ok_or_else(|| CustomErrors::StringError {
+        .ok_or(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         })?;
 
-    Ok(users
-        .find(user_id)
-        .first::<User>(connection)
+    let user = UserEntity::find_by_id(user_id)
+        .one(db)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
-            message: Some("Invalid credentials provided".to_string()),
-        })?)
+            message: None,
+        })?
+        .ok_or(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Invalid credentials provided".to_string(),
+        })?;
+    Ok(user)
 }
 
-pub async fn password_check<'a>(
-    connection: &'a mut AsyncPgConnection,
+pub async fn password_check<'a, C>(
+    db: &'a C,
     cookie: Cookies,
     cookie_key: &'a Key,
     password_to_check: &'a str,
-) -> Result<User, CustomErrors> {
-    let user_cookie = cookie_check(connection, cookie, cookie_key).await?;
+) -> Result<UserModel, CustomErrors>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let user_cookie = cookie_check(db, cookie, cookie_key).await?;
 
     Ok(check_password(password_to_check, &user_cookie.password)
         .and(Ok(user_cookie))

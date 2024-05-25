@@ -1,14 +1,14 @@
 use crate::{
     entity::{
         answers as answer_model, attributes as attributes_model,
-        attributesvalues as attributesvalues_model, users as user_model
+        attributesvalues as attributesvalues_model, systems as system_model, users as user_model,
     },
     models::{
         clause as clause_model, error, history as history_model, object as object_model,
         object_attribute_attributevalue as object_attribute_attributevalue_model,
         question as question_model, rule as rule_model,
         rule_attribute_attributevalue as rule_attribute_attributevalue_model,
-        rule_question_answer as rule_question_answer_model, system as system_model,
+        rule_question_answer as rule_question_answer_model,
     },
     routes::{
         answer, attribute, attribute_value, clause, history, object,
@@ -109,11 +109,10 @@ use utoipa::{
         rule_model::NewRule,
         rule_model::RuleWithClausesAndEffects,
         rule_model::NewRuleWithClausesAndEffects,
-        system_model::System,
+        system_model::Model,
         system_model::NewSystemMultipart,
         system_model::UpdateSystemMultipart,
         system_model::SystemDelete,
-        system_model::SystemsWithPageCount,
         user_model::Model,
         user_model::LoginUserModel,
         user_model::UpdateUserResponse

@@ -3,8 +3,8 @@ use sea_orm::*;
 
 use crate::entity::attributes::{
     ActiveModel as AttributeActiveModel, AttributeWithAttributeValuesModel,
-    Column as AttributeColumn, Entity as AttributeEntity,
-    NewAttributeWithAttributeValuesModel, UpdateAttributeModel,
+    Column as AttributeColumn, Entity as AttributeEntity, NewAttributeWithAttributeValuesModel,
+    UpdateAttributeModel,
 };
 use crate::entity::attributesvalues::{
     Entity as AttributeValueEntity, Model as AttributeValueModel,
@@ -93,6 +93,43 @@ where
                 err.to_string()
             )))
         })?;
+
+    // let txn = db.begin().await?;
+
+    // let new_attribute = attribute_info.into_iter().map(|attribute_raw| async move {
+    //     let new_attribute = AttributeActiveModel {
+    //         system_id: Set(attribute_raw.system_id),
+    //         name: Set(attribute_raw.name),
+    //         ..Default::default()
+    //     };
+    //     let created_attribute = new_attribute.insert(txn).await;
+    //     match created_attribute {
+    //         Ok(result) => {
+    //             let values_to_create = attribute_raw
+    //                 .values_name
+    //                 .into_iter()
+    //                 .map(|value_name| AttributeValueModel {
+    //                     id: -1,
+    //                     attribute_id: result.id,
+    //                     value: value_name,
+    //                 })
+    //                 .collect();
+    //             let values = create_attributes_values(&txn, values_to_create).await?;
+    //             Ok(AttributeWithAttributeValuesModel {
+    //                 id: result.id,
+    //                 system_id: result.system_id,
+    //                 name: result.name,
+    //                 values,
+    //             })
+    //         }
+    //         Err(err) => Err(err),
+    //     }
+    // });
+
+    // let mut new_attributes = try_join_all(new_attribute).await?;
+    // new_attributes.sort_by(|a, b| a.id.cmp(&b.id));
+
+    // txn.commit().await?;
 
     Ok(new_attributes)
 }

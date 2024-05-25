@@ -2,17 +2,14 @@
 
 use axum::body::Bytes;
 use axum_typed_multipart::{FieldData, TryFromMultipart};
-use sea_orm::entity::prelude::*;
+use sea_orm::{entity::prelude::*, ActiveValue::NotSet, IntoActiveModel, Set};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::models::{
-    clause::Clause, object::Object, object_attribute_attributevalue::ObjectAttributeAttributevalue,
-    question::Question, rule::Rule, rule_attribute_attributevalue::RuleAttributeAttributeValue,
-    rule_question_answer::RuleQuestionAnswer,
+use super::{
+    answers, attributes, attributesvalues, clauses, object_attribute_attributevalue, objects,
+    questions, rule_attribute_attributevalue, rule_question_answer, rules,
 };
-
-use super::{answers, attributes, attributesvalues};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
 #[sea_orm(table_name = "systems")]
@@ -43,7 +40,7 @@ pub struct NewSystemMultipart {
     pub private: bool,
 }
 
-#[derive(Serialize, Clone, ToSchema)]
+#[derive(Serialize, Clone)]
 pub struct SystemsWithPageCount {
     pub systems: Vec<Model>,
     pub pages: i64,
@@ -75,17 +72,17 @@ pub struct SystemDelete {
 
 #[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub struct SystemBackup {
-    pub system: Model,                                                       //
-    pub objects: Vec<Object>,                                                //
-    pub object_attribute_attributevalue: Vec<ObjectAttributeAttributevalue>, //
-    pub attributes: Vec<attributes::Model>,                                  //
-    pub attributes_values: Vec<attributesvalues::Model>,                     //
-    pub rules: Vec<Rule>,                                                    //
-    pub rule_attribute_attributevalue: Vec<RuleAttributeAttributeValue>,     //
-    pub clauses: Vec<Clause>,                                                //
-    pub questions: Vec<Question>,                                            //
-    pub answers: Vec<answers::Model>,                                        //
-    pub rule_question_answer: Vec<RuleQuestionAnswer>,
+    pub system: Model,                                                                //
+    pub objects: Vec<objects::Model>,                                                 //
+    pub object_attribute_attributevalue: Vec<object_attribute_attributevalue::Model>, //
+    pub attributes: Vec<attributes::Model>,                                           //
+    pub attributes_values: Vec<attributesvalues::Model>,                              //
+    pub rules: Vec<rules::Model>,                                                     //
+    pub rule_attribute_attributevalue: Vec<rule_attribute_attributevalue::Model>,     //
+    pub clauses: Vec<clauses::Model>,                                                 //
+    pub questions: Vec<questions::Model>,                                             //
+    pub answers: Vec<answers::Model>,                                                 //
+    pub rule_question_answer: Vec<rule_question_answer::Model>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -147,3 +144,15 @@ impl Related<super::users::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+impl IntoActiveModel<ActiveModel> for UpdateSystem {
+    fn into_active_model(self) -> ActiveModel {
+        ActiveModel {
+            about: Set(self.about),
+            name: self.name.map_or(NotSet, |name| Set(name)),
+            image_uri: Set(self.image_uri),
+            private: self.private.map_or(NotSet, |private| Set(private)),
+            ..Default::default()
+        }
+    }
+}

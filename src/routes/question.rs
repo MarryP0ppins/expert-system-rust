@@ -1,8 +1,6 @@
 use crate::{
-    models::{
-        error::CustomErrors,
-        question::{NewQuestionWithAnswersBody, UpdateQuestion},
-    },
+    entity::questions::{NewQuestionWithAnswersModel, UpdateQuestionModel},
+    models::error::CustomErrors,
     pagination::QuestionListPagination,
     services::question::{
         create_questions, get_questions, multiple_delete_questions, multiple_update_questions,
@@ -22,9 +20,9 @@ use axum::{
     post,
     path = "/questions",
     context_path ="/api/v1",
-    request_body = [NewQuestionWithAnswersBody],
+    request_body = [NewQuestionWithAnswersModel],
     responses(
-        (status = 200, description = "Questions and their dependences create successfully", body = [QuestionWithAnswers]),
+        (status = 200, description = "Questions and their dependences create successfully", body = [QuestionWithAnswersModel]),
         (status = 401, description = "Unauthorized to create Questions and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -35,17 +33,11 @@ use axum::{
 #[debug_handler]
 pub async fn question_create(
     State(state): State<AppState>,
-    Json(question_info): Json<Vec<NewQuestionWithAnswersBody>>,
+    Json(question_info): Json<Vec<NewQuestionWithAnswersModel>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match create_questions(&mut connection, question_info).await {
+    match create_questions(&state.db_sea, question_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -57,7 +49,7 @@ pub async fn question_create(
     path = "/questions",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching Questions and their dependences by query", body = [QuestionWithAnswers]),
+        (status = 200, description = "List matching Questions and their dependences by query", body = [QuestionWithAnswersModel]),
         (status = 401, description = "Unauthorized to list Questions and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -73,17 +65,9 @@ pub async fn question_list(
     State(state): State<AppState>,
     Query(pagination): Query<QuestionListPagination>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    let pagination = pagination as QuestionListPagination;
-
-    match get_questions(&mut connection, pagination.system_id).await {
+    match get_questions(&state.db_sea, pagination.system_id).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -96,7 +80,7 @@ pub async fn question_list(
     context_path ="/api/v1",
     request_body = [i32],
     responses(
-        (status = 200, description = "Questions and their dependences deleted successfully", body = CustomErrors, example = json!(())),
+        (status = 200, description = "Questions and their dependences deleted successfully", body = u64),
         (status = 401, description = "Unauthorized to delete Questions and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -110,15 +94,9 @@ pub async fn question_multiple_delete(
     State(state): State<AppState>,
     Json(question_info): Json<Vec<i32>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match multiple_delete_questions(&mut connection, question_info).await {
+    match multiple_delete_questions(&state.db_sea, question_info).await {
         Ok(_) => Ok(()),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -143,17 +121,11 @@ pub async fn question_multiple_delete(
 #[debug_handler]
 pub async fn question_multiple_update(
     State(state): State<AppState>,
-    Json(question_info): Json<Vec<UpdateQuestion>>,
+    Json(question_info): Json<Vec<UpdateQuestionModel>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match multiple_update_questions(&mut connection, question_info).await {
+    match multiple_update_questions(&state.db_sea, question_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),

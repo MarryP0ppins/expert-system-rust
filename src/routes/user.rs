@@ -143,16 +143,8 @@ pub async fn user_patch(
     cookie: Cookies,
     Json(user): Json<UpdateUserResponse>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
     let user_cookie =
-        password_check(&mut connection, cookie, &state.cookie_key, &user.password).await?;
-
-    //ИСПРАВИТЬ ^^^^
+        password_check(&state.db_sea, cookie, &state.cookie_key, &user.password).await?;
 
     match update_user(&state.db_sea, user, user_cookie.id).await {
         Ok(result) => Ok(Json(result)),

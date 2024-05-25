@@ -1,21 +1,20 @@
 use std::collections::HashMap;
 
 use crate::{
-    models::{
-        answer::Answer,
-        attribute::Attribute,
-        attribute_value::AttributeValue,
-        clause::Clause,
-        error::CustomErrors,
-        object::Object,
-        object_attribute_attributevalue::ObjectAttributeAttributevalue,
-        question::Question,
-        rule::Rule,
-        rule_attribute_attributevalue::RuleAttributeAttributeValue,
-        rule_question_answer::RuleQuestionAnswer,
-        system::{System, SystemBackup},
+    entity::{
+        answers::Entity as AnswerEntity,
+        attributes::Entity as AttributeEntity,
+        attributesvalues::Entity as AttributeValueEntity,
+        clauses::Entity as ClauseEntity,
+        object_attribute_attributevalue::Entity as ObjectAttributeAttributeValueEntity,
+        objects::Entity as ObjectEntity,
+        questions::Entity as QuestionEntity,
+        rule_attribute_attributevalue::Entity as RuleAttributeAttributeValueEntity,
+        rule_question_answer::Entity as RuleQuestionAnswerEntity,
+        rules::Entity as RuleEntity,
+        systems::{Entity as SystemEntity, Model as SystemModel, SystemBackup},
     },
-    schema::systems::dsl::*,
+    models::error::CustomErrors,
     utils::{
         auth::cookie_check,
         copy::{
@@ -27,103 +26,107 @@ use crate::{
         crypto::{decrypt_data, encrypt_data},
     },
 };
-use diesel::prelude::*;
-use diesel_async::{
-    scoped_futures::ScopedFutureExt, AsyncConnection, AsyncPgConnection, RunQueryDsl,
-};
 use http::StatusCode;
+use sea_orm::*;
 use tower_cookies::{Cookies, Key};
 
-pub async fn backup_from_system(
-    connection: &mut AsyncPgConnection,
-    system_id: i32,
-) -> Result<Vec<u8>, CustomErrors> {
+pub async fn backup_from_system<C>(db: &C, system_id: i32) -> Result<Vec<u8>, CustomErrors>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
     // ----------SYSTEM----------
-    let _system = systems
-        .find(system_id)
-        .first::<System>(connection)
+    let _system = SystemEntity::find_by_id(system_id)
+        .one(db)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
+        })?
+        .ok_or(CustomErrors::StringError {
+            status: StatusCode::BAD_REQUEST,
+            error: "Система не найдена".to_string(),
         })?;
     // ----------OBJECTS----------
-    let _objects = Object::belonging_to(&_system)
-        .load::<Object>(connection)
+    let _objects = _system
+        .find_related(ObjectEntity)
+        .all(db)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
         })?;
     // ----------ATTRIBUTES_VALUE_OBJECTS----------
-    let _object_attribute_attributevalue = ObjectAttributeAttributevalue::belonging_to(&_objects)
-        .load::<ObjectAttributeAttributevalue>(connection)
+    let _object_attribute_attributevalue = _objects
+        .load_many(ObjectAttributeAttributeValueEntity, db)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
         })?;
     // ----------ATTRIBUTES----------
-    let _attributes = Attribute::belonging_to(&_system)
-        .load::<Attribute>(connection)
+    let _attributes = _system
+        .find_related(AttributeEntity)
+        .all(db)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
         })?;
     // ----------ATTRIBUTES_VALUES----------
-    let _attributes_values = AttributeValue::belonging_to(&_attributes)
-        .load::<AttributeValue>(connection)
+    let _attributes_values = _attributes
+        .load_many(AttributeValueEntity, db)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
         })?;
     // ----------ATTRIBUTES_VALUE_OBJECTS----------
-    let _rule_attribute_attributevalue = RuleAttributeAttributeValue::belonging_to(&_attributes)
-        .load::<RuleAttributeAttributeValue>(connection)
+    let _rule_attribute_attributevalue = _attributes
+        .load_many(RuleAttributeAttributeValueEntity, db)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
         })?;
     // ----------RULES----------
-    let _rules = Rule::belonging_to(&_system)
-        .load::<Rule>(connection)
+    let _rules = _system
+        .find_related(RuleEntity)
+        .all(db)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
         })?;
     // ----------QUESTIONS----------
-    let _questions = Question::belonging_to(&_system)
-        .load::<Question>(connection)
+    let _questions = _system
+        .find_related(QuestionEntity)
+        .all(db)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
         })?;
     // ----------CLAUSES----------
-    let _clauses = Clause::belonging_to(&_questions)
-        .load::<Clause>(connection)
+    let _clauses = _questions
+        .load_many(ClauseEntity, db)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
         })?;
     // ----------RULE_QUESTION_ANSWER----------
-    let _rule_question_answer = RuleQuestionAnswer::belonging_to(&_questions)
-        .load::<RuleQuestionAnswer>(connection)
+    let _rule_question_answer = _questions
+        .load_many(RuleQuestionAnswerEntity, db)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
         })?;
     // ----------ANSWERS----------
-    let _answers = Answer::belonging_to(&_questions)
-        .load::<Answer>(connection)
+    let _answers = _questions
+        .load_many(AnswerEntity, db)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
         })?;
@@ -131,15 +134,24 @@ pub async fn backup_from_system(
     let struct_to_encrypt = SystemBackup {
         system: _system,
         objects: _objects,
-        object_attribute_attributevalue: _object_attribute_attributevalue,
+        object_attribute_attributevalue: _object_attribute_attributevalue
+            .into_iter()
+            .flat_map(|arr| arr)
+            .collect(),
         attributes: _attributes,
-        attributes_values: _attributes_values,
+        attributes_values: _attributes_values.into_iter().flat_map(|arr| arr).collect(),
         rules: _rules,
-        rule_attribute_attributevalue: _rule_attribute_attributevalue,
-        clauses: _clauses,
+        rule_attribute_attributevalue: _rule_attribute_attributevalue
+            .into_iter()
+            .flat_map(|arr| arr)
+            .collect(),
+        clauses: _clauses.into_iter().flat_map(|arr| arr).collect(),
         questions: _questions,
-        answers: _answers,
-        rule_question_answer: _rule_question_answer,
+        answers: _answers.into_iter().flat_map(|arr| arr).collect(),
+        rule_question_answer: _rule_question_answer
+            .into_iter()
+            .flat_map(|arr| arr)
+            .collect(),
     };
     let encoded: Vec<u8> = bincode::serialize(&struct_to_encrypt).expect("serialize error");
 
@@ -155,12 +167,15 @@ pub async fn backup_from_system(
     Ok(encrypt_backup)
 }
 
-pub async fn system_from_backup(
-    connection: &mut AsyncPgConnection,
+pub async fn system_from_backup<C>(
+    db: &C,
     encryped_system: Vec<u8>,
     cookie: Cookies,
     cookie_key: &Key,
-) -> Result<System, CustomErrors> {
+) -> Result<SystemModel, CustomErrors>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
     let _crypt_key: &[u8] = dotenv!("CRYPTO_KEY").as_bytes();
     let _nonce_key: &[u8] = dotenv!("NONCE_KEY").as_bytes();
     let decoded_system;
@@ -178,16 +193,15 @@ pub async fn system_from_backup(
     let _system: SystemBackup;
     match bincode::deserialize(&decoded_system) {
         Ok(system) => _system = system,
-        Err(err) => {
-            println!("{err}");
+        Err(_) => {
             return Err(CustomErrors::StringError {
                 status: StatusCode::BAD_REQUEST,
                 error: "Ошибка декодирования".to_string(),
-            });
+            })
         }
     };
 
-    let user_cookie = cookie_check(connection, cookie, cookie_key).await?;
+    let user_cookie = cookie_check(db, cookie, cookie_key).await?;
 
     let mut new_system = _system.system.clone();
 
@@ -198,76 +212,65 @@ pub async fn system_from_backup(
         });
     }
 
-    match connection
-        .transaction(|connection| {
-            async {
-                let mut question_map: HashMap<i32, i32> = HashMap::new();
-                let mut attribute_map: HashMap<i32, i32> = HashMap::new();
-                let mut object_map: HashMap<i32, i32> = HashMap::new();
-                let mut rule_map: HashMap<i32, i32> = HashMap::new();
-                let mut attributevalue_map: HashMap<i32, i32> = HashMap::new();
-                let mut answer_map: HashMap<i32, i32> = HashMap::new();
+    let txn = db.begin().await.map_err(|err| CustomErrors::SeaORMError {
+        error: err,
+        message: None,
+    })?;
 
-                new_system = copy_system(connection, &_system.system).await?;
-                let new_system_id = new_system.id;
-                copy_questions(
-                    connection,
-                    new_system_id,
-                    &_system.questions,
-                    &mut question_map,
-                )
-                .await?;
-                copy_attributes(
-                    connection,
-                    new_system_id,
-                    &_system.attributes,
-                    &mut attribute_map,
-                )
-                .await?;
-                copy_objects(connection, new_system_id, &_system.objects, &mut object_map).await?;
-                copy_rules(connection, new_system_id, &_system.rules, &mut rule_map).await?;
-                copy_attribute_values(
-                    connection,
-                    &_system.attributes_values,
-                    &attribute_map,
-                    &mut attributevalue_map,
-                )
-                .await?;
-                copy_answers(connection, &_system.answers, &question_map, &mut answer_map).await?;
-                copy_clauses(connection, &_system.clauses, &rule_map, &question_map).await?;
-                copy_rule_attribute_attributevalues(
-                    connection,
-                    &_system.rule_attribute_attributevalue,
-                    &rule_map,
-                    &attribute_map,
-                    &attributevalue_map,
-                )
-                .await?;
-                copy_rule_question_answers(
-                    connection,
-                    &_system.rule_question_answer,
-                    &rule_map,
-                    &answer_map,
-                    &question_map,
-                )
-                .await?;
-                copy_object_attribute_attributevalues(
-                    connection,
-                    &_system.object_attribute_attributevalue,
-                    &object_map,
-                    &attribute_map,
-                    &attributevalue_map,
-                )
-                .await?;
-                Ok(())
-            }
-            .scope_boxed()
-        })
+    let mut question_map: HashMap<i32, i32> = HashMap::new();
+    let mut attribute_map: HashMap<i32, i32> = HashMap::new();
+    let mut object_map: HashMap<i32, i32> = HashMap::new();
+    let mut rule_map: HashMap<i32, i32> = HashMap::new();
+    let mut attributevalue_map: HashMap<i32, i32> = HashMap::new();
+    let mut answer_map: HashMap<i32, i32> = HashMap::new();
+
+    new_system = copy_system(&txn, &_system.system).await?;
+    let new_system_id = new_system.id;
+
+    copy_questions(&txn, new_system_id, &_system.questions, &mut question_map).await?;
+    copy_attributes(&txn, new_system_id, &_system.attributes, &mut attribute_map).await?;
+    copy_objects(&txn, new_system_id, &_system.objects, &mut object_map).await?;
+    copy_rules(&txn, new_system_id, &_system.rules, &mut rule_map).await?;
+    copy_attribute_values(
+        &txn,
+        &_system.attributes_values,
+        &attribute_map,
+        &mut attributevalue_map,
+    )
+    .await?;
+    copy_answers(&txn, &_system.answers, &question_map, &mut answer_map).await?;
+    copy_clauses(&txn, &_system.clauses, &rule_map, &question_map).await?;
+    copy_rule_attribute_attributevalues(
+        &txn,
+        &_system.rule_attribute_attributevalue,
+        &rule_map,
+        &attribute_map,
+        &attributevalue_map,
+    )
+    .await?;
+    copy_rule_question_answers(
+        &txn,
+        &_system.rule_question_answer,
+        &rule_map,
+        &answer_map,
+        &question_map,
+    )
+    .await?;
+    copy_object_attribute_attributevalues(
+        &txn,
+        &_system.object_attribute_attributevalue,
+        &object_map,
+        &attribute_map,
+        &attributevalue_map,
+    )
+    .await?;
+
+    txn.commit()
         .await
-    {
-        Ok(_) => (),
-        Err(err) => return Err(err),
-    };
+        .map_err(|err| CustomErrors::SeaORMError {
+            error: err,
+            message: None,
+        })?;
 
     return Ok(new_system);
 }
