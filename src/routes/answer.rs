@@ -65,8 +65,6 @@ pub async fn answer_list(
     State(state): State<AppState>,
     Query(pagination): Query<AnswerListPagination>,
 ) -> impl IntoResponse {
-    let pagination: AnswerListPagination = pagination;
-
     match get_answers(&state.db_sea, pagination.question_id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::SeaORMError {

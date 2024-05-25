@@ -74,8 +74,6 @@ pub async fn history_list(
         .await
         .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
-    let pagination: HistoryListPagination = pagination;
-
     match get_histories(&mut connection, pagination.system, pagination.user).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {

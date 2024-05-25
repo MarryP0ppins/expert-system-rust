@@ -74,8 +74,6 @@ pub async fn rule_list(
         .await
         .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
-    let pagination = pagination as RuleListPagination;
-
     match get_rules(&mut connection, pagination.system_id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {

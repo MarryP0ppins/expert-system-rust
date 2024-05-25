@@ -12,7 +12,7 @@ use crate::{
         rule_attribute_attributevalue::Entity as RuleAttributeAttributeValueEntity,
         rule_question_answer::Entity as RuleQuestionAnswerEntity,
         rules::Entity as RuleEntity,
-        systems::{Entity as SystemEntity, Model as SystemModel, SystemBackup},
+        systems::{Entity as SystemEntity, Model as SystemModel, SystemBackupModel},
     },
     models::error::CustomErrors,
     utils::{
@@ -131,7 +131,7 @@ where
             message: None,
         })?;
 
-    let struct_to_encrypt = SystemBackup {
+    let struct_to_encrypt = SystemBackupModel {
         system: _system,
         objects: _objects,
         object_attribute_attributevalue: _object_attribute_attributevalue
@@ -190,7 +190,7 @@ where
         }
     };
 
-    let _system: SystemBackup;
+    let _system: SystemBackupModel;
     match bincode::deserialize(&decoded_system) {
         Ok(system) => _system = system,
         Err(_) => {

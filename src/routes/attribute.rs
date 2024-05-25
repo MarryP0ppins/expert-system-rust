@@ -65,7 +65,6 @@ pub async fn attribute_list(
     State(state): State<AppState>,
     Query(pagination): Query<AttributeListPagination>,
 ) -> impl IntoResponse {
-    let pagination = pagination as AttributeListPagination;
     match get_attributes(&state.db_sea, pagination.system_id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::SeaORMError {

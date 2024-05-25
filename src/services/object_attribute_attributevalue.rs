@@ -1,27 +1,47 @@
-use crate::{
-    models::object_attribute_attributevalue::NewObjectAttributeAttributevalue,
-    schema::object_attribute_attributevalue::dsl::*,
+use crate::entity::object_attribute_attributevalue::{
+    ActiveModel as ObjectAttributeAttributeValueActiveModel,
+    Column as ObjectAttributeAttributeValueColumn, Entity as ObjectAttributeAttributeValueEntity,
+    Model as ObjectAttributeAttributeValueModel,
 };
-use diesel::{delete, insert_into, prelude::*, result::Error};
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-pub async fn create_attribute_values_objects(
-    connection: &mut AsyncPgConnection,
-    attribute_values_objects: Vec<NewObjectAttributeAttributevalue>,
-) -> Result<usize, Error> {
-    Ok(insert_into(object_attribute_attributevalue)
-        .values::<Vec<NewObjectAttributeAttributevalue>>(attribute_values_objects)
-        .execute(connection)
-        .await?)
+use futures::future::try_join_all;
+use sea_orm::*;
+
+pub async fn create_attribute_values_objects<C>(
+    db: &C,
+    attribute_values_objects: Vec<ObjectAttributeAttributeValueModel>,
+) -> Result<Vec<ObjectAttributeAttributeValueModel>, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let new_attribute_values_objects =
+        attribute_values_objects
+            .into_iter()
+            .map(|new_attribute_values_object| async move {
+                let model = ObjectAttributeAttributeValueActiveModel {
+                    object_id: Set(new_attribute_values_object.object_id),
+                    attribute_value_id: Set(new_attribute_values_object.attribute_value_id),
+                    attribute_id: Set(new_attribute_values_object.attribute_id),
+                    ..Default::default()
+                };
+                model.insert(db).await
+            });
+
+    let result = try_join_all(new_attribute_values_objects).await?;
+
+    Ok(result)
 }
 
-pub async fn multiple_delete_attribute_values_objects(
-    connection: &mut AsyncPgConnection,
+pub async fn multiple_delete_attribute_values_objects<C>(
+    db: &C,
     attribute_values_objects_ids: Vec<i32>,
-) -> Result<usize, Error> {
-    Ok(
-        delete(object_attribute_attributevalue.filter(id.eq_any(attribute_values_objects_ids)))
-            .execute(connection)
-            .await?,
-    )
+) -> Result<u64, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    Ok(ObjectAttributeAttributeValueEntity::delete_many()
+        .filter(ObjectAttributeAttributeValueColumn::Id.is_in(attribute_values_objects_ids))
+        .exec(db)
+        .await?
+        .rows_affected)
 }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use futures::future::try_join_all;
 use sea_orm::*;
 
@@ -47,54 +49,43 @@ pub async fn create_attributes<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_attributes = db
-        .transaction::<_, Vec<AttributeWithAttributeValuesModel>, DbErr>(|txn| {
-            Box::pin(async move {
-                let new_attribute = attribute_info.into_iter().map(|attribute_raw| async move {
-                    let new_attribute = AttributeActiveModel {
-                        system_id: Set(attribute_raw.system_id),
-                        name: Set(attribute_raw.name),
-                        ..Default::default()
-                    };
-                    let created_attribute = new_attribute.insert(txn).await;
-                    match created_attribute {
-                        Ok(result) => {
-                            let values_to_create = attribute_raw
-                                .values_name
-                                .into_iter()
-                                .map(|value_name| AttributeValueModel {
-                                    id: -1,
-                                    attribute_id: result.id,
-                                    value: value_name,
-                                })
-                                .collect();
-                            let values = create_attributes_values(txn, values_to_create).await?;
-                            Ok(AttributeWithAttributeValuesModel {
-                                id: result.id,
-                                system_id: result.system_id,
-                                name: result.name,
-                                values,
-                            })
-                        }
-                        Err(err) => Err(err),
-                    }
-                });
+    let txn = db.begin().await?;
 
-                let mut result = try_join_all(new_attribute).await?;
-                result.sort_by(|a, b| a.id.cmp(&b.id));
-
-                Ok(result)
+    let shared_txn = Arc::new(&txn);
+    let new_attributes = attribute_info.into_iter().map(|attribute_raw| {
+        let txn_cloned = shared_txn.clone();
+        async move {
+            let new_attribute = AttributeActiveModel {
+                system_id: Set(attribute_raw.system_id),
+                name: Set(attribute_raw.name),
+                ..Default::default()
+            };
+            let created_attribute = new_attribute.insert(*txn_cloned).await?;
+            let values_to_create = attribute_raw
+                .values_name
+                .into_iter()
+                .map(|value_name| AttributeValueModel {
+                    id: -1,
+                    attribute_id: created_attribute.id,
+                    value: value_name,
+                })
+                .collect();
+            let values = create_attributes_values(*txn_cloned, values_to_create).await?;
+            Ok::<AttributeWithAttributeValuesModel, DbErr>(AttributeWithAttributeValuesModel {
+                id: created_attribute.id,
+                system_id: created_attribute.system_id,
+                name: created_attribute.name,
+                values,
             })
-        })
-        .await
-        .or_else(|err| {
-            Err(DbErr::Custom(format!(
-                "Transaction error: {}",
-                err.to_string()
-            )))
-        })?;
+        }
+    });
 
-    Ok(new_attributes)
+    let mut result = try_join_all(new_attributes).await?;
+    result.sort_by(|a, b| a.id.cmp(&b.id));
+
+    txn.commit().await?;
+
+    Ok(result)
 }
 
 pub async fn multiple_delete_attributes<C>(db: &C, attributes_ids: Vec<i32>) -> Result<u64, DbErr>

@@ -31,7 +31,7 @@ pub struct Model {
 }
 
 #[derive(ToSchema, TryFromMultipart)]
-pub struct NewSystemMultipart {
+pub struct NewSystemMultipartModel {
     pub about: Option<String>,
     pub name: String,
     #[schema(value_type = String, format = Binary)]
@@ -47,7 +47,7 @@ pub struct SystemsWithPageCount {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
-pub struct UpdateSystem {
+pub struct UpdateSystemModel {
     pub about: Option<String>,
     pub name: Option<String>,
     pub image_uri: Option<String>,
@@ -55,7 +55,7 @@ pub struct UpdateSystem {
 }
 
 #[derive(ToSchema, TryFromMultipart, Debug)]
-pub struct UpdateSystemMultipart {
+pub struct UpdateSystemMultipartModel {
     pub about: Option<String>,
     pub name: Option<String>,
     #[schema(value_type = Option<String>, format = Binary)]
@@ -66,22 +66,22 @@ pub struct UpdateSystemMultipart {
 }
 
 #[derive(Deserialize, ToSchema)]
-pub struct SystemDelete {
+pub struct SystemDeleteModel {
     pub password: String,
 }
 
 #[derive(Deserialize, Serialize, ToSchema, Debug)]
-pub struct SystemBackup {
-    pub system: Model,                                                                //
-    pub objects: Vec<objects::Model>,                                                 //
-    pub object_attribute_attributevalue: Vec<object_attribute_attributevalue::Model>, //
-    pub attributes: Vec<attributes::Model>,                                           //
-    pub attributes_values: Vec<attributesvalues::Model>,                              //
-    pub rules: Vec<rules::Model>,                                                     //
-    pub rule_attribute_attributevalue: Vec<rule_attribute_attributevalue::Model>,     //
-    pub clauses: Vec<clauses::Model>,                                                 //
-    pub questions: Vec<questions::Model>,                                             //
-    pub answers: Vec<answers::Model>,                                                 //
+pub struct SystemBackupModel {
+    pub system: Model, //
+    pub objects: Vec<objects::Model>,
+    pub object_attribute_attributevalue: Vec<object_attribute_attributevalue::Model>,
+    pub attributes: Vec<attributes::Model>,              //
+    pub attributes_values: Vec<attributesvalues::Model>, //
+    pub rules: Vec<rules::Model>,
+    pub rule_attribute_attributevalue: Vec<rule_attribute_attributevalue::Model>,
+    pub clauses: Vec<clauses::Model>,
+    pub questions: Vec<questions::Model>, //
+    pub answers: Vec<answers::Model>,     //
     pub rule_question_answer: Vec<rule_question_answer::Model>,
 }
 
@@ -145,7 +145,7 @@ impl Related<super::users::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-impl IntoActiveModel<ActiveModel> for UpdateSystem {
+impl IntoActiveModel<ActiveModel> for UpdateSystemModel {
     fn into_active_model(self) -> ActiveModel {
         ActiveModel {
             about: Set(self.about),

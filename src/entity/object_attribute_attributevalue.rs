@@ -2,10 +2,12 @@
 
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
 #[sea_orm(table_name = "object_attribute_attributevalue")]
 pub struct Model {
+    #[serde(skip_deserializing)]
     pub id: i32,
     #[sea_orm(primary_key, auto_increment = false)]
     pub object_id: i32,
@@ -13,6 +15,12 @@ pub struct Model {
     pub attribute_value_id: i32,
     #[sea_orm(primary_key, auto_increment = false)]
     pub attribute_id: i32,
+}
+
+#[derive(Deserialize, Clone, ToSchema, Serialize)]
+pub struct NewObjectAttributeAttributevalueWithoutObjectModel {
+    pub attribute_id: i32,
+    pub attribute_value_id: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

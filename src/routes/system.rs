@@ -1,5 +1,5 @@
 use crate::{
-    entity::systems::{NewSystemMultipart, SystemDelete, UpdateSystemMultipart},
+    entity::systems::{NewSystemMultipartModel, SystemDeleteModel, UpdateSystemMultipartModel},
     models::error::CustomErrors,
     pagination::SystemListPagination,
     services::{
@@ -27,7 +27,7 @@ use tower_cookies::Cookies;
     post,
     path = "/systems",
     context_path ="/api/v1",
-    request_body(content = NewSystemMultipart, description = "Multipart file", content_type = "multipart/form-data"),
+    request_body(content = NewSystemMultipartModel, description = "Multipart file", content_type = "multipart/form-data"),
     responses(
         (status = 200, description = "System create successfully", body=SystemModel),
         (status = 401, description = "Unauthorized to create System", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -40,7 +40,7 @@ use tower_cookies::Cookies;
 pub async fn system_create(
     State(state): State<AppState>,
     cookie: Cookies,
-    TypedMultipart(system_info): TypedMultipart<NewSystemMultipart>,
+    TypedMultipart(system_info): TypedMultipart<NewSystemMultipartModel>,
 ) -> impl IntoResponse {
     let user = cookie_check(&state.db_sea, cookie, &state.cookie_key).await?;
 
@@ -203,7 +203,7 @@ pub async fn system_restore(
     patch,
     path = "/systems/{id}",
     context_path ="/api/v1",
-    request_body(content = UpdateSystemMultipart, description = "Multipart file", content_type = "multipart/form-data"),
+    request_body(content = UpdateSystemMultipartModel, description = "Multipart file", content_type = "multipart/form-data"),
     responses(
         (status = 200, description = "System and it dependences updated successfully", body = System),
         (status = 401, description = "Unauthorized to update System and it dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -221,7 +221,7 @@ pub async fn system_restore(
 pub async fn system_partial_update(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
-    TypedMultipart(system_info): TypedMultipart<UpdateSystemMultipart>,
+    TypedMultipart(system_info): TypedMultipart<UpdateSystemMultipartModel>,
 ) -> impl IntoResponse {
     match update_system(&state.db_sea, system_id, system_info).await {
         Ok(result) => Ok(Json(result)),
@@ -236,7 +236,7 @@ pub async fn system_partial_update(
     delete,
     path = "/systems/{id}",
     context_path ="/api/v1",
-    request_body=SystemDelete,
+    request_body=SystemDeleteModel,
     responses(
         (status = 200, description = "System and it dependences deleted successfully", body = u64),
         (status = 401, description = "Unauthorized to delete System and it dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -255,7 +255,7 @@ pub async fn system_delete(
     State(state): State<AppState>,
     cookie: Cookies,
     Path(system_id): Path<i32>,
-    Json(system_info): Json<SystemDelete>,
+    Json(system_info): Json<SystemDeleteModel>,
 ) -> impl IntoResponse {
     password_check(
         &state.db_sea,

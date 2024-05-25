@@ -6,7 +6,7 @@ use utoipa::ToSchema;
 
 use super::answers;
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
 #[sea_orm(table_name = "questions")]
 pub struct Model {
     #[sea_orm(primary_key)]

@@ -79,8 +79,6 @@ pub async fn clause_list(
         .await
         .map_err(|err| CustomErrors::PoolConnectionError(err))?;
 
-    let pagination = pagination as ClauseListPagination;
-
     match get_clauses(&mut connection, pagination.rule_id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::DieselError {

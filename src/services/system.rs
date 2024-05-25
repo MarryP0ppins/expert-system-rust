@@ -6,8 +6,8 @@ use crate::{
         rules::{Column as RuleColumn, Entity as RuleEntity, Model as RuleModel},
         systems::{
             ActiveModel as SystemActiveModel, Column as SystemColumn, Entity as SystemEntity,
-            Model as SystemModel, NewSystemMultipart, SystemsWithPageCount, UpdateSystem,
-            UpdateSystemMultipart,
+            Model as SystemModel, NewSystemMultipartModel, SystemsWithPageCount, UpdateSystemModel,
+            UpdateSystemMultipartModel,
         },
         users::{Column as UserColumn, Entity as UserEntity},
     },
@@ -197,7 +197,7 @@ where
 
 pub async fn create_system<C>(
     db: &C,
-    system_info: NewSystemMultipart,
+    system_info: NewSystemMultipartModel,
     cookie_user_id: i32,
 ) -> Result<SystemModel, DbErr>
 where
@@ -249,7 +249,7 @@ where
 pub async fn update_system<C>(
     db: &C,
     system_id: i32,
-    system_info: UpdateSystemMultipart,
+    system_info: UpdateSystemMultipartModel,
 ) -> Result<SystemModel, DbErr>
 where
     C: ConnectionTrait + TransactionTrait,
@@ -294,7 +294,7 @@ where
         new_image_uri = Some("".to_string());
     }
 
-    let mut user_to_update = UpdateSystem {
+    let mut user_to_update = UpdateSystemModel {
         about: system_info.about,
         name: system_info.name,
         image_uri: new_image_uri,
