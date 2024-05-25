@@ -24,13 +24,13 @@ pub async fn create_answer<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_answers = answer_info.into_iter().map(|new_answer| async move {
+    let new_answers = answer_info.into_iter().map(|new_answer| {
         let model = AnswerActiveModel {
             question_id: Set(new_answer.question_id),
             body: Set(new_answer.body),
             ..Default::default()
         };
-        model.insert(db).await
+        model.insert(db)
     });
 
     let mut result = try_join_all(new_answers).await?;
@@ -58,9 +58,9 @@ pub async fn multiple_update_answers<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_answers = answer_info.into_iter().map(|answer_for_update| async move {
-        answer_for_update.into_active_model().update(db).await
-    });
+    let new_answers = answer_info
+        .into_iter()
+        .map(|answer_for_update| answer_for_update.into_active_model().update(db));
 
     let mut result = try_join_all(new_answers).await?;
 

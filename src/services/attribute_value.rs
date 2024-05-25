@@ -26,17 +26,16 @@ pub async fn create_attributes_values<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_attributevalues =
-        attributes_values_info
-            .into_iter()
-            .map(|new_attributevalue| async move {
-                let model = AttributeValueActiveModel {
-                    attribute_id: Set(new_attributevalue.attribute_id),
-                    value: Set(new_attributevalue.value),
-                    ..Default::default()
-                };
-                model.insert(db).await
-            });
+    let new_attributevalues = attributes_values_info
+        .into_iter()
+        .map(|new_attributevalue| {
+            let model = AttributeValueActiveModel {
+                attribute_id: Set(new_attributevalue.attribute_id),
+                value: Set(new_attributevalue.value),
+                ..Default::default()
+            };
+            model.insert(db)
+        });
 
     let mut result = try_join_all(new_attributevalues).await?;
 
@@ -69,11 +68,8 @@ where
     let new_attributes_values =
         attributes_values_info
             .into_iter()
-            .map(|attributes_values_for_update| async move {
-                attributes_values_for_update
-                    .into_active_model()
-                    .update(db)
-                    .await
+            .map(|attributes_values_for_update| {
+                attributes_values_for_update.into_active_model().update(db)
             });
 
     let mut result = try_join_all(new_attributes_values).await?;

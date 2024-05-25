@@ -107,9 +107,7 @@ where
 {
     let updated_objects = object_info
         .into_iter()
-        .map(|objects_for_update| async move {
-            objects_for_update.into_active_model().update(db).await
-        });
+        .map(|objects_for_update| objects_for_update.into_active_model().update(db));
 
     let mut objects = try_join_all(updated_objects).await?;
     objects.sort_by(|a, b| a.id.cmp(&b.id));

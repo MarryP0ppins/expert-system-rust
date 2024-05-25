@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::entity::{
     answers::{Entity as AnswerEntity, Model as AnswerModel},
     questions::{
@@ -45,56 +47,46 @@ pub async fn create_questions<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_questions = db
-        .transaction::<_, Vec<QuestionWithAnswersModel>, DbErr>(|txn| {
-            Box::pin(async move {
-                let new_question = question_info.into_iter().map(|question_raw| async move {
-                    let new_question = QuestionActiveModel {
-                        system_id: Set(question_raw.system_id),
-                        body: Set(question_raw.body),
-                        with_chooses: Set(question_raw.with_chooses),
-                        ..Default::default()
-                    };
-                    let created_question = new_question.insert(txn).await;
-                    match created_question {
-                        Ok(result) => {
-                            let values_to_create = question_raw
-                                .answers_body
-                                .into_iter()
-                                .map(|answer_name| AnswerModel {
-                                    id: -1,
-                                    question_id: result.id,
-                                    body: answer_name,
-                                })
-                                .collect();
-                            let answers = create_answer(txn, values_to_create).await?;
-                            Ok(QuestionWithAnswersModel {
-                                id: result.id,
-                                system_id: result.system_id,
-                                body: result.body,
-                                with_chooses: result.with_chooses,
-                                answers,
-                            })
-                        }
-                        Err(err) => Err(err),
-                    }
-                });
+    let txn = db.begin().await?;
+    let shared_txn = Arc::new(&txn);
 
-                let mut result = try_join_all(new_question).await?;
-                result.sort_by(|a, b| a.id.cmp(&b.id));
+    let new_questions = question_info.into_iter().map(|question_raw| {
+        let txn_cloned = Arc::clone(&shared_txn);
+        async move {
+            let new_question = QuestionActiveModel {
+                system_id: Set(question_raw.system_id),
+                body: Set(question_raw.body),
+                with_chooses: Set(question_raw.with_chooses),
+                ..Default::default()
+            };
+            let created_question = new_question.insert(*txn_cloned).await?;
 
-                Ok(result)
+            let values_to_create = question_raw
+                .answers_body
+                .into_iter()
+                .map(|answer_name| AnswerModel {
+                    id: -1,
+                    question_id: created_question.id,
+                    body: answer_name,
+                })
+                .collect();
+            let answers = create_answer(*txn_cloned, values_to_create).await?;
+            Ok::<QuestionWithAnswersModel, DbErr>(QuestionWithAnswersModel {
+                id: created_question.id,
+                system_id: created_question.system_id,
+                body: created_question.body,
+                with_chooses: created_question.with_chooses,
+                answers,
             })
-        })
-        .await
-        .or_else(|err| {
-            Err(DbErr::Custom(format!(
-                "Transaction error: {}",
-                err.to_string()
-            )))
-        })?;
+        }
+    });
 
-    Ok(new_questions)
+    let mut result = try_join_all(new_questions).await?;
+    result.sort_by(|a, b| a.id.cmp(&b.id));
+
+    txn.commit().await?;
+
+    Ok(result)
 }
 
 pub async fn multiple_delete_questions<C>(db: &C, questions_ids: Vec<i32>) -> Result<u64, DbErr>
@@ -117,9 +109,7 @@ where
 {
     let updated_questions = questions_info
         .into_iter()
-        .map(|questions_for_update| async move {
-            questions_for_update.into_active_model().update(db).await
-        });
+        .map(|questions_for_update| questions_for_update.into_active_model().update(db));
 
     let mut questions = try_join_all(updated_questions).await?;
     questions.sort_by(|a, b| a.id.cmp(&b.id));

@@ -17,14 +17,14 @@ where
     let new_attribute_values_objects =
         attribute_values_objects
             .into_iter()
-            .map(|new_attribute_values_object| async move {
+            .map(|new_attribute_values_object| {
                 let model = ObjectAttributeAttributeValueActiveModel {
                     object_id: Set(new_attribute_values_object.object_id),
                     attribute_value_id: Set(new_attribute_values_object.attribute_value_id),
                     attribute_id: Set(new_attribute_values_object.attribute_id),
                     ..Default::default()
                 };
-                model.insert(db).await
+                model.insert(db)
             });
 
     let result = try_join_all(new_attribute_values_objects).await?;

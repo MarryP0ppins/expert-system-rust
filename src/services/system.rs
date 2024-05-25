@@ -3,7 +3,7 @@ use crate::{
         clauses::Entity as ClauseEntity,
         questions::QuestionWithAnswersModel,
         rule_question_answer::Entity as RuleQuestionAnswerEntity,
-        rules::{Column as RuleColumn, Entity as RuleEntity, Model as RuleModel},
+        rules::{Column as RuleColumn, Entity as RuleEntity},
         systems::{
             ActiveModel as SystemActiveModel, Column as SystemColumn, Entity as SystemEntity,
             Model as SystemModel, NewSystemMultipartModel, SystemsWithPageCount, UpdateSystemModel,
@@ -37,11 +37,7 @@ where
         query = query.filter(SystemColumn::UserId.eq(_id));
     }
 
-    if let Some(all_types) = params.all_types {
-        if !all_types {
-            query = query.filter(SystemColumn::Private.eq(false));
-        }
-    } else {
+    if !params.all_types.map_or(false, |all_types| all_types) {
         query = query.filter(SystemColumn::Private.eq(false));
     }
 
@@ -57,18 +53,10 @@ where
 
     let raw_count = query.clone().count(db).await? as f64;
 
-    let per_page = params
-        .per_page
-        .and_then(|per_page| Some(per_page as u64))
-        .map_or(20u64, |per_page| per_page);
-    let page = params
-        .page
-        .and_then(|page| Some((page - 1) as u64))
-        .map_or(1u64, |page| page);
+    let per_page = params.per_page.unwrap_or(20) as u64;
+    let page = params.page.unwrap_or(1) as u64 - 1;
 
     let _systems = query
-        .select_only()
-        .columns(SystemColumn::iter())
         .order_by_desc(SystemColumn::UpdatedAt)
         .limit(per_page)
         .offset(per_page * page)
@@ -99,46 +87,36 @@ where
     C: ConnectionTrait + TransactionTrait,
 {
     let _questions_with_answers = get_questions(db, system_id).await?;
-    //println!("111111111111111111111111\n{:?}", &_questions_with_answers);
+
     let _rules_with_question_rule = RuleEntity::find()
         .filter(RuleColumn::SystemId.eq(system_id))
+        .filter(RuleColumn::AttributeRule.eq(false))
         .all(db)
-        .await?
-        .into_iter()
-        .filter(|rule| !rule.attribute_rule)
-        .collect::<Vec<RuleModel>>();
+        .await?;
 
-    // println!(
-    //     "2222222222222222222222222\n{:?}",
-    //     &_rules_with_question_rule
-    // );
     let clauses = _rules_with_question_rule
         .load_many(ClauseEntity, db)
         .await?;
-    let rules_with_deps =
-        clauses
-            .into_iter()
-            .zip(&_rules_with_question_rule)
-            .map(|(clauses, rule)| {
-                (
-                    rule.id,
-                    clauses
-                        .as_slice()
-                        .into_iter()
-                        .map(|clause| clause.question_id)
-                        .collect::<Vec<i32>>(),
-                )
-            });
 
-    let _rules_with_question_deps: HashMap<i32, Vec<i32>> = HashMap::from_iter(rules_with_deps);
-
-    //println!("3333333333333333333333\n{:?}", &_rules_with_question_deps);
+    let _rules_with_question_deps: HashMap<i32, Vec<i32>> = clauses
+        .into_iter()
+        .zip(&_rules_with_question_rule)
+        .map(|(clauses, rule)| {
+            (
+                rule.id,
+                clauses
+                    .into_iter()
+                    .map(|clause| clause.question_id)
+                    .collect(),
+            )
+        })
+        .collect();
 
     let rule_question_answers = _rules_with_question_rule
         .load_many(RuleQuestionAnswerEntity, db)
         .await?;
 
-    let mut rules_belonging_questions: HashMap<i32, Vec<i32>> = HashMap::new();
+    let mut rules_belonging_questions: HashMap<i32, HashSet<i32>> = HashMap::new();
 
     rule_question_answers
         .into_iter()
@@ -147,15 +125,13 @@ where
             raw.into_iter().for_each(|raw_with_question_id| {
                 let deps = _rules_with_question_deps
                     .get(&rule.id)
-                    .map_or(vec![], |deps| deps.to_vec());
-                let dependancies: HashSet<i32> = HashSet::from_iter(deps.into_iter());
+                    .cloned()
+                    .unwrap_or_default();
+                let dependancies: HashSet<i32> = deps.into_iter().collect();
                 rules_belonging_questions
                     .entry(raw_with_question_id.question_id)
                     .and_modify(|dep| {
-                        *dep = HashSet::from_iter(dep.clone().into_iter())
-                            .union(&dependancies)
-                            .cloned()
-                            .collect();
+                        *dep = dep.union(&dependancies).cloned().collect();
                     })
                     .or_insert(dependancies.into_iter().collect());
             })
@@ -167,31 +143,21 @@ where
         .for_each(|question| {
             rules_belonging_questions
                 .entry(question.id)
-                .or_insert(vec![]);
+                .or_insert(HashSet::new());
         });
 
-    // println!(
-    //     "44444444444444444444444444\n{:?}",
-    //     &rules_belonging_questions
-    // );
     let belonging_questions_order = topological_sort(&rules_belonging_questions);
-
-    // println!(
-    //     "55555555555555555555555555\n{:?}",
-    //     &belonging_questions_order
-    // );
 
     let ordered_questions = belonging_questions_order
         .into_iter()
         .filter_map(|question_order_id| {
             _questions_with_answers
-                .as_slice()
-                .into_iter()
-                .find(|&question| question.id == question_order_id)
-                .and_then(|borrow| Some(borrow.clone()))
+                .iter()
+                .find(|question| question.id == question_order_id)
+                .cloned()
         })
         .collect::<Vec<QuestionWithAnswersModel>>();
-    //println!("7777777777777777777777777777\n{:?}", &ordered_questions);
+
     Ok(ordered_questions)
 }
 

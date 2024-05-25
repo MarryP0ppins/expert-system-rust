@@ -50,10 +50,10 @@ where
     C: ConnectionTrait + TransactionTrait,
 {
     let txn = db.begin().await?;
-
     let shared_txn = Arc::new(&txn);
+
     let new_attributes = attribute_info.into_iter().map(|attribute_raw| {
-        let txn_cloned = shared_txn.clone();
+        let txn_cloned = Arc::clone(&shared_txn);
         async move {
             let new_attribute = AttributeActiveModel {
                 system_id: Set(attribute_raw.system_id),
@@ -108,9 +108,7 @@ where
 {
     let updated_attributes = attributes_info
         .into_iter()
-        .map(|attributes_for_update| async move {
-            attributes_for_update.into_active_model().update(db).await
-        });
+        .map(|attributes_for_update| attributes_for_update.into_active_model().update(db));
 
     let mut attributes = try_join_all(updated_attributes).await?;
     attributes.sort_by(|a, b| a.id.cmp(&b.id));
