@@ -13,11 +13,6 @@ use utoipa::ToSchema;
 
 #[derive(ToSchema)]
 pub enum CustomErrors {
-    DieselError {
-        #[schema(value_type=String)]
-        error: diesel::result::Error,
-        message: Option<String>,
-    },
     SeaORMError {
         #[schema(value_type=String)]
         error: DbErr,
@@ -35,22 +30,11 @@ pub enum CustomErrors {
         status: StatusCode,
         error: String,
     },
-    #[schema(value_type=String)]
-    PoolConnectionError(diesel_async::pooled_connection::bb8::RunError),
     AesGsmError {
         #[schema(value_type=String)]
         error: aes_gcm_siv::Error,
         message: Option<String>,
     },
-}
-
-impl From<diesel::result::Error> for CustomErrors {
-    fn from(error: diesel::result::Error) -> Self {
-        Self::DieselError {
-            error,
-            message: None,
-        }
-    }
 }
 
 impl Serialize for CustomErrors {
@@ -59,15 +43,6 @@ impl Serialize for CustomErrors {
         S: Serializer,
     {
         match self {
-            CustomErrors::DieselError { error, message } => {
-                let mut state = serializer.serialize_struct("DieselError", 3)?;
-                state.serialize_field("status", &StatusCode::BAD_REQUEST.as_u16())?;
-                state.serialize_field("error", &error.to_string())?;
-                if let Some(msg) = message {
-                    state.serialize_field("extra", msg)?;
-                }
-                state.end()
-            }
             CustomErrors::SeaORMError { error, message } => {
                 let mut state = serializer.serialize_struct("SeaORMError", 3)?;
                 state.serialize_field("status", &StatusCode::BAD_REQUEST.as_u16())?;
@@ -96,13 +71,6 @@ impl Serialize for CustomErrors {
                 state.serialize_field("error", error)?;
                 state.end()
             }
-            CustomErrors::PoolConnectionError(error) => {
-                let mut state = serializer.serialize_struct("PoolConnectionError", 3)?;
-                state.serialize_field("status", &StatusCode::INTERNAL_SERVER_ERROR.as_u16())?;
-                state.serialize_field("error", &error.to_string())?;
-                state.serialize_field("extra", "Failed to get a database connection")?;
-                state.end()
-            }
             CustomErrors::AesGsmError { error, message } => {
                 let mut state = serializer.serialize_struct("AesGsmError", 3)?;
                 state.serialize_field("status", &StatusCode::BAD_REQUEST.as_u16())?;
@@ -119,14 +87,6 @@ impl Serialize for CustomErrors {
 impl IntoResponse for CustomErrors {
     fn into_response(self) -> Response {
         let response = match self {
-            CustomErrors::DieselError { error, message } => (
-                StatusCode::BAD_REQUEST,
-                Json(json!({
-                    "status": StatusCode::BAD_REQUEST.as_u16(),
-                    "error": error.to_string(),
-                    "extra": message,
-                })),
-            ),
             CustomErrors::SeaORMError { error, message } => (
                 StatusCode::BAD_REQUEST,
                 Json(json!({
@@ -152,14 +112,6 @@ impl IntoResponse for CustomErrors {
                 Json(json!({
                     "status":status.as_u16(),
                     "error":error
-                })),
-            ),
-            CustomErrors::PoolConnectionError(error) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "status": StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-                    "error": error.to_string(),
-                    "extra": Some("Failed to get a database connection".to_string()),
                 })),
             ),
             CustomErrors::AesGsmError { error, message } => (

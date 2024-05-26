@@ -107,9 +107,9 @@ pub async fn question_multiple_delete(
     patch,
     path = "/questions/multiple_update",
     context_path ="/api/v1",
-    request_body = [UpdateQuestion],
+    request_body = [UpdateQuestionModel],
     responses(
-        (status = 200, description = "Quetions and their dependences updated successfully", body = [QuestionWithAnswers]),
+        (status = 200, description = "Quetions and their dependences updated successfully", body = [QuestionWithAnswersModel]),
         (status = 401, description = "Unauthorized to update Quetions and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),

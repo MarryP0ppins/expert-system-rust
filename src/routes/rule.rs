@@ -1,5 +1,6 @@
 use crate::{
-    models::{error::CustomErrors, rule::NewRuleWithClausesAndEffects},
+    entity::rules::NewRuleWithClausesAndEffects,
+    models::error::CustomErrors,
     pagination::RuleListPagination,
     services::rule::{create_rule, get_rules, multiple_delete_rules},
     AppState,
@@ -19,7 +20,7 @@ use axum::{
     context_path ="/api/v1",
     request_body = [NewRuleWithClausesAndEffects],
     responses(
-        (status = 200, description = "Rule create successfully", body = RuleWithClausesAndEffects),
+        (status = 200, description = "Rule create successfully", body = [RuleWithClausesAndEffects]),
         (status = 401, description = "Unauthorized to create Rule", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -32,15 +33,9 @@ pub async fn rule_create(
     State(state): State<AppState>,
     Json(rule_info): Json<Vec<NewRuleWithClausesAndEffects>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match create_rule(&mut connection, rule_info).await {
+    match create_rule(&state.db_sea, rule_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -68,15 +63,9 @@ pub async fn rule_list(
     State(state): State<AppState>,
     Query(pagination): Query<RuleListPagination>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match get_rules(&mut connection, pagination.system_id).await {
+    match get_rules(&state.db_sea, pagination.system_id).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -89,7 +78,7 @@ pub async fn rule_list(
     context_path ="/api/v1",
     request_body = [i32],
     responses(
-        (status = 200, description = "Rules and their dependences deleted successfully", body = CustomErrors, example = json!(())),
+        (status = 200, description = "Rules and their dependences deleted successfully", body = u64),
         (status = 401, description = "Unauthorized to delete Rules and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -103,15 +92,9 @@ pub async fn rule_multiple_delete(
     State(state): State<AppState>,
     Json(rule_info): Json<Vec<i32>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match multiple_delete_rules(&mut connection, rule_info).await {
-        Ok(_) => Ok(()),
-        Err(err) => Err(CustomErrors::DieselError {
+    match multiple_delete_rules(&state.db_sea, rule_info).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),

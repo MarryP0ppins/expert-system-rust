@@ -1,5 +1,5 @@
 use crate::{
-    entity::answers::{Model as AnswerModel, UpdateAnswerModel},
+    entity::answers::{AnswerModel, UpdateAnswerModel},
     models::error::CustomErrors,
     pagination::AnswerListPagination,
     services::answer::{
@@ -107,7 +107,7 @@ pub async fn answer_multiple_delete(
     patch,
     path = "/answers/multiple_update",
     context_path ="/api/v1",
-    request_body = [UpdateAnswer],
+    request_body = [UpdateAnswerModel],
     responses(
         (status = 200, description = "Answers updated successfully", body = [AnswerModel]),
         (status = 401, description = "Unauthorized to update Answers", body = CustomErrors, example = json!(CustomErrors::StringError {

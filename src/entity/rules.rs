@@ -2,14 +2,41 @@
 
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+
+use super::{
+    clauses::{self, NewClauseWithoutRule},
+    rule_attribute_attributevalue::{self, NewRuleAttributeAttributeValueWithoutRuleModel},
+    rule_question_answer::{self, NewRuleQuestionAnswerWithoutRuleModel},
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "rules")]
 pub struct Model {
     #[sea_orm(primary_key)]
+    #[serde(skip_deserializing)]
     pub id: i32,
     pub system_id: i32,
     pub attribute_rule: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct RuleWithClausesAndEffects {
+    pub id: i32,
+    pub system_id: i32,
+    pub attribute_rule: bool,
+    pub clauses: Vec<clauses::Model>,
+    pub rule_question_answer_ids: Vec<rule_question_answer::Model>,
+    pub rule_attribute_attributevalue_ids: Vec<rule_attribute_attributevalue::Model>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct NewRuleWithClausesAndEffects {
+    pub system_id: i32,
+    pub attribute_rule: bool,
+    pub clauses: Vec<NewClauseWithoutRule>,
+    pub rule_question_answer_ids: Vec<NewRuleQuestionAnswerWithoutRuleModel>,
+    pub rule_attribute_attributevalue_ids: Vec<NewRuleAttributeAttributeValueWithoutRuleModel>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

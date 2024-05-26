@@ -78,11 +78,11 @@ pub struct SystemBackupModel {
     pub attributes: Vec<attributes::Model>,                                           //
     pub attributes_values: Vec<attributesvalues::Model>,                              //
     pub rules: Vec<rules::Model>,
-    pub rule_attribute_attributevalue: Vec<rule_attribute_attributevalue::Model>,
-    pub clauses: Vec<clauses::Model>,
-    pub questions: Vec<questions::Model>, //
-    pub answers: Vec<answers::Model>,     //
-    pub rule_question_answer: Vec<rule_question_answer::Model>,
+    pub rule_attribute_attributevalue: Vec<rule_attribute_attributevalue::Model>, //
+    pub clauses: Vec<clauses::Model>,                                             //
+    pub questions: Vec<questions::Model>,                                         //
+    pub answers: Vec<answers::Model>,                                             //
+    pub rule_question_answer: Vec<rule_question_answer::Model>,                   //
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -20,7 +20,7 @@ use axum::{
     post,
     path = "/attributes",
     context_path ="/api/v1",
-    request_body = [AttributeWithAttributeValuesModel],
+    request_body = [NewAttributeWithAttributeValuesModel],
     responses(
         (status = 200, description = "Attributes and their dependences create successfully", body = [AttributeWithAttributeValuesModel]),
         (status = 401, description = "Unauthorized to create Attributes and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -49,7 +49,7 @@ pub async fn attribute_create(
     path = "/attributes",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching Attributes and their dependences by query", body = [AttributeWithAttributeValues]),
+        (status = 200, description = "List matching Attributes and their dependences by query", body = [AttributeWithAttributeValuesModel]),
         (status = 401, description = "Unauthorized to list Attributes and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -80,7 +80,7 @@ pub async fn attribute_list(
     context_path ="/api/v1",
     request_body = [i32],
     responses(
-        (status = 200, description = "Attributes and their dependences deleted successfully", body = CustomErrors, example = json!(())),
+        (status = 200, description = "Attributes and their dependences deleted successfully", body = u64),
         (status = 401, description = "Unauthorized to delete Attributes and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),

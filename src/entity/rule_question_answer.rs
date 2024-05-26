@@ -4,7 +4,7 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
 #[sea_orm(table_name = "rule_question_answer")]
 pub struct Model {
     #[serde(skip_deserializing)]
@@ -17,8 +17,8 @@ pub struct Model {
     pub question_id: i32,
 }
 
-#[derive(Deserialize, Clone, ToSchema, Serialize)]
-pub struct NewRuleQuestionAnswerWithoutRule {
+#[derive(Deserialize, Clone, ToSchema, Serialize, Debug)]
+pub struct NewRuleQuestionAnswerWithoutRuleModel {
     pub answer_id: i32,
     pub question_id: i32,
 }

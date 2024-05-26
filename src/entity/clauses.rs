@@ -5,7 +5,7 @@ use sea_orm::{entity::prelude::*, ActiveValue::NotSet, IntoActiveModel, Set, Unc
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
 #[sea_orm(table_name = "clauses")]
 pub struct Model {
     #[sea_orm(primary_key)]

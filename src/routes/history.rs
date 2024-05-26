@@ -1,5 +1,6 @@
 use crate::{
-    models::{error::CustomErrors, history::NewHistory},
+    entity::histories::Model as HistoryModel,
+    models::error::CustomErrors,
     pagination::HistoryListPagination,
     services::history::{create_history, delete_history, get_histories},
     AppState,
@@ -17,7 +18,7 @@ use axum::{
     post,
     path = "/histories",
     context_path ="/api/v1",
-    request_body = NewHistory,
+    request_body = HistoryModel,
     responses(
         (status = 200, description = "Histories create successfully", body = HistoryWithSystem),
         (status = 401, description = "Unauthorized to create Histories", body = CustomErrors, example = json!(CustomErrors::StringError {
@@ -30,17 +31,11 @@ use axum::{
 #[debug_handler]
 pub async fn history_create(
     State(state): State<AppState>,
-    Json(history_info): Json<NewHistory>,
+    Json(history_info): Json<HistoryModel>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match create_history(&mut connection, history_info).await {
+    match create_history(&state.db_sea, history_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -68,15 +63,9 @@ pub async fn history_list(
     State(state): State<AppState>,
     Query(pagination): Query<HistoryListPagination>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match get_histories(&mut connection, pagination.system, pagination.user).await {
+    match get_histories(&state.db_sea, pagination.system, pagination.user).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -88,7 +77,7 @@ pub async fn history_list(
     path = "/histories/{id}",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "History deleted successfully", body = CustomErrors, example = json!(())),
+        (status = 200, description = "History deleted successfully", body = u64),
         (status = 401, description = "Unauthorized to delete History", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -105,15 +94,9 @@ pub async fn history_delete(
     State(state): State<AppState>,
     Path(history_id): Path<i32>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match delete_history(&mut connection, history_id).await {
-        Ok(_) => Ok(()),
-        Err(err) => Err(CustomErrors::DieselError {
+    match delete_history(&state.db_sea, history_id).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),

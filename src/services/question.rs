@@ -86,7 +86,7 @@ where
     });
 
     let mut result = try_join_all(new_questions).await?;
-    result.sort_by(|a, b| a.id.cmp(&b.id));
+    result.sort_by_key(|question| question.id);
 
     txn.commit().await?;
 

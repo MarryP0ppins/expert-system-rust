@@ -179,7 +179,7 @@ pub async fn system_backup(
     path = "/systems/restore",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "Sususfully restore", body = System),
+        (status = 200, description = "Sususfully restore", body = SystemModel),
         (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),

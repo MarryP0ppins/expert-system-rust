@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate dotenv_codegen;
-extern crate diesel;
 extern crate dotenv;
 
 #[cfg(not(debug_assertions))]
@@ -10,10 +9,6 @@ use axum::{
     middleware as axum_middleware, Router,
 };
 use constants::IMAGE_DIR;
-use diesel_async::{
-    pooled_connection::{bb8, AsyncDieselConnectionManager},
-    AsyncPgConnection,
-};
 use dotenv::dotenv;
 use http::{
     header::{ACCEPT, CONTENT_TYPE, SET_COOKIE, X_CONTENT_TYPE_OPTIONS},
@@ -55,11 +50,8 @@ mod services;
 mod swagger;
 mod utils;
 
-type AsyncPool = bb8::Pool<AsyncPgConnection>;
-
 #[derive(Clone)]
 struct AppState {
-    db_pool: AsyncPool,
     db_sea: DatabaseConnection,
     cookie_key: Key,
 }
@@ -67,18 +59,16 @@ struct AppState {
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .with_test_writer()
-        .init();
+
+    #[cfg(debug_assertions)]
+    {
+        tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::DEBUG)
+            .with_test_writer()
+            .init();
+    }
 
     let database_url = dotenv!("DATABASE_URL");
-    let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(database_url);
-    let pool = bb8::Pool::builder()
-        .build(manager)
-        .await
-        .expect("Failed to create pool");
-
     let db: DatabaseConnection = Database::connect(database_url)
         .await
         .expect("Failed to create sea connection");
@@ -87,7 +77,6 @@ async fn main() {
     let secret_key = Key::from(cookie_key.as_bytes());
 
     let state = AppState {
-        db_pool: pool,
         db_sea: db,
         cookie_key: secret_key,
     };

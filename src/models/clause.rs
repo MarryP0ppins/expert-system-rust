@@ -1,13 +1,3 @@
-use super::{question::Question, rule::Rule};
-use crate::schema::{clauses, sql_types::Operatorenum};
-use diesel::prelude::*;
-use diesel_derive_enum::DbEnum;
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
-
-#[derive(Debug, DbEnum, Deserialize, Serialize, Clone, ToSchema)]
-#[ExistingTypePath = "Operatorenum"]
-#[DbValueStyle = "SCREAMING_SNAKE_CASE"]
 pub enum RuleOperator {
     Equal,
     NotEqual,
@@ -17,20 +7,6 @@ pub enum RuleOperator {
     NoLessThan,
 }
 
-#[derive(
-    Queryable,
-    Serialize,
-    Deserialize,
-    Identifiable,
-    Associations,
-    Selectable,
-    Clone,
-    ToSchema,
-    Debug,
-)]
-#[diesel(belongs_to(Rule))]
-#[diesel(belongs_to(Question))]
-#[diesel(table_name=clauses)]
 pub struct Clause {
     pub id: i32,
     pub rule_id: i32,
@@ -40,8 +16,6 @@ pub struct Clause {
     pub question_id: i32,
 }
 
-#[derive(Queryable, Insertable, Deserialize, ToSchema)]
-#[diesel(table_name=clauses)]
 pub struct NewClause {
     pub rule_id: i32,
     pub compared_value: String,
@@ -50,7 +24,6 @@ pub struct NewClause {
     pub question_id: i32,
 }
 
-#[derive(Queryable, Deserialize, ToSchema)]
 pub struct NewClauseWithoutRule {
     pub compared_value: String,
     pub logical_group: String,
@@ -58,8 +31,6 @@ pub struct NewClauseWithoutRule {
     pub question_id: i32,
 }
 
-#[derive(Deserialize, AsChangeset, Clone, ToSchema)]
-#[diesel(table_name=clauses)]
 pub struct UpdateClause {
     pub id: i32,
     pub compared_value: Option<String>,
