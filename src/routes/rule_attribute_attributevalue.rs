@@ -1,5 +1,6 @@
 use crate::{
-    models::{error::CustomErrors, rule_attribute_attributevalue::NewRuleAttributeAttributeValue},
+    entity::rule_attribute_attributevalue::Model as RuleAttributeAttributevalueModel,
+    models::error::CustomErrors,
     services::rule_attribute_attributevalue::{
         create_rule_attribute_attributevalues, multiple_delete_rule_attribute_attributevalues,
     },
@@ -18,9 +19,9 @@ use axum::{
     post,
     path = "/rule-attributevalues",
     context_path ="/api/v1",
-    request_body = [NewRuleAttributeAttributeValue],
+    request_body = [RuleAttributeAttributevalueModel],
     responses(
-        (status = 200, description = "RuleAttributeAttributeValues and their dependences create successfully", body = CustomErrors, example = json!(())),
+        (status = 200, description = "RuleAttributeAttributeValues and their dependences create successfully", body = [RuleAttributeAttributevalueModel]),
         (status = 401, description = "Unauthorized to create RuleAttributeAttributeValue and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -31,20 +32,13 @@ use axum::{
 #[debug_handler]
 pub async fn rule_attribute_attributevalue_create(
     State(state): State<AppState>,
-
-    Json(rule_attribute_attributevalue_info): Json<Vec<NewRuleAttributeAttributeValue>>,
+    Json(rule_attribute_attributevalue_info): Json<Vec<RuleAttributeAttributevalueModel>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match create_rule_attribute_attributevalues(&mut connection, rule_attribute_attributevalue_info)
+    match create_rule_attribute_attributevalues(&state.db_sea, rule_attribute_attributevalue_info)
         .await
     {
         Ok(_) => Ok(()),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -57,7 +51,7 @@ pub async fn rule_attribute_attributevalue_create(
     context_path ="/api/v1",
     request_body = [i32],
     responses(
-        (status = 200, description = "RuleAttributeAttributeValues and their dependences deleted successfully", body = CustomErrors, example = json!(())),
+        (status = 200, description = "RuleAttributeAttributeValues and their dependences deleted successfully", body = u64),
         (status = 401, description = "Unauthorized to delete RuleAttributeAttributeValues and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -71,20 +65,14 @@ pub async fn rule_attribute_attributevalue_multiple_delete(
     State(state): State<AppState>,
     Json(rule_attribute_attributevalue_info): Json<Vec<i32>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
     match multiple_delete_rule_attribute_attributevalues(
-        &mut connection,
+        &state.db_sea,
         rule_attribute_attributevalue_info,
     )
     .await
     {
         Ok(_) => Ok(()),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),

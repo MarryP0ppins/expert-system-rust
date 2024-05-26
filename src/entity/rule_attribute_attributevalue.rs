@@ -2,16 +2,24 @@
 
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "rule_attribute_attributevalue")]
 pub struct Model {
+    #[serde(skip_deserializing)]
     pub id: i32,
     #[sea_orm(primary_key, auto_increment = false)]
     pub attribute_value_id: i32,
     #[sea_orm(primary_key, auto_increment = false)]
     pub rule_id: i32,
     #[sea_orm(primary_key, auto_increment = false)]
+    pub attribute_id: i32,
+}
+
+#[derive(Deserialize, Clone, ToSchema, Serialize)]
+pub struct NewRuleAttributeAttributeValueWithoutRule {
+    pub attribute_value_id: i32,
     pub attribute_id: i32,
 }
 

@@ -2,16 +2,24 @@
 
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "rule_question_answer")]
 pub struct Model {
+    #[serde(skip_deserializing)]
     pub id: i32,
     #[sea_orm(primary_key, auto_increment = false)]
     pub answer_id: i32,
     #[sea_orm(primary_key, auto_increment = false)]
     pub rule_id: i32,
     #[sea_orm(primary_key, auto_increment = false)]
+    pub question_id: i32,
+}
+
+#[derive(Deserialize, Clone, ToSchema, Serialize)]
+pub struct NewRuleQuestionAnswerWithoutRule {
+    pub answer_id: i32,
     pub question_id: i32,
 }
 
