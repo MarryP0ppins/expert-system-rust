@@ -27,7 +27,8 @@ where
                 model.insert(db)
             });
 
-    let result = try_join_all(new_attribute_values_objects).await?;
+    let mut result = try_join_all(new_attribute_values_objects).await?;
+    result.sort_by_key(|attribute_values_object| attribute_values_object.id);
 
     Ok(result)
 }

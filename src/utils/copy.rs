@@ -26,8 +26,11 @@ use crate::{
     },
     models::error::CustomErrors,
 };
+use futures::{
+    future::try_join_all,
+    stream::{StreamExt, TryStreamExt},
+};
 
-use futures::future::try_join_all;
 use http::StatusCode;
 use sea_orm::*;
 
@@ -64,22 +67,21 @@ pub async fn copy_questions<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_questions = old_questions.into_iter().map(|question| async move {
+    let new_questions = old_questions.into_iter().map(|question| {
         let model = QuestionActiveModel {
             system_id: Set(new_system_id),
             body: Set(question.body.clone()),
             with_chooses: Set(question.with_chooses),
             ..Default::default()
         };
-        model
-            .insert(db)
-            .await
-            .map_err(|err| CustomErrors::SeaORMError {
-                error: err,
-                message: None,
-            })
+        model.insert(db)
     });
-    let result = try_join_all(new_questions).await?;
+    let result = try_join_all(new_questions)
+        .await
+        .map_err(|err| CustomErrors::SeaORMError {
+            error: err,
+            message: None,
+        })?;
 
     question_map.extend(
         old_questions
@@ -100,21 +102,20 @@ pub async fn copy_attributes<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_attributes = old_attributes.into_iter().map(|attribute| async move {
+    let new_attributes = old_attributes.into_iter().map(|attribute| {
         let model = AttributeActiveModel {
             system_id: Set(new_system_id),
             name: Set(attribute.name.clone()),
             ..Default::default()
         };
-        model
-            .insert(db)
-            .await
-            .map_err(|err| CustomErrors::SeaORMError {
-                error: err,
-                message: None,
-            })
+        model.insert(db)
     });
-    let result = try_join_all(new_attributes).await?;
+    let result = try_join_all(new_attributes)
+        .await
+        .map_err(|err| CustomErrors::SeaORMError {
+            error: err,
+            message: None,
+        })?;
 
     attribute_map.extend(
         old_attributes
@@ -135,21 +136,20 @@ pub async fn copy_objects<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_objects = old_objects.into_iter().map(|object| async move {
+    let new_objects = old_objects.into_iter().map(|object| {
         let model = ObjectActiveModel {
             system_id: Set(new_system_id),
             name: Set(object.name.clone()),
             ..Default::default()
         };
-        model
-            .insert(db)
-            .await
-            .map_err(|err| CustomErrors::SeaORMError {
-                error: err,
-                message: None,
-            })
+        model.insert(db)
     });
-    let result = try_join_all(new_objects).await?;
+    let result = try_join_all(new_objects)
+        .await
+        .map_err(|err| CustomErrors::SeaORMError {
+            error: err,
+            message: None,
+        })?;
 
     object_map.extend(
         old_objects
@@ -170,21 +170,20 @@ pub async fn copy_rules<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_rules = old_rules.into_iter().map(|rule| async move {
+    let new_rules = old_rules.into_iter().map(|rule| {
         let model = RuleActiveModel {
             system_id: Set(new_system_id),
             attribute_rule: Set(rule.attribute_rule),
             ..Default::default()
         };
-        model
-            .insert(db)
-            .await
-            .map_err(|err| CustomErrors::SeaORMError {
-                error: err,
-                message: None,
-            })
+        model.insert(db)
     });
-    let result = try_join_all(new_rules).await?;
+    let result = try_join_all(new_rules)
+        .await
+        .map_err(|err| CustomErrors::SeaORMError {
+            error: err,
+            message: None,
+        })?;
 
     rule_map.extend(
         old_rules
@@ -205,33 +204,36 @@ pub async fn copy_attribute_values<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_new_attribute_values =
-        old_attribute_values
-            .into_iter()
-            .map(|old_attribute_value| async move {
-                let new_attribute_id = attribute_map.get(&old_attribute_value.attribute_id).ok_or(
-                    CustomErrors::StringError {
-                        status: StatusCode::UNPROCESSABLE_ENTITY,
-                        error: "Ошибка в расшифровке системы".to_string(),
-                    },
-                )?;
-                let model = AttributeValueActiveModel {
-                    attribute_id: Set(*new_attribute_id),
-                    value: Set(old_attribute_value.value.clone()),
-                    ..Default::default()
-                };
-                model
-                    .insert(db)
-                    .await
-                    .map_err(|err| CustomErrors::SeaORMError {
-                        error: err,
-                        message: None,
-                    })
-            });
-    let result = try_join_all(new_new_attribute_values).await?;
+    let new_attribute_values_stream =
+        futures::stream::iter(old_attribute_values).then(|old_attribute_value| async move {
+            let new_attribute_id = attribute_map.get(&old_attribute_value.attribute_id).ok_or(
+                CustomErrors::StringError {
+                    status: StatusCode::UNPROCESSABLE_ENTITY,
+                    error: "Ошибка в расшифровке системы".to_string(),
+                },
+            )?;
 
-    attributevalue_map.extend(old_attribute_values.into_iter().zip(&result).map(
-        |(old_attributevalue, new_attributevalue)| (old_attributevalue.id, new_attributevalue.id),
+            let model = AttributeValueActiveModel {
+                attribute_id: Set(*new_attribute_id),
+                value: Set(old_attribute_value.value.clone()),
+                ..Default::default()
+            };
+
+            model
+                .insert(db)
+                .await
+                .map_err(|err| CustomErrors::SeaORMError {
+                    error: err,
+                    message: None,
+                })
+        });
+
+    let result: Vec<AttributeValueModel> = new_attribute_values_stream.try_collect().await?;
+
+    attributevalue_map.extend(old_attribute_values.iter().zip(&result).map(
+        |(old_attribute_value, new_attribute_value)| {
+            (old_attribute_value.id, new_attribute_value.id)
+        },
     ));
 
     Ok(result)
@@ -246,7 +248,7 @@ pub async fn copy_answers<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_new_answers = old_answers.into_iter().map(|old_answer| async move {
+    let new_new_answers = futures::stream::iter(old_answers).then(|old_answer| async move {
         let new_question_id =
             question_map
                 .get(&old_answer.question_id)
@@ -267,7 +269,7 @@ where
                 message: None,
             })
     });
-    let result = try_join_all(new_new_answers).await?;
+    let result: Vec<AnswerModel> = new_new_answers.try_collect().await?;
 
     answer_map.extend(
         old_answers
@@ -288,13 +290,14 @@ pub async fn copy_clauses<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_new_clauses = old_clauses.into_iter().map(|old_clause| async move {
+    let new_clauses_stream = futures::stream::iter(old_clauses).then(|old_clause| async move {
         let new_rule_id = rule_map
             .get(&old_clause.rule_id)
             .ok_or(CustomErrors::StringError {
                 status: StatusCode::UNPROCESSABLE_ENTITY,
                 error: "Ошибка в расшифровке системы".to_string(),
             })?;
+
         let new_question_id =
             question_map
                 .get(&old_clause.question_id)
@@ -302,6 +305,7 @@ where
                     status: StatusCode::UNPROCESSABLE_ENTITY,
                     error: "Ошибка в расшифровке системы".to_string(),
                 })?;
+
         let model = ClauseActiveModel {
             rule_id: Set(*new_rule_id),
             compared_value: Set(old_clause.compared_value.clone()),
@@ -310,6 +314,7 @@ where
             question_id: Set(*new_question_id),
             ..Default::default()
         };
+
         model
             .insert(db)
             .await
@@ -318,7 +323,8 @@ where
                 message: None,
             })
     });
-    let result = try_join_all(new_new_clauses).await?;
+
+    let result = new_clauses_stream.try_collect().await?;
 
     Ok(result)
 }
@@ -333,42 +339,43 @@ pub async fn copy_rule_attribute_attributevalues<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_new_rule_attribute_attributevalue = old_rule_attribute_attributevalues.into_iter().map(
-        |old_rule_attribute_attributevalue| async move {
-            let new_rule_id = rule_map
-                .get(&old_rule_attribute_attributevalue.rule_id)
-                .ok_or_else(|| CustomErrors::StringError {
-                    status: StatusCode::UNPROCESSABLE_ENTITY,
-                    error: "Ошибка в расшифровке системы".to_string(),
-                })?;
-            let new_attribute_id = attribute_map
-                .get(&old_rule_attribute_attributevalue.attribute_id)
-                .ok_or_else(|| CustomErrors::StringError {
-                    status: StatusCode::UNPROCESSABLE_ENTITY,
-                    error: "Ошибка в расшифровке системы".to_string(),
-                })?;
-            let new_attribute_value_id = attributevalue_map
-                .get(&old_rule_attribute_attributevalue.attribute_value_id)
-                .ok_or_else(|| CustomErrors::StringError {
-                    status: StatusCode::UNPROCESSABLE_ENTITY,
-                    error: "Ошибка в расшифровке системы".to_string(),
-                })?;
-            let model = RuleAttributeAttributeValueActiveModel {
-                rule_id: Set(*new_rule_id),
-                attribute_value_id: Set(*new_attribute_value_id),
-                attribute_id: Set(*new_attribute_id),
-                ..Default::default()
-            };
-            model
-                .insert(db)
-                .await
-                .map_err(|err| CustomErrors::SeaORMError {
-                    error: err,
-                    message: None,
-                })
-        },
-    );
-    let result = try_join_all(new_new_rule_attribute_attributevalue).await?;
+    let new_new_rule_attribute_attributevalue = futures::stream::iter(
+        old_rule_attribute_attributevalues,
+    )
+    .then(|old_rule_attribute_attributevalue| async move {
+        let new_rule_id = rule_map
+            .get(&old_rule_attribute_attributevalue.rule_id)
+            .ok_or(CustomErrors::StringError {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                error: "Ошибка в расшифровке системы".to_string(),
+            })?;
+        let new_attribute_id = attribute_map
+            .get(&old_rule_attribute_attributevalue.attribute_id)
+            .ok_or(CustomErrors::StringError {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                error: "Ошибка в расшифровке системы".to_string(),
+            })?;
+        let new_attribute_value_id = attributevalue_map
+            .get(&old_rule_attribute_attributevalue.attribute_value_id)
+            .ok_or(CustomErrors::StringError {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                error: "Ошибка в расшифровке системы".to_string(),
+            })?;
+        let model = RuleAttributeAttributeValueActiveModel {
+            rule_id: Set(*new_rule_id),
+            attribute_value_id: Set(*new_attribute_value_id),
+            attribute_id: Set(*new_attribute_id),
+            ..Default::default()
+        };
+        model
+            .insert(db)
+            .await
+            .map_err(|err| CustomErrors::SeaORMError {
+                error: err,
+                message: None,
+            })
+    });
+    let result = new_new_rule_attribute_attributevalue.try_collect().await?;
 
     Ok(result)
 }
@@ -383,44 +390,42 @@ pub async fn copy_rule_question_answers<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_new_rule_question_answer =
-        old_rule_question_answers
-            .into_iter()
-            .map(|old_rule_question_answer| async move {
-                let new_rule_id =
-                    rule_map
-                        .get(&old_rule_question_answer.rule_id)
-                        .ok_or_else(|| CustomErrors::StringError {
-                            status: StatusCode::UNPROCESSABLE_ENTITY,
-                            error: "Ошибка в расшифровке системы".to_string(),
-                        })?;
-                let new_question_id = question_map
-                    .get(&old_rule_question_answer.question_id)
-                    .ok_or_else(|| CustomErrors::StringError {
-                        status: StatusCode::UNPROCESSABLE_ENTITY,
-                        error: "Ошибка в расшифровке системы".to_string(),
-                    })?;
-                let new_answer_id = answer_map
-                    .get(&old_rule_question_answer.answer_id)
-                    .ok_or_else(|| CustomErrors::StringError {
-                        status: StatusCode::UNPROCESSABLE_ENTITY,
-                        error: "Ошибка в расшифровке системы".to_string(),
-                    })?;
-                let model = RuleQuestionAnswerActiveModel {
-                    rule_id: Set(*new_rule_id),
-                    answer_id: Set(*new_answer_id),
-                    question_id: Set(*new_question_id),
-                    ..Default::default()
-                };
-                model
-                    .insert(db)
-                    .await
-                    .map_err(|err| CustomErrors::SeaORMError {
-                        error: err,
-                        message: None,
-                    })
-            });
-    let result = try_join_all(new_new_rule_question_answer).await?;
+    let new_new_rule_question_answer = futures::stream::iter(old_rule_question_answers).then(
+        |old_rule_question_answer| async move {
+            let new_rule_id = rule_map.get(&old_rule_question_answer.rule_id).ok_or(
+                CustomErrors::StringError {
+                    status: StatusCode::UNPROCESSABLE_ENTITY,
+                    error: "Ошибка в расшифровке системы".to_string(),
+                },
+            )?;
+            let new_question_id = question_map
+                .get(&old_rule_question_answer.question_id)
+                .ok_or(CustomErrors::StringError {
+                    status: StatusCode::UNPROCESSABLE_ENTITY,
+                    error: "Ошибка в расшифровке системы".to_string(),
+                })?;
+            let new_answer_id = answer_map.get(&old_rule_question_answer.answer_id).ok_or(
+                CustomErrors::StringError {
+                    status: StatusCode::UNPROCESSABLE_ENTITY,
+                    error: "Ошибка в расшифровке системы".to_string(),
+                },
+            )?;
+            let model = RuleQuestionAnswerActiveModel {
+                rule_id: Set(*new_rule_id),
+                answer_id: Set(*new_answer_id),
+                question_id: Set(*new_question_id),
+                ..Default::default()
+            };
+            model
+                .insert(db)
+                .await
+                .map_err(|err| CustomErrors::SeaORMError {
+                    error: err,
+                    message: None,
+                })
+        },
+    );
+    let result = new_new_rule_question_answer.try_collect().await?;
 
     Ok(result)
 }
@@ -435,42 +440,45 @@ pub async fn copy_object_attribute_attributevalues<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_new_object_attribute_attributevalue = old_object_attribute_attributevalues
-        .into_iter()
-        .map(|old_object_attribute_attributevalue| async move {
-            let new_object_id = object_map
-                .get(&old_object_attribute_attributevalue.object_id)
-                .ok_or_else(|| CustomErrors::StringError {
-                    status: StatusCode::UNPROCESSABLE_ENTITY,
-                    error: "Ошибка в расшифровке системы".to_string(),
-                })?;
-            let new_attribute_id = attribute_map
-                .get(&old_object_attribute_attributevalue.attribute_id)
-                .ok_or_else(|| CustomErrors::StringError {
-                    status: StatusCode::UNPROCESSABLE_ENTITY,
-                    error: "Ошибка в расшифровке системы".to_string(),
-                })?;
-            let new_attribute_value_id = attributevalue_map
-                .get(&old_object_attribute_attributevalue.attribute_value_id)
-                .ok_or_else(|| CustomErrors::StringError {
-                    status: StatusCode::UNPROCESSABLE_ENTITY,
-                    error: "Ошибка в расшифровке системы".to_string(),
-                })?;
-            let model = ObjectAttributeAttributeValueActiveModel {
-                object_id: Set(*new_object_id),
-                attribute_value_id: Set(*new_attribute_value_id),
-                attribute_id: Set(*new_attribute_id),
-                ..Default::default()
-            };
-            model
-                .insert(db)
-                .await
-                .map_err(|err| CustomErrors::SeaORMError {
-                    error: err,
-                    message: None,
-                })
-        });
-    let result = try_join_all(new_new_object_attribute_attributevalue).await?;
+    let new_new_object_attribute_attributevalue = futures::stream::iter(
+        old_object_attribute_attributevalues,
+    )
+    .then(|old_object_attribute_attributevalue| async move {
+        let new_object_id = object_map
+            .get(&old_object_attribute_attributevalue.object_id)
+            .ok_or(CustomErrors::StringError {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                error: "Ошибка в расшифровке системы".to_string(),
+            })?;
+        let new_attribute_id = attribute_map
+            .get(&old_object_attribute_attributevalue.attribute_id)
+            .ok_or(CustomErrors::StringError {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                error: "Ошибка в расшифровке системы".to_string(),
+            })?;
+        let new_attribute_value_id = attributevalue_map
+            .get(&old_object_attribute_attributevalue.attribute_value_id)
+            .ok_or(CustomErrors::StringError {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                error: "Ошибка в расшифровке системы".to_string(),
+            })?;
+        let model = ObjectAttributeAttributeValueActiveModel {
+            object_id: Set(*new_object_id),
+            attribute_value_id: Set(*new_attribute_value_id),
+            attribute_id: Set(*new_attribute_id),
+            ..Default::default()
+        };
+        model
+            .insert(db)
+            .await
+            .map_err(|err| CustomErrors::SeaORMError {
+                error: err,
+                message: None,
+            })
+    });
+    let result = new_new_object_attribute_attributevalue
+        .try_collect()
+        .await?;
 
     Ok(result)
 }

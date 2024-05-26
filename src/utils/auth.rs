@@ -23,7 +23,7 @@ where
         .private(&cookie_key)
         .get(COOKIE_NAME)
         .map(|res| res.value().to_owned())
-        .and_then(|res| Some(res.parse::<i32>().expect("Server Error")))
+        .and_then(|res| res.parse::<i32>().ok())
         .ok_or(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),

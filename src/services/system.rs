@@ -56,12 +56,12 @@ where
     let per_page = params.per_page.unwrap_or(20) as u64;
     let page = params.page.unwrap_or(1) as u64 - 1;
 
-    let _systems = query
-        .order_by_desc(SystemColumn::UpdatedAt)
+    let mut _systems = query
         .limit(per_page)
         .offset(per_page * page)
         .all(db)
         .await?;
+    _systems.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
 
     Ok(SystemsWithPageCount {
         systems: _systems,
@@ -236,6 +236,7 @@ where
                 .map_or("unknown".to_string(), |file_name| file_name),
         ))
     });
+
     let system_image_uri_old = SystemEntity::find_by_id(system_id)
         .one(db)
         .await?

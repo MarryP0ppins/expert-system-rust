@@ -10,11 +10,13 @@ pub async fn get_answers<C>(db: &C, question_id: i32) -> Result<Vec<AnswerModel>
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    Ok(AnswerEntity::find()
+    let mut answers = AnswerEntity::find()
         .filter(AnswerColumn::QuestionId.eq(question_id))
-        .order_by_asc(AnswerColumn::Id)
         .all(db)
-        .await?)
+        .await?;
+    answers.sort_by_key(|answer| answer.id);
+
+    Ok(answers)
 }
 
 pub async fn create_answer<C>(
@@ -34,8 +36,7 @@ where
     });
 
     let mut result = try_join_all(new_answers).await?;
-
-    result.sort_by(|a, b| a.id.cmp(&b.id));
+    result.sort_by_key(|answer| answer.id);
 
     Ok(result)
 }
@@ -63,8 +64,7 @@ where
         .map(|answer_for_update| answer_for_update.into_active_model().update(db));
 
     let mut result = try_join_all(new_answers).await?;
-
-    result.sort_by(|a, b| a.id.cmp(&b.id));
+    result.sort_by_key(|answer| answer.id);
 
     Ok(result)
 }

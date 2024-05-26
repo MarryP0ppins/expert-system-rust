@@ -2,7 +2,7 @@
 
 use axum::body::Bytes;
 use axum_typed_multipart::{FieldData, TryFromMultipart};
-use sea_orm::{entity::prelude::*, ActiveValue::NotSet, IntoActiveModel, Set};
+use sea_orm::{entity::prelude::*, ActiveValue::NotSet, IntoActiveModel, Set, Unchanged};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -72,11 +72,11 @@ pub struct SystemDeleteModel {
 
 #[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub struct SystemBackupModel {
-    pub system: Model, //
-    pub objects: Vec<objects::Model>,
-    pub object_attribute_attributevalue: Vec<object_attribute_attributevalue::Model>,
-    pub attributes: Vec<attributes::Model>,              //
-    pub attributes_values: Vec<attributesvalues::Model>, //
+    pub system: Model,                                                                //
+    pub objects: Vec<objects::Model>,                                                 //
+    pub object_attribute_attributevalue: Vec<object_attribute_attributevalue::Model>, //
+    pub attributes: Vec<attributes::Model>,                                           //
+    pub attributes_values: Vec<attributesvalues::Model>,                              //
     pub rules: Vec<rules::Model>,
     pub rule_attribute_attributevalue: Vec<rule_attribute_attributevalue::Model>,
     pub clauses: Vec<clauses::Model>,
@@ -148,9 +148,11 @@ impl ActiveModelBehavior for ActiveModel {}
 impl IntoActiveModel<ActiveModel> for UpdateSystemModel {
     fn into_active_model(self) -> ActiveModel {
         ActiveModel {
-            about: Set(self.about),
+            about: self.about.map_or(Unchanged(None), |about| Set(Some(about))),
             name: self.name.map_or(NotSet, |name| Set(name)),
-            image_uri: Set(self.image_uri),
+            image_uri: self
+                .image_uri
+                .map_or(Unchanged(None), |image_uri| Set(Some(image_uri))),
             private: self.private.map_or(NotSet, |private| Set(private)),
             ..Default::default()
         }

@@ -69,20 +69,6 @@ impl Related<super::systems::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-// impl From<UpdateUserModel> for ActiveModel {
-//     fn from(model: UpdateUserModel) -> Self {
-//         ActiveModel {
-//             email: model.email.map_or(NotSet, |email| Set(email)),
-//             first_name: model
-//                 .first_name
-//                 .map_or(NotSet, |first_name| Set(first_name)),
-//             last_name: model.last_name.map_or(NotSet, |last_name| Set(last_name)),
-//             password: model.password.map_or(NotSet, |password| Set(password)),
-//             ..Default::default()
-//         }
-//     }
-// }
-
 impl IntoActiveModel<ActiveModel> for UpdateUserModel {
     fn into_active_model(self) -> ActiveModel {
         ActiveModel {

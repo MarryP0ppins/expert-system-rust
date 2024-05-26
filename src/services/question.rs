@@ -26,16 +26,20 @@ where
         .all(db)
         .await?;
 
-    let result = questions_with_answers
+    let mut result = questions_with_answers
         .into_iter()
-        .map(|(question, answers)| QuestionWithAnswersModel {
-            id: question.id,
-            system_id: question.system_id,
-            body: question.body,
-            answers,
-            with_chooses: question.with_chooses,
+        .map(|(question, mut answers)| {
+            answers.sort_by_key(|answer| answer.id);
+            QuestionWithAnswersModel {
+                id: question.id,
+                system_id: question.system_id,
+                body: question.body,
+                answers,
+                with_chooses: question.with_chooses,
+            }
         })
-        .collect();
+        .collect::<Vec<QuestionWithAnswersModel>>();
+    result.sort_by_key(|question| question.id);
 
     Ok(result)
 }
@@ -119,15 +123,14 @@ where
     let result = questions
         .into_iter()
         .zip(questions_answers)
-        .map(|(question, question_answers)| {
-            let mut answers = question_answers;
-            answers.sort_by(|a, b| a.id.cmp(&b.id));
+        .map(|(question, mut question_answers)| {
+            question_answers.sort_by(|a, b| a.id.cmp(&b.id));
             QuestionWithAnswersModel {
                 id: question.id,
                 system_id: question.system_id,
                 body: question.body,
                 with_chooses: question.with_chooses,
-                answers,
+                answers: question_answers,
             }
         })
         .collect();

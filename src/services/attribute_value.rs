@@ -12,11 +12,13 @@ pub async fn get_attribute_values<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    Ok(AttributeValueEntity::find()
+    let mut attribute_values = AttributeValueEntity::find()
         .filter(AttributeValueColumn::AttributeId.eq(attribute_id))
-        .order_by_asc(AttributeValueColumn::Id)
         .all(db)
-        .await?)
+        .await?;
+    attribute_values.sort_by_key(|attribute_value| attribute_value.id);
+
+    Ok(attribute_values)
 }
 
 pub async fn create_attributes_values<C>(
@@ -38,8 +40,7 @@ where
         });
 
     let mut result = try_join_all(new_attributevalues).await?;
-
-    result.sort_by(|a, b| a.id.cmp(&b.id));
+    result.sort_by_key(|attribute| attribute.id);
 
     Ok(result)
 }
@@ -73,8 +74,7 @@ where
             });
 
     let mut result = try_join_all(new_attributes_values).await?;
-
-    result.sort_by(|a, b| a.id.cmp(&b.id));
+    result.sort_by_key(|attribute_values| attribute_values.id);
 
     Ok(result)
 }

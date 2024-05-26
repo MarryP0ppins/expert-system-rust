@@ -27,15 +27,19 @@ where
         .all(db)
         .await?;
 
-    let result = objects
+    let mut result = objects
         .into_iter()
-        .map(|(object, objects_ids)| ObjectWithAttributesValuesModel {
-            id: object.id,
-            system_id: object.system_id,
-            name: object.name,
-            object_attribute_attributevalue_ids: objects_ids,
+        .map(|(object, mut objects_ids)| {
+            objects_ids.sort_by_key(|objects_id| objects_id.id);
+            ObjectWithAttributesValuesModel {
+                id: object.id,
+                system_id: object.system_id,
+                name: object.name,
+                object_attribute_attributevalue_ids: objects_ids,
+            }
         })
         .collect::<Vec<ObjectWithAttributesValuesModel>>();
+    result.sort_by_key(|obj| obj.id);
 
     Ok(result)
 }
@@ -48,8 +52,8 @@ where
     C: ConnectionTrait + TransactionTrait,
 {
     let txn = db.begin().await?;
-
     let shared_txn = Arc::new(&txn);
+
     let new_objects = object_info.into_iter().map(|object_raw| {
         let txn_cloned = shared_txn.clone();
         async move {
@@ -80,7 +84,7 @@ where
     });
 
     let mut result = try_join_all(new_objects).await?;
-    result.sort_by(|a, b| a.id.cmp(&b.id));
+    result.sort_by_key(|obj| obj.id);
 
     txn.commit().await?;
 
@@ -110,7 +114,7 @@ where
         .map(|objects_for_update| objects_for_update.into_active_model().update(db));
 
     let mut objects = try_join_all(updated_objects).await?;
-    objects.sort_by(|a, b| a.id.cmp(&b.id));
+    objects.sort_by_key(|obj| obj.id);
 
     let objects_values = objects
         .load_many(ObjectAttributeAttributeValueEntity, db)
@@ -119,11 +123,14 @@ where
     let result = objects
         .into_iter()
         .zip(objects_values)
-        .map(|(object, object_ids)| ObjectWithAttributesValuesModel {
-            id: object.id,
-            system_id: object.system_id,
-            name: object.name,
-            object_attribute_attributevalue_ids: object_ids,
+        .map(|(object, mut object_ids)| {
+            object_ids.sort_by_key(|objects_id| objects_id.id);
+            ObjectWithAttributesValuesModel {
+                id: object.id,
+                system_id: object.system_id,
+                name: object.name,
+                object_attribute_attributevalue_ids: object_ids,
+            }
         })
         .collect();
 

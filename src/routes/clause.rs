@@ -1,14 +1,13 @@
 use crate::{
-    models::{
-        clause::{NewClause, UpdateClause},
-        error::CustomErrors,
-    },
+    entity::clauses::{Model as ClauseModel, UpdateClauseModel},
+    models::error::CustomErrors,
     pagination::ClauseListPagination,
     services::clause::{
         create_clauses, get_clauses, multiple_delete_clauses, multiple_update_clauses,
     },
     AppState,
 };
+
 use axum::{
     debug_handler,
     extract::{Query, State},
@@ -22,9 +21,9 @@ use axum::{
     post,
     path = "/clause",
     context_path ="/api/v1",
-    request_body = [NewClause],
+    request_body = [ClauseModel],
     responses(
-        (status = 200, description = "Clauses create successfully", body = [Clause]),
+        (status = 200, description = "Clauses create successfully", body = [ClauseModel]),
         (status = 401, description = "Unauthorized to create Clauses", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -35,17 +34,11 @@ use axum::{
 #[debug_handler]
 pub async fn clause_create(
     State(state): State<AppState>,
-    Json(clause_info): Json<Vec<NewClause>>,
+    Json(clause_info): Json<Vec<ClauseModel>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match create_clauses(&mut connection, clause_info).await {
+    match create_clauses(&state.db_sea, clause_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -57,7 +50,7 @@ pub async fn clause_create(
     path = "/clause",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching Clauses by query", body = [Clause]),
+        (status = 200, description = "List matching Clauses by query", body = [ClauseModel]),
         (status = 401, description = "Unauthorized to list Clauses", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -73,15 +66,9 @@ pub async fn clause_list(
     State(state): State<AppState>,
     Query(pagination): Query<ClauseListPagination>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match get_clauses(&mut connection, pagination.rule_id).await {
+    match get_clauses(&state.db_sea, pagination.rule_id).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -94,7 +81,7 @@ pub async fn clause_list(
     context_path ="/api/v1",
     request_body = [i32],
     responses(
-        (status = 200, description = "Clauses deleted successfully", body = CustomErrors, example = json!(())),
+        (status = 200, description = "Clauses deleted successfully", body = u64),
         (status = 401, description = "Unauthorized to delete Clauses", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -108,15 +95,9 @@ pub async fn clause_multiple_delete(
     State(state): State<AppState>,
     Json(clause_info): Json<Vec<i32>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match multiple_delete_clauses(&mut connection, clause_info).await {
-        Ok(_) => Ok(()),
-        Err(err) => Err(CustomErrors::DieselError {
+    match multiple_delete_clauses(&state.db_sea, clause_info).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -127,9 +108,9 @@ pub async fn clause_multiple_delete(
     patch,
     path = "/clause/multiple_update",
     context_path ="/api/v1",
-    request_body = [UpdateClause],
+    request_body = [UpdateClauseModel],
     responses(
-        (status = 200, description = "Clauses updated successfully", body = [Clause]),
+        (status = 200, description = "Clauses updated successfully", body = [ClauseModel]),
         (status = 401, description = "Unauthorized to update Clauses", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -141,17 +122,11 @@ pub async fn clause_multiple_delete(
 #[debug_handler]
 pub async fn clause_multiple_update(
     State(state): State<AppState>,
-    Json(clause_info): Json<Vec<UpdateClause>>,
+    Json(clause_info): Json<Vec<UpdateClauseModel>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match multiple_update_clauses(&mut connection, clause_info).await {
+    match multiple_update_clauses(&state.db_sea, clause_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),

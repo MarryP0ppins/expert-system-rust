@@ -3,13 +3,13 @@ use std::sync::Arc;
 use futures::future::try_join_all;
 use sea_orm::*;
 
-use crate::entity::attributes::{
-    ActiveModel as AttributeActiveModel, AttributeWithAttributeValuesModel,
-    Column as AttributeColumn, Entity as AttributeEntity, NewAttributeWithAttributeValuesModel,
-    UpdateAttributeModel,
-};
-use crate::entity::attributesvalues::{
-    Entity as AttributeValueEntity, Model as AttributeValueModel,
+use crate::entity::{
+    attributes::{
+        ActiveModel as AttributeActiveModel, AttributeWithAttributeValuesModel,
+        Column as AttributeColumn, Entity as AttributeEntity, NewAttributeWithAttributeValuesModel,
+        UpdateAttributeModel,
+    },
+    attributesvalues::{Entity as AttributeValueEntity, Model as AttributeValueModel},
 };
 
 use super::attribute_value::create_attributes_values;
@@ -27,17 +27,19 @@ where
         .all(db)
         .await?;
 
-    let result = attribute_with_attributevalues
+    let mut result = attribute_with_attributevalues
         .into_iter()
-        .map(
-            |(attribute, attribute_values)| AttributeWithAttributeValuesModel {
+        .map(|(attribute, mut attribute_values)| {
+            attribute_values.sort_by_key(|attribute_value| attribute_value.id);
+            AttributeWithAttributeValuesModel {
                 id: attribute.id,
                 system_id: attribute.system_id,
                 name: attribute.name,
                 values: attribute_values,
-            },
-        )
+            }
+        })
         .collect::<Vec<AttributeWithAttributeValuesModel>>();
+    result.sort_by_key(|attribute| attribute.id);
 
     Ok(result)
 }
@@ -63,11 +65,11 @@ where
             let created_attribute = new_attribute.insert(*txn_cloned).await?;
             let values_to_create = attribute_raw
                 .values_name
-                .into_iter()
+                .iter()
                 .map(|value_name| AttributeValueModel {
                     id: -1,
                     attribute_id: created_attribute.id,
-                    value: value_name,
+                    value: value_name.clone(),
                 })
                 .collect();
             let values = create_attributes_values(*txn_cloned, values_to_create).await?;
@@ -81,7 +83,7 @@ where
     });
 
     let mut result = try_join_all(new_attributes).await?;
-    result.sort_by(|a, b| a.id.cmp(&b.id));
+    result.sort_by_key(|attribute| attribute.id);
 
     txn.commit().await?;
 
@@ -111,21 +113,20 @@ where
         .map(|attributes_for_update| attributes_for_update.into_active_model().update(db));
 
     let mut attributes = try_join_all(updated_attributes).await?;
-    attributes.sort_by(|a, b| a.id.cmp(&b.id));
+    attributes.sort_by_key(|attribute| attribute.id);
 
     let attributes_values = attributes.load_many(AttributeValueEntity, db).await?;
 
     let result = attributes
         .into_iter()
         .zip(attributes_values)
-        .map(|(attribute, attribute_values)| {
-            let mut values = attribute_values;
-            values.sort_by(|a, b| a.id.cmp(&b.id));
+        .map(|(attribute, mut attribute_values)| {
+            attribute_values.sort_by_key(|attribute_value| attribute_value.id);
             AttributeWithAttributeValuesModel {
                 id: attribute.id,
                 system_id: attribute.system_id,
                 name: attribute.name,
-                values,
+                values: attribute_values,
             }
         })
         .collect();
