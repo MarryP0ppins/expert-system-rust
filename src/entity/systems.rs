@@ -7,11 +7,16 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::{
-    answers::AnswerModel, attributes::AttributeModel, attributesvalues::AttributeValueModel,
-    clauses::ClauseModel, object_attribute_attributevalue::ObjectAttributeAttributeValueModel,
-    objects::ObjectModel, questions::QuestionModel,
+    answers::AnswerModel,
+    attributes::AttributeModel,
+    attributesvalues::AttributeValueModel,
+    clauses::ClauseModel,
+    object_attribute_attributevalue::ObjectAttributeAttributeValueModel,
+    objects::{ObjectModel, ObjectWithAttributesValuesModel},
+    questions::{QuestionModel, QuestionWithAnswersModel},
     rule_attribute_attributevalue::RuleAttributeAttributeValueModel,
-    rule_question_answer::RuleQuestionAnswerModel, rules::RuleModel,
+    rule_question_answer::RuleQuestionAnswerModel,
+    rules::{RuleModel, RuleWithClausesAndEffects},
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
@@ -75,6 +80,13 @@ pub struct UpdateSystemMultipartModel {
 #[derive(Deserialize, ToSchema)]
 pub struct SystemDeleteModel {
     pub password: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct TestSystemModel {
+    pub questions: Vec<QuestionWithAnswersModel>,
+    pub rules: Vec<RuleWithClausesAndEffects>,
+    pub objects: Vec<ObjectWithAttributesValuesModel>,
 }
 
 #[derive(Deserialize, Serialize, ToSchema, Debug)]

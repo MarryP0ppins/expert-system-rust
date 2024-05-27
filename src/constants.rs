@@ -7,25 +7,29 @@ pub struct UriInfo<'a> {
 
 pub const COOKIE_NAME: &str = "session_id";
 pub const IMAGE_DIR: &str = "./images";
-pub const URI_WITHOUT_AUTH: [UriInfo; 5] = [
+pub const URI_WITHOUT_AUTH: [UriInfo; 6] = [
     UriInfo {
-        uri: "/api/v1/user/login",
+        uri: r"\/api\/v1\/user\/login",
         method: Method::POST,
     },
     UriInfo {
-        uri: "/api/v1/systems",
+        uri: r"\/api\/v1\/systems",
         method: Method::GET,
     },
     UriInfo {
-        uri: "/api/v1/user/logout",
+        uri: r"\/api\/v1\/user\/logout",
         method: Method::POST,
     },
     UriInfo {
-        uri: "/api/v1/user/registration",
+        uri: r"\/api\/v1\/user\/registration",
         method: Method::POST,
     },
     UriInfo {
-        uri: "/swagger-ui/api-docs/openapi.json",
+        uri: r"\/swagger-ui\/api-docs\/openapi.json",
+        method: Method::GET,
+    },
+    UriInfo {
+        uri: r"/api/v1/systems/\d+/test",
         method: Method::GET,
     },
 ];

@@ -835,6 +835,7 @@ dependencies = [
  "dotenv_codegen",
  "futures",
  "http",
+ "regex",
  "sea-orm",
  "serde",
  "serde_json",

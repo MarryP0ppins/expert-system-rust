@@ -4,6 +4,7 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use regex::RegexBuilder;
 use tower_cookies::Cookies;
 
 use crate::{
@@ -16,10 +17,14 @@ pub async fn auth(
     req: Request,
     next: Next,
 ) -> Result<Response, impl IntoResponse> {
-    if !URI_WITHOUT_AUTH
-        .into_iter()
-        .any(|uri| uri.uri == req.uri().path() && uri.method == req.method())
-    {
+    if !URI_WITHOUT_AUTH.into_iter().any(|uri| {
+        RegexBuilder::new(&format!("^{}$", uri.uri))
+            .multi_line(true)
+            .build()
+            .unwrap()
+            .is_match(req.uri().path())
+            && uri.method == req.method()
+    }) {
         match cookie_check(&state.db_sea, cookie, &state.cookie_key).await {
             Ok(_) => (),
             Err(err) => return Err(err),

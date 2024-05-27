@@ -30,7 +30,7 @@ pub struct NewObjectWithAttributesValueIdsModel {
         Vec<NewObjectAttributeAttributevalueWithoutObjectModel>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
 pub struct ObjectWithAttributesValuesModel {
     pub id: i32,
     pub system_id: i32,

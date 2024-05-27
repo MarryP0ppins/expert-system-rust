@@ -3,15 +3,16 @@ use crate::{
         clauses::Entity as ClauseEntity,
         questions::QuestionWithAnswersModel,
         rule_question_answer::Entity as RuleQuestionAnswerEntity,
-        rules::{Column as RuleColumn, Entity as RuleEntity},
+        rules::Model as RuleModel,
         systems::{
             ActiveModel as SystemActiveModel, Column as SystemColumn, Entity as SystemEntity,
-            Model as SystemModel, NewSystemMultipartModel, SystemsWithPageCount, UpdateSystemModel,
-            UpdateSystemMultipartModel,
+            Model as SystemModel, NewSystemMultipartModel, SystemsWithPageCount, TestSystemModel,
+            UpdateSystemModel, UpdateSystemMultipartModel,
         },
         users::{Column as UserColumn, Entity as UserEntity},
     },
     pagination::SystemListPagination,
+    services::{object::get_objects, rule::get_rules},
     utils::topological_sort::topological_sort,
     IMAGE_DIR,
 };
@@ -20,6 +21,7 @@ use std::collections::{HashMap, HashSet};
 use tokio::{
     fs::{self, File},
     io::AsyncWriteExt,
+    try_join,
 };
 
 use super::question::get_questions;
@@ -79,20 +81,30 @@ where
         .ok_or(DbErr::Custom("Система не найдена".to_string()))?)
 }
 
-pub async fn get_ready_to_start_system<C>(
-    db: &C,
-    system_id: i32,
-) -> Result<Vec<QuestionWithAnswersModel>, DbErr>
+pub async fn get_ready_to_start_system<C>(db: &C, system_id: i32) -> Result<TestSystemModel, DbErr>
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let _questions_with_answers = get_questions(db, system_id).await?;
+    let (_rules, _questions_with_answers, _objects) = try_join!(
+        get_rules(db, system_id),
+        get_questions(db, system_id),
+        get_objects(db, system_id)
+    )?;
 
-    let _rules_with_question_rule = RuleEntity::find()
-        .filter(RuleColumn::SystemId.eq(system_id))
-        .filter(RuleColumn::AttributeRule.eq(false))
-        .all(db)
-        .await?;
+    let _rules_with_question_rule: Vec<RuleModel> = _rules
+        .as_slice()
+        .into_iter()
+        .filter_map(|rule| {
+            if !rule.attribute_rule {
+                return None;
+            }
+            Some(RuleModel {
+                id: rule.id,
+                system_id,
+                attribute_rule: rule.attribute_rule,
+            })
+        })
+        .collect();
 
     let clauses = _rules_with_question_rule
         .load_many(ClauseEntity, db)
@@ -158,7 +170,11 @@ where
         })
         .collect::<Vec<QuestionWithAnswersModel>>();
 
-    Ok(ordered_questions)
+    Ok(TestSystemModel {
+        questions: ordered_questions,
+        rules: _rules,
+        objects: _objects,
+    })
 }
 
 pub async fn create_system<C>(
