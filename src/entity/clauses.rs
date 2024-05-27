@@ -6,10 +6,12 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
+#[schema(as = ClauseModel)]
 #[sea_orm(table_name = "clauses")]
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip_deserializing)]
+    #[schema(read_only)]
     pub id: i32,
     pub rule_id: i32,
     pub compared_value: String,
@@ -17,6 +19,8 @@ pub struct Model {
     pub operator: Operatorenum,
     pub question_id: i32,
 }
+
+pub use Model as ClauseModel;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateClauseModel {

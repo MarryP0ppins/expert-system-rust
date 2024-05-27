@@ -5,9 +5,11 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
+#[schema(as = ObjectAttributeAttributeValueModel)]
 #[sea_orm(table_name = "object_attribute_attributevalue")]
 pub struct Model {
     #[serde(skip_deserializing)]
+    #[schema(read_only)]
     pub id: i32,
     #[sea_orm(primary_key, auto_increment = false)]
     pub object_id: i32,
@@ -16,6 +18,8 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub attribute_id: i32,
 }
+
+pub use Model as ObjectAttributeAttributeValueModel;
 
 #[derive(Deserialize, Clone, ToSchema, Serialize)]
 pub struct NewObjectAttributeAttributevalueWithoutObjectModel {

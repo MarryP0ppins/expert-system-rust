@@ -1,6 +1,8 @@
 use crate::{
-    entity::clauses::{Model as ClauseModel, UpdateClauseModel},
-    models::error::CustomErrors,
+    entity::{
+        clauses::{Model as ClauseModel, UpdateClauseModel},
+        error::CustomErrors,
+    },
     pagination::ClauseListPagination,
     services::clause::{
         create_clauses, get_clauses, multiple_delete_clauses, multiple_update_clauses,

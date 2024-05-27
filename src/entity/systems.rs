@@ -7,15 +7,20 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::{
-    answers, attributes, attributesvalues, clauses, object_attribute_attributevalue, objects,
-    questions, rule_attribute_attributevalue, rule_question_answer, rules,
+    answers::AnswerModel, attributes::AttributeModel, attributesvalues::AttributeValueModel,
+    clauses::ClauseModel, object_attribute_attributevalue::ObjectAttributeAttributeValueModel,
+    objects::ObjectModel, questions::QuestionModel,
+    rule_attribute_attributevalue::RuleAttributeAttributeValueModel,
+    rule_question_answer::RuleQuestionAnswerModel, rules::RuleModel,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
+#[schema(as = SystemModel)]
 #[sea_orm(table_name = "systems")]
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip_deserializing)]
+    #[schema(read_only)]
     pub id: i32,
     pub user_id: i32,
     #[sea_orm(column_type = "Text", nullable)]
@@ -29,6 +34,8 @@ pub struct Model {
     pub private: bool,
     pub image_uri: Option<String>,
 }
+
+pub use Model as SystemModel;
 
 #[derive(ToSchema, TryFromMultipart)]
 pub struct NewSystemMultipartModel {
@@ -72,17 +79,17 @@ pub struct SystemDeleteModel {
 
 #[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub struct SystemBackupModel {
-    pub system: Model,                                                                //
-    pub objects: Vec<objects::Model>,                                                 //
-    pub object_attribute_attributevalue: Vec<object_attribute_attributevalue::Model>, //
-    pub attributes: Vec<attributes::Model>,                                           //
-    pub attributes_values: Vec<attributesvalues::Model>,                              //
-    pub rules: Vec<rules::Model>,
-    pub rule_attribute_attributevalue: Vec<rule_attribute_attributevalue::Model>, //
-    pub clauses: Vec<clauses::Model>,                                             //
-    pub questions: Vec<questions::Model>,                                         //
-    pub answers: Vec<answers::Model>,                                             //
-    pub rule_question_answer: Vec<rule_question_answer::Model>,                   //
+    pub system: Model,
+    pub objects: Vec<ObjectModel>,
+    pub object_attribute_attributevalue: Vec<ObjectAttributeAttributeValueModel>,
+    pub attributes: Vec<AttributeModel>,
+    pub attributes_values: Vec<AttributeValueModel>,
+    pub rules: Vec<RuleModel>,
+    pub rule_attribute_attributevalue: Vec<RuleAttributeAttributeValueModel>,
+    pub clauses: Vec<ClauseModel>,
+    pub questions: Vec<QuestionModel>,
+    pub answers: Vec<AnswerModel>,
+    pub rule_question_answer: Vec<RuleQuestionAnswerModel>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

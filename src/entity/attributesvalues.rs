@@ -5,21 +5,17 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
+#[schema(as = AttributeValueModel)]
 #[sea_orm(table_name = "attributesvalues")]
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip_deserializing)]
+    #[schema(read_only)]
     pub id: i32,
     pub attribute_id: i32,
     pub value: String,
 }
-
-#[derive(ToSchema)]
-pub struct AttributeValueModelSwagger {
-    pub id: i32,
-    pub attribute_id: i32,
-    pub value: String,
-}
+pub use Model as AttributeValueModel;
 
 #[derive(Clone, Debug, Serialize, Deserialize, DeriveIntoActiveModel, ToSchema)]
 pub struct UpdateAttributeValueModel {

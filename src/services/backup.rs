@@ -6,6 +6,7 @@ use crate::{
         attributes::Entity as AttributeEntity,
         attributesvalues::Entity as AttributeValueEntity,
         clauses::Entity as ClauseEntity,
+        error::CustomErrors,
         object_attribute_attributevalue::Entity as ObjectAttributeAttributeValueEntity,
         objects::Entity as ObjectEntity,
         questions::Entity as QuestionEntity,
@@ -14,7 +15,6 @@ use crate::{
         rules::Entity as RuleEntity,
         systems::{Entity as SystemEntity, Model as SystemModel, SystemBackupModel},
     },
-    models::error::CustomErrors,
     utils::{
         auth::cookie_check,
         copy::{

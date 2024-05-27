@@ -1,6 +1,5 @@
 use crate::{
-    entity::rule_question_answer::Model as RuleQuestionAnswerModel,
-    models::error::CustomErrors,
+    entity::{error::CustomErrors, rule_question_answer::Model as RuleQuestionAnswerModel},
     services::rule_question_answer::{
         create_rule_question_answers, multiple_delete_rule_question_answers,
     },

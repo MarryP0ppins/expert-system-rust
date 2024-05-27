@@ -1,6 +1,5 @@
 use crate::{
-    entity::histories::Model as HistoryModel,
-    models::error::CustomErrors,
+    entity::{error::CustomErrors, histories::Model as HistoryModel},
     pagination::HistoryListPagination,
     services::history::{create_history, delete_history, get_histories},
     AppState,

@@ -42,7 +42,6 @@ use utoipa_swagger_ui::SwaggerUi;
 mod constants;
 mod entity;
 mod middleware;
-mod models;
 mod pagination;
 mod routes;
 mod schema;

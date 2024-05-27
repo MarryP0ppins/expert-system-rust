@@ -1,6 +1,8 @@
 use crate::{
-    entity::rule_attribute_attributevalue::Model as RuleAttributeAttributevalueModel,
-    models::error::CustomErrors,
+    entity::{
+        error::CustomErrors,
+        rule_attribute_attributevalue::Model as RuleAttributeAttributeValueModel,
+    },
     services::rule_attribute_attributevalue::{
         create_rule_attribute_attributevalues, multiple_delete_rule_attribute_attributevalues,
     },
@@ -19,9 +21,9 @@ use axum::{
     post,
     path = "/rule-attributevalues",
     context_path ="/api/v1",
-    request_body = [RuleAttributeAttributevalueModel],
+    request_body = [RuleAttributeAttributeValueModel],
     responses(
-        (status = 200, description = "RuleAttributeAttributeValues and their dependences create successfully", body = [RuleAttributeAttributevalueModel]),
+        (status = 200, description = "RuleAttributeAttributeValues and their dependences create successfully", body = [RuleAttributeAttributeValueModel]),
         (status = 401, description = "Unauthorized to create RuleAttributeAttributeValue and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -32,7 +34,7 @@ use axum::{
 #[debug_handler]
 pub async fn rule_attribute_attributevalue_create(
     State(state): State<AppState>,
-    Json(rule_attribute_attributevalue_info): Json<Vec<RuleAttributeAttributevalueModel>>,
+    Json(rule_attribute_attributevalue_info): Json<Vec<RuleAttributeAttributeValueModel>>,
 ) -> impl IntoResponse {
     match create_rule_attribute_attributevalues(&state.db_sea, rule_attribute_attributevalue_info)
         .await

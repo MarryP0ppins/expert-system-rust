@@ -1,6 +1,8 @@
 use crate::{
-    entity::answers::{Model as AnswerModel, UpdateAnswerModel},
-    models::error::CustomErrors,
+    entity::{
+        answers::{Model as AnswerModel, UpdateAnswerModel},
+        error::CustomErrors,
+    },
     pagination::AnswerListPagination,
     services::answer::{
         create_answer, get_answers, multiple_delete_answers, multiple_update_answers,
@@ -20,9 +22,9 @@ use axum::{
     post,
     path = "/answers",
     context_path ="/api/v1",
-    request_body = [AnswerModelSwagger],
+    request_body = [AnswerModel],
     responses(
-        (status = 200, description = "Answers create successfully", body = [AnswerModelSwagger]),
+        (status = 200, description = "Answers create successfully", body = [AnswerModel]),
         (status = 401, description = "Unauthorized to create Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -49,7 +51,7 @@ pub async fn answer_create(
     path = "/answers",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching Answers by query", body = [AnswerModelSwagger]),
+        (status = 200, description = "List matching Answers by query", body = [AnswerModel]),
         (status = 401, description = "Unauthorized to list Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -109,7 +111,7 @@ pub async fn answer_multiple_delete(
     context_path ="/api/v1",
     request_body = [UpdateAnswerModel],
     responses(
-        (status = 200, description = "Answers updated successfully", body = [AnswerModelSwagger]),
+        (status = 200, description = "Answers updated successfully", body = [AnswerModel]),
         (status = 401, description = "Unauthorized to update Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),

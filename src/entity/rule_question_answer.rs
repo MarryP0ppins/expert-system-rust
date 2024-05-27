@@ -5,9 +5,11 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
+#[schema(as = RuleQuestionAnswerModel)]
 #[sea_orm(table_name = "rule_question_answer")]
 pub struct Model {
     #[serde(skip_deserializing)]
+    #[schema(read_only)]
     pub id: i32,
     #[sea_orm(primary_key, auto_increment = false)]
     pub answer_id: i32,
@@ -16,6 +18,8 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub question_id: i32,
 }
+
+pub use Model as RuleQuestionAnswerModel;
 
 #[derive(Deserialize, Clone, ToSchema, Serialize, Debug)]
 pub struct NewRuleQuestionAnswerWithoutRuleModel {

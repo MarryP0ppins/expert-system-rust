@@ -6,26 +6,31 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use utoipa::ToSchema;
 
-use super::systems;
+use super::systems::SystemModel;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
+#[schema(as = HistoryModel)]
 #[sea_orm(table_name = "histories")]
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip_deserializing)]
+    #[schema(read_only)]
     pub id: i32,
     pub system_id: i32,
     pub user_id: i32,
     pub answered_questions: String,
-    pub results: Json,
+    #[schema(value_type=HashMap<String, u8>)]
+    pub results: Value,
     pub started_at: DateTime,
     pub finished_at: DateTime,
 }
 
+pub use Model as HistoryModel;
+
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct HistoryWithSystem {
     pub id: i32,
-    pub system: systems::Model,
+    pub system: SystemModel,
     pub answered_questions: String,
     #[schema(value_type=HashMap<String, u8>)]
     pub results: Value,

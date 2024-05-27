@@ -1,6 +1,5 @@
 use crate::{
-    entity::rules::NewRuleWithClausesAndEffects,
-    models::error::CustomErrors,
+    entity::{error::CustomErrors, rules::NewRuleWithClausesAndEffects},
     pagination::RuleListPagination,
     services::rule::{create_rule, get_rules, multiple_delete_rules},
     AppState,

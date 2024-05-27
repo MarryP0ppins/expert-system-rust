@@ -1,7 +1,9 @@
 use crate::{
     constants::COOKIE_NAME,
-    entity::users::{Entity as UserEntity, Model as UserModel},
-    models::error::CustomErrors,
+    entity::{
+        error::CustomErrors,
+        users::{Entity as UserEntity, Model as UserModel},
+    },
 };
 use argon2::{
     password_hash::{rand_core::OsRng, Error, PasswordHasher, SaltString},

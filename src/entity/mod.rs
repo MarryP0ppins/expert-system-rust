@@ -4,6 +4,7 @@ pub mod answers;
 pub mod attributes;
 pub mod attributesvalues;
 pub mod clauses;
+pub mod error;
 pub mod histories;
 pub mod object_attribute_attributevalue;
 pub mod objects;

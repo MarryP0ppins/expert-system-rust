@@ -1,6 +1,8 @@
 use crate::{
-    entity::objects::{NewObjectWithAttributesValueIdsModel, UpdateObjectModel},
-    models::error::CustomErrors,
+    entity::{
+        error::CustomErrors,
+        objects::{NewObjectWithAttributesValueIdsModel, UpdateObjectModel},
+    },
     pagination::ObjectListPagination,
     services::object::{
         create_objects, get_objects, multiple_delete_objects, multiple_update_objects,

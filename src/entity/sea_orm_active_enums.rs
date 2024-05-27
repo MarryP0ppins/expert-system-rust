@@ -2,8 +2,11 @@
 
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, EnumIter, DeriveActiveEnum, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "operatorenum")]
 pub enum Operatorenum {
     #[sea_orm(string_value = "ABOVE")]

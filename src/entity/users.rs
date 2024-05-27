@@ -5,10 +5,12 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
+#[schema(as = UserModel)]
 #[sea_orm(table_name = "users")]
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip_deserializing)]
+    #[schema(read_only)]
     pub id: i32,
     #[sea_orm(unique)]
     pub email: String,
@@ -22,6 +24,8 @@ pub struct Model {
     #[serde(skip_serializing)]
     pub password: String,
 }
+
+pub use Model as UserModel;
 
 #[derive(Clone, Debug, Serialize, Deserialize, DeriveIntoActiveModel, ToSchema)]
 pub struct LoginUserModel {

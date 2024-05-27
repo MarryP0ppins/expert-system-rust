@@ -1,7 +1,9 @@
 use crate::{
     constants::COOKIE_NAME,
-    entity::users::{LoginUserModel, Model as UserModel, UpdateUserResponse},
-    models::error::CustomErrors,
+    entity::{
+        error::CustomErrors,
+        users::{LoginUserModel, Model as UserModel, UpdateUserResponse},
+    },
     services::user::{create_user, get_user, login_user, update_user},
     utils::auth::password_check,
     AppState,

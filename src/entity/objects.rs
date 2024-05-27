@@ -5,18 +5,22 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::object_attribute_attributevalue::{
-    self, NewObjectAttributeAttributevalueWithoutObjectModel,
+    NewObjectAttributeAttributevalueWithoutObjectModel, ObjectAttributeAttributeValueModel,
 };
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
+#[schema(as = ObjectModel)]
 #[sea_orm(table_name = "objects")]
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip_deserializing)]
+    #[schema(read_only)]
     pub id: i32,
     pub system_id: i32,
     pub name: String,
 }
+
+pub use Model as ObjectModel;
 
 #[derive(Deserialize, ToSchema)]
 pub struct NewObjectWithAttributesValueIdsModel {
@@ -31,7 +35,7 @@ pub struct ObjectWithAttributesValuesModel {
     pub id: i32,
     pub system_id: i32,
     pub name: String,
-    pub object_attribute_attributevalue_ids: Vec<object_attribute_attributevalue::Model>,
+    pub object_attribute_attributevalue_ids: Vec<ObjectAttributeAttributeValueModel>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, DeriveIntoActiveModel, ToSchema)]

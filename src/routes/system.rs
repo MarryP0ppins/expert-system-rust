@@ -1,6 +1,8 @@
 use crate::{
-    entity::systems::{NewSystemMultipartModel, SystemDeleteModel, UpdateSystemMultipartModel},
-    models::error::CustomErrors,
+    entity::{
+        error::CustomErrors,
+        systems::{NewSystemMultipartModel, SystemDeleteModel, UpdateSystemMultipartModel},
+    },
     pagination::SystemListPagination,
     services::{
         backup::{backup_from_system, system_from_backup},
@@ -205,7 +207,7 @@ pub async fn system_restore(
     context_path ="/api/v1",
     request_body(content = UpdateSystemMultipartModel, description = "Multipart file", content_type = "multipart/form-data"),
     responses(
-        (status = 200, description = "System and it dependences updated successfully", body = System),
+        (status = 200, description = "System and it dependences updated successfully", body = SystemModel),
         (status = 401, description = "Unauthorized to update System and it dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),

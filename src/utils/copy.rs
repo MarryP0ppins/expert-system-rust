@@ -1,30 +1,26 @@
 use std::collections::HashMap;
 
-use crate::{
-    entity::{
-        answers::{ActiveModel as AnswerActiveModel, Model as AnswerModel},
-        attributes::{ActiveModel as AttributeActiveModel, Model as AttributeModel},
-        attributesvalues::{
-            ActiveModel as AttributeValueActiveModel, Model as AttributeValueModel,
-        },
-        clauses::{ActiveModel as ClauseActiveModel, Model as ClauseModel},
-        object_attribute_attributevalue::{
-            ActiveModel as ObjectAttributeAttributeValueActiveModel,
-            Model as ObjectAttributeAttributeValueModel,
-        },
-        objects::{ActiveModel as ObjectActiveModel, Model as ObjectModel},
-        questions::{ActiveModel as QuestionActiveModel, Model as QuestionModel},
-        rule_attribute_attributevalue::{
-            ActiveModel as RuleAttributeAttributeValueActiveModel,
-            Model as RuleAttributeAttributeValueModel,
-        },
-        rule_question_answer::{
-            ActiveModel as RuleQuestionAnswerActiveModel, Model as RuleQuestionAnswerModel,
-        },
-        rules::{ActiveModel as RuleActiveModel, Model as RuleModel},
-        systems::{ActiveModel as SystemActiveModel, Model as SystemModel},
+use crate::entity::{
+    answers::{ActiveModel as AnswerActiveModel, Model as AnswerModel},
+    attributes::{ActiveModel as AttributeActiveModel, Model as AttributeModel},
+    attributesvalues::{ActiveModel as AttributeValueActiveModel, Model as AttributeValueModel},
+    clauses::{ActiveModel as ClauseActiveModel, Model as ClauseModel},
+    error::CustomErrors,
+    object_attribute_attributevalue::{
+        ActiveModel as ObjectAttributeAttributeValueActiveModel,
+        Model as ObjectAttributeAttributeValueModel,
     },
-    models::error::CustomErrors,
+    objects::{ActiveModel as ObjectActiveModel, Model as ObjectModel},
+    questions::{ActiveModel as QuestionActiveModel, Model as QuestionModel},
+    rule_attribute_attributevalue::{
+        ActiveModel as RuleAttributeAttributeValueActiveModel,
+        Model as RuleAttributeAttributeValueModel,
+    },
+    rule_question_answer::{
+        ActiveModel as RuleQuestionAnswerActiveModel, Model as RuleQuestionAnswerModel,
+    },
+    rules::{ActiveModel as RuleActiveModel, Model as RuleModel},
+    systems::{ActiveModel as SystemActiveModel, Model as SystemModel},
 };
 use futures::{
     future::try_join_all,

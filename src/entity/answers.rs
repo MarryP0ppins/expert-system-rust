@@ -5,22 +5,17 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
+#[schema(as = AnswerModel)]
 #[sea_orm(table_name = "answers")]
 pub struct Model {
     #[sea_orm(primary_key)]
+    #[schema(read_only)]
     #[serde(skip_deserializing)]
     pub id: i32,
     pub question_id: i32,
     pub body: String,
 }
-
-#[derive(ToSchema)]
-pub struct AnswerModelSwagger {
-    #[schema(read_only)]
-    pub id: i32,
-    pub question_id: i32,
-    pub body: String,
-}
+pub use Model as AnswerModel;
 
 #[derive(Clone, Debug, Serialize, Deserialize, DeriveIntoActiveModel, ToSchema)]
 pub struct UpdateAnswerModel {
