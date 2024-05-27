@@ -1,26 +1,46 @@
-use crate::{
-    models::rule_question_answer::NewRuleQuestionAnswer, schema::rule_question_answer::dsl::*,
+use crate::entity::rule_question_answer::{
+    ActiveModel as RuleQuestionAnswerActiveModel, Column as RuleQuestionAnswerColumn,
+    Entity as RuleQuestionAnswerEntity, Model as RuleQuestionAnswerModel,
 };
-use diesel::{delete, insert_into, prelude::*, result::Error};
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use futures::future::try_join_all;
+use sea_orm::*;
 
-pub async fn create_rule_question_answers(
-    connection: &mut AsyncPgConnection,
-    rule_question_answer_info: Vec<NewRuleQuestionAnswer>,
-) -> Result<usize, Error> {
-    Ok(insert_into(rule_question_answer)
-        .values::<Vec<NewRuleQuestionAnswer>>(rule_question_answer_info)
-        .execute(connection)
-        .await?)
+pub async fn create_rule_question_answers<C>(
+    db: &C,
+    rule_question_answer_info: Vec<RuleQuestionAnswerModel>,
+) -> Result<Vec<RuleQuestionAnswerModel>, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let new_rule_question_answers =
+        rule_question_answer_info
+            .into_iter()
+            .map(|new_rule_question_answer| {
+                let model = RuleQuestionAnswerActiveModel {
+                    rule_id: Set(new_rule_question_answer.rule_id),
+                    question_id: Set(new_rule_question_answer.question_id),
+                    answer_id: Set(new_rule_question_answer.answer_id),
+                    ..Default::default()
+                };
+                model.insert(db)
+            });
+
+    let mut result = try_join_all(new_rule_question_answers).await?;
+    result.sort_by_key(|rule_question_answer| rule_question_answer.id);
+
+    Ok(result)
 }
 
-pub async fn multiple_delete_rule_question_answers(
-    connection: &mut AsyncPgConnection,
+pub async fn multiple_delete_rule_question_answers<C>(
+    db: &C,
     rule_question_answers_ids: Vec<i32>,
-) -> Result<usize, Error> {
-    Ok(
-        delete(rule_question_answer.filter(id.eq_any(rule_question_answers_ids)))
-            .execute(connection)
-            .await?,
-    )
+) -> Result<u64, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    Ok(RuleQuestionAnswerEntity::delete_many()
+        .filter(RuleQuestionAnswerColumn::Id.is_in(rule_question_answers_ids))
+        .exec(db)
+        .await?
+        .rows_affected)
 }

@@ -1,7 +1,7 @@
 use crate::{
-    models::{
+    entity::{
         error::CustomErrors,
-        object::{NewObjectWithAttributesValueIds, UpdateObject},
+        objects::{NewObjectWithAttributesValueIdsModel, UpdateObjectModel},
     },
     pagination::ObjectListPagination,
     services::object::{
@@ -22,9 +22,9 @@ use axum::{
     post,
     path = "/object",
     context_path ="/api/v1",
-    request_body = [NewObjectWithAttributesValueIds],
+    request_body = [NewObjectWithAttributesValueIdsModel],
     responses(
-        (status = 200, description = "Objects and their dependences create successfully", body = [ObjectWithAttributesValues]),
+        (status = 200, description = "Objects and their dependences create successfully", body = [ObjectWithAttributesValuesModel]),
         (status = 401, description = "Unauthorized to create Objects and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -35,17 +35,11 @@ use axum::{
 #[debug_handler]
 pub async fn object_create(
     State(state): State<AppState>,
-    Json(object_info): Json<Vec<NewObjectWithAttributesValueIds>>,
+    Json(object_info): Json<Vec<NewObjectWithAttributesValueIdsModel>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match create_objects(&mut connection, object_info).await {
+    match create_objects(&state.db_sea, object_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -57,7 +51,7 @@ pub async fn object_create(
     path = "/object",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching Objects and their dependences by query", body = [ObjectWithAttributesValues]),
+        (status = 200, description = "List matching Objects and their dependences by query", body = [ObjectWithAttributesValuesModel]),
         (status = 401, description = "Unauthorized to list Objects and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -73,17 +67,9 @@ pub async fn object_list(
     State(state): State<AppState>,
     Query(pagination): Query<ObjectListPagination>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    let pagination = pagination as ObjectListPagination;
-
-    match get_objects(&mut connection, pagination.system_id).await {
+    match get_objects(&state.db_sea, pagination.system_id).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -96,7 +82,7 @@ pub async fn object_list(
     context_path ="/api/v1",
     request_body = [i32],
     responses(
-        (status = 200, description = "Objects and their dependences deleted successfully", body = CustomErrors, example = json!(())),
+        (status = 200, description = "Objects and their dependences deleted successfully", body = u64),
         (status = 401, description = "Unauthorized to delete Objects and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -110,15 +96,9 @@ pub async fn object_multiple_delete(
     State(state): State<AppState>,
     Json(object_info): Json<Vec<i32>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match multiple_delete_objects(&mut connection, object_info).await {
-        Ok(_) => Ok(()),
-        Err(err) => Err(CustomErrors::DieselError {
+    match multiple_delete_objects(&state.db_sea, object_info).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -129,9 +109,9 @@ pub async fn object_multiple_delete(
     patch,
     path = "/object/multiple_update",
     context_path ="/api/v1",
-    request_body = [UpdateObject],
+    request_body = [UpdateObjectModel],
     responses(
-        (status = 200, description = "Objects and their dependences updated successfully", body = [ObjectWithAttributesValues]),
+        (status = 200, description = "Objects and their dependences updated successfully", body = [ObjectWithAttributesValuesModel]),
         (status = 401, description = "Unauthorized to update Objects and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -143,17 +123,11 @@ pub async fn object_multiple_delete(
 #[debug_handler]
 pub async fn object_multiple_update(
     State(state): State<AppState>,
-    Json(object_info): Json<Vec<UpdateObject>>,
+    Json(object_info): Json<Vec<UpdateObjectModel>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match multiple_update_objects(&mut connection, object_info).await {
+    match multiple_update_objects(&state.db_sea, object_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),

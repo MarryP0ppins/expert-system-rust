@@ -1,196 +1,153 @@
+use std::sync::Arc;
+
 use crate::{
-    models::{
-        clause::{Clause, NewClause},
-        rule::{NewRule, NewRuleWithClausesAndEffects, Rule, RuleWithClausesAndEffects},
+    entity::{
+        clauses::{Entity as ClauseEntity, Model as ClauseModel},
         rule_attribute_attributevalue::{
-            NewRuleAttributeAttributeValue, RuleAttributeAttributeValue,
+            Entity as RuleAttributeAttributeValueEntity, Model as RuleAttributeAttributeValueModel,
         },
-        rule_question_answer::{NewRuleQuestionAnswer, RuleQuestionAnswer},
+        rule_question_answer::{
+            Entity as RuleQuestionAnswerEntity, Model as RuleQuestionAnswerModel,
+        },
+        rules::{
+            ActiveModel as RuleActiveModel, Column as RuleColumn, Entity as RuleEntity,
+            NewRuleWithClausesAndEffects, RuleWithClausesAndEffects,
+        },
     },
-    schema::{clauses, rule_attribute_attributevalue, rule_question_answer, rules::dsl::*},
+    services::rule_attribute_attributevalue::create_rule_attribute_attributevalues,
 };
-use diesel::{delete, insert_into, prelude::*, result::Error};
-use diesel_async::{
-    scoped_futures::ScopedFutureExt, AsyncConnection, AsyncPgConnection, RunQueryDsl,
-};
+use futures::future::try_join_all;
+use sea_orm::*;
+use tokio::try_join;
 
-pub async fn get_rules(
-    connection: &mut AsyncPgConnection,
-    system: i32,
-) -> Result<Vec<RuleWithClausesAndEffects>, Error> {
-    let _rules = rules
-        .filter(system_id.eq(system))
-        .load::<Rule>(connection)
+use super::{clause::create_clauses, rule_question_answer::create_rule_question_answers};
+
+pub async fn get_rules<C>(db: &C, system_id: i32) -> Result<Vec<RuleWithClausesAndEffects>, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let mut rules = RuleEntity::find()
+        .filter(RuleColumn::SystemId.eq(system_id))
+        .all(db)
         .await?;
+    rules.sort_by_key(|rule| rule.id);
 
-    let _grouped_answers: Vec<Vec<RuleQuestionAnswer>> = RuleQuestionAnswer::belonging_to(&_rules)
-        .load::<RuleQuestionAnswer>(connection)
-        .await?
-        .grouped_by(&_rules);
+    let (grouped_answers, grouped_attributesvalues, grouped_clauses) = try_join!(
+        rules.load_many(RuleQuestionAnswerEntity, db),
+        rules.load_many(RuleAttributeAttributeValueEntity, db),
+        rules.load_many(ClauseEntity, db),
+    )?;
 
-    let _grouped_attributesvalues: Vec<Vec<RuleAttributeAttributeValue>> =
-        RuleAttributeAttributeValue::belonging_to(&_rules)
-            .load::<RuleAttributeAttributeValue>(connection)
-            .await?
-            .grouped_by(&_rules);
-
-    let _grouped_clauses: Vec<Vec<Clause>> = Clause::belonging_to(&_rules)
-        .load::<Clause>(connection)
-        .await?
-        .grouped_by(&_rules);
-
-    let result = _rules
+    let result = rules
         .into_iter()
-        .zip(_grouped_answers)
-        .zip(_grouped_attributesvalues)
-        .zip(_grouped_clauses)
+        .zip(grouped_answers)
+        .zip(grouped_attributesvalues)
+        .zip(grouped_clauses)
         .map(
-            |(((_rule, _answers), _attributesvalues), _clauses)| RuleWithClausesAndEffects {
-                id: _rule.id,
-                system_id: _rule.system_id,
-                attribute_rule: _rule.attribute_rule,
-                clauses: _clauses,
-                rule_question_answer_ids: _answers,
-                rule_attribute_attributevalue_ids: _attributesvalues,
-            },
-        )
-        .collect::<Vec<RuleWithClausesAndEffects>>();
-
-    Ok(result)
-}
-
-pub async fn create_rule(
-    connection: &mut AsyncPgConnection,
-    rule_info: Vec<NewRuleWithClausesAndEffects>,
-) -> Result<Vec<RuleWithClausesAndEffects>, Error> {
-    let (_rules, _clauses, _rule_question_answer_ids, _rule_attribute_attributevalue_ids) =
-        rule_info
-            .into_iter()
-            .fold((vec![], vec![], vec![], vec![]), |mut acc, raw| {
-                acc.0.push(NewRule {
-                    system_id: raw.system_id,
-                    attribute_rule: raw.attribute_rule,
-                });
-                acc.1.push(raw.clauses);
-                acc.2.push(raw.rule_question_answer_ids);
-                acc.3.push(raw.rule_attribute_attributevalue_ids);
-                acc
-            });
-
-    let mut new_rules: Vec<Rule> = vec![];
-    let mut new_clauses: Vec<Vec<Clause>> = vec![];
-    let mut new_rule_question_answers: Vec<Vec<RuleQuestionAnswer>> = vec![];
-    let mut new_rule_attribute_atributevalues: Vec<Vec<RuleAttributeAttributeValue>> = vec![];
-
-    match connection
-        .transaction(|connection| {
-            async {
-                new_rules = insert_into(rules)
-                    .values::<Vec<NewRule>>(_rules)
-                    .get_results::<Rule>(connection)
-                    .await?;
-
-                new_clauses = insert_into(clauses::table)
-                    .values::<Vec<NewClause>>(
-                        _clauses
-                            .into_iter()
-                            .zip(&new_rules)
-                            .flat_map(|(clauses, rule)| {
-                                clauses.into_iter().map(|value| NewClause {
-                                    question_id: value.question_id,
-                                    rule_id: rule.id,
-                                    compared_value: value.compared_value,
-                                    logical_group: value.logical_group,
-                                    operator: value.operator,
-                                })
-                            })
-                            .collect(),
-                    )
-                    .get_results::<Clause>(connection)
-                    .await?
-                    .grouped_by(&new_rules);
-
-                new_rule_question_answers = insert_into(rule_question_answer::table)
-                    .values::<Vec<NewRuleQuestionAnswer>>(
-                        _rule_question_answer_ids
-                            .into_iter()
-                            .zip(&new_rules)
-                            .flat_map(|(rule_question_answer_ids, rule)| {
-                                rule_question_answer_ids.into_iter().map(
-                                    |rule_question_answer_id| NewRuleQuestionAnswer {
-                                        answer_id: rule_question_answer_id.answer_id,
-                                        question_id: rule_question_answer_id.question_id,
-                                        rule_id: rule.id,
-                                    },
-                                )
-                            })
-                            .collect(),
-                    )
-                    .get_results::<RuleQuestionAnswer>(connection)
-                    .await?
-                    .grouped_by(&new_rules);
-
-                new_rule_attribute_atributevalues =
-                    insert_into(rule_attribute_attributevalue::table)
-                        .values::<Vec<NewRuleAttributeAttributeValue>>(
-                            _rule_attribute_attributevalue_ids
-                                .into_iter()
-                                .zip(&new_rules)
-                                .flat_map(|(rule_attribute_atributevalue_ids, rule)| {
-                                    rule_attribute_atributevalue_ids.into_iter().map(
-                                        |rule_attribute_atributevalue_id| {
-                                            NewRuleAttributeAttributeValue {
-                                                attribute_id: rule_attribute_atributevalue_id
-                                                    .attribute_id,
-                                                attribute_value_id: rule_attribute_atributevalue_id
-                                                    .attribute_value_id,
-                                                rule_id: rule.id,
-                                            }
-                                        },
-                                    )
-                                })
-                                .collect(),
-                        )
-                        .get_results::<RuleAttributeAttributeValue>(connection)
-                        .await?
-                        .grouped_by(&new_rules);
-                Ok(())
-            }
-            .scope_boxed()
-        })
-        .await
-    {
-        Ok(_) => (),
-        Err(err) => return Err(err),
-    };
-
-    let result = new_rules
-        .into_iter()
-        .zip(new_clauses)
-        .zip(new_rule_question_answers)
-        .zip(new_rule_attribute_atributevalues)
-        .map(
-            |(((rule, clause), rule_question_answer), rule_attribute_atributevalue)| {
+            |(((_rule, mut _answers), mut _attributesvalues), mut _clauses)| {
+                _answers.sort_by_key(|answer| answer.id);
+                _attributesvalues.sort_by_key(|values| values.id);
+                _clauses.sort_by_key(|clause| clause.id);
                 RuleWithClausesAndEffects {
-                    id: rule.id,
-                    system_id: rule.system_id,
-                    attribute_rule: rule.attribute_rule,
-                    clauses: clause,
-                    rule_question_answer_ids: rule_question_answer,
-                    rule_attribute_attributevalue_ids: rule_attribute_atributevalue,
+                    id: _rule.id,
+                    system_id: _rule.system_id,
+                    attribute_rule: _rule.attribute_rule,
+                    clauses: _clauses,
+                    rule_question_answer_ids: _answers,
+                    rule_attribute_attributevalue_ids: _attributesvalues,
                 }
             },
         )
-        .collect::<Vec<RuleWithClausesAndEffects>>();
+        .collect();
 
     Ok(result)
 }
 
-pub async fn multiple_delete_rules(
-    connection: &mut AsyncPgConnection,
-    rules_ids: Vec<i32>,
-) -> Result<usize, Error> {
-    Ok(delete(rules.filter(id.eq_any(rules_ids)))
-        .execute(connection)
-        .await?)
+pub async fn create_rule<C>(
+    db: &C,
+    rule_info: Vec<NewRuleWithClausesAndEffects>,
+) -> Result<Vec<RuleWithClausesAndEffects>, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let txn = db.begin().await?;
+    let shared_txn = Arc::new(&txn);
+
+    let new_rules = rule_info.into_iter().map(|rule_raw| {
+        let txn_cloned = Arc::clone(&shared_txn);
+        async move {
+            let new_rule = RuleActiveModel {
+                system_id: Set(rule_raw.system_id),
+                attribute_rule: Set(rule_raw.attribute_rule),
+                ..Default::default()
+            };
+            let created_rule = new_rule.insert(*txn_cloned).await?;
+
+            let clauses_to_create = rule_raw
+                .clauses
+                .into_iter()
+                .map(|clause| ClauseModel {
+                    id: -1,
+                    rule_id: created_rule.id,
+                    compared_value: clause.compared_value,
+                    logical_group: clause.logical_group,
+                    operator: clause.operator,
+                    question_id: clause.question_id,
+                })
+                .collect();
+            let answers_to_create = rule_raw
+                .rule_question_answer_ids
+                .into_iter()
+                .map(|clause| RuleQuestionAnswerModel {
+                    id: -1,
+                    rule_id: created_rule.id,
+                    question_id: clause.question_id,
+                    answer_id: clause.answer_id,
+                })
+                .collect();
+            let attributevalues_to_create = rule_raw
+                .rule_attribute_attributevalue_ids
+                .into_iter()
+                .map(|attributevalue| RuleAttributeAttributeValueModel {
+                    id: -1,
+                    rule_id: created_rule.id,
+                    attribute_id: attributevalue.attribute_id,
+                    attribute_value_id: attributevalue.attribute_value_id,
+                })
+                .collect();
+
+            let (clauses, rule_question_answers, rule_attribute_attributevalues) = try_join!(
+                create_clauses(*txn_cloned, clauses_to_create),
+                create_rule_question_answers(*txn_cloned, answers_to_create),
+                create_rule_attribute_attributevalues(*txn_cloned, attributevalues_to_create)
+            )?;
+
+            Ok::<RuleWithClausesAndEffects, DbErr>(RuleWithClausesAndEffects {
+                id: created_rule.id,
+                system_id: created_rule.system_id,
+                attribute_rule: created_rule.attribute_rule,
+                clauses,
+                rule_question_answer_ids: rule_question_answers,
+                rule_attribute_attributevalue_ids: rule_attribute_attributevalues,
+            })
+        }
+    });
+
+    let mut result = try_join_all(new_rules).await?;
+    result.sort_by_key(|rule| rule.id);
+
+    txn.commit().await?;
+
+    Ok(result)
+}
+
+pub async fn multiple_delete_rules<C>(db: &C, rules_ids: Vec<i32>) -> Result<u64, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    Ok(RuleEntity::delete_many()
+        .filter(RuleColumn::Id.is_in(rules_ids))
+        .exec(db)
+        .await?
+        .rows_affected)
 }

@@ -1,27 +1,47 @@
-use crate::{
-    models::rule_attribute_attributevalue::NewRuleAttributeAttributeValue,
-    schema::rule_attribute_attributevalue::dsl::*,
+use crate::entity::rule_attribute_attributevalue::{
+    ActiveModel as RuleAttributeAttributevalueActiveModel,
+    Column as RuleAttributeAttributevalueColumn, Entity as RuleAttributeAttributevalueEntity,
+    Model as RuleAttributeAttributevalueModel,
 };
-use diesel::{delete, insert_into, prelude::*, result::Error};
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use futures::future::try_join_all;
+use sea_orm::*;
 
-pub async fn create_rule_attribute_attributevalues(
-    connection: &mut AsyncPgConnection,
-    rule_attribuevalue_info: Vec<NewRuleAttributeAttributeValue>,
-) -> Result<usize, Error> {
-    Ok(insert_into(rule_attribute_attributevalue)
-        .values::<Vec<NewRuleAttributeAttributeValue>>(rule_attribuevalue_info)
-        .execute(connection)
-        .await?)
+pub async fn create_rule_attribute_attributevalues<C>(
+    db: &C,
+    rule_attribuevalue_info: Vec<RuleAttributeAttributevalueModel>,
+) -> Result<Vec<RuleAttributeAttributevalueModel>, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let new_rule_attribuevalues =
+        rule_attribuevalue_info
+            .into_iter()
+            .map(|new_rule_attribuevalue| {
+                let model = RuleAttributeAttributevalueActiveModel {
+                    rule_id: Set(new_rule_attribuevalue.rule_id),
+                    attribute_value_id: Set(new_rule_attribuevalue.attribute_value_id),
+                    attribute_id: Set(new_rule_attribuevalue.attribute_id),
+                    ..Default::default()
+                };
+                model.insert(db)
+            });
+
+    let mut result = try_join_all(new_rule_attribuevalues).await?;
+    result.sort_by_key(|rule_attribuevalue| rule_attribuevalue.id);
+
+    Ok(result)
 }
 
-pub async fn multiple_delete_rule_attribute_attributevalues(
-    connection: &mut AsyncPgConnection,
+pub async fn multiple_delete_rule_attribute_attributevalues<C>(
+    db: &C,
     rule_attribute_attributevalues_ids: Vec<i32>,
-) -> Result<usize, Error> {
-    Ok(
-        delete(rule_attribute_attributevalue.filter(id.eq_any(rule_attribute_attributevalues_ids)))
-            .execute(connection)
-            .await?,
-    )
+) -> Result<u64, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    Ok(RuleAttributeAttributevalueEntity::delete_many()
+        .filter(RuleAttributeAttributevalueColumn::Id.is_in(rule_attribute_attributevalues_ids))
+        .exec(db)
+        .await?
+        .rows_affected)
 }

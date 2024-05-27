@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate dotenv_codegen;
-extern crate diesel;
 extern crate dotenv;
 
 #[cfg(not(debug_assertions))]
@@ -10,10 +9,6 @@ use axum::{
     middleware as axum_middleware, Router,
 };
 use constants::IMAGE_DIR;
-use diesel_async::{
-    pooled_connection::{bb8, AsyncDieselConnectionManager},
-    AsyncPgConnection,
-};
 use dotenv::dotenv;
 use http::{
     header::{ACCEPT, CONTENT_TYPE, SET_COOKIE, X_CONTENT_TYPE_OPTIONS},
@@ -29,6 +24,7 @@ use routes::{
     rule_attribute_attributevalue::rule_attribute_attributevalue_routes,
     rule_question_answer::rule_question_answer_routes, system::system_routes, user::user_routes,
 };
+use sea_orm::{Database, DatabaseConnection};
 
 use std::net::SocketAddr;
 #[cfg(not(debug_assertions))]
@@ -44,8 +40,8 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 mod constants;
+mod entity;
 mod middleware;
-mod models;
 mod pagination;
 mod routes;
 mod schema;
@@ -53,29 +49,34 @@ mod services;
 mod swagger;
 mod utils;
 
-type AsyncPool = bb8::Pool<AsyncPgConnection>;
-
 #[derive(Clone)]
 struct AppState {
-    db_pool: AsyncPool,
+    db_sea: DatabaseConnection,
     cookie_key: Key,
 }
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+
+    #[cfg(debug_assertions)]
+    {
+        tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::DEBUG)
+            .with_test_writer()
+            .init();
+    }
+
     let database_url = dotenv!("DATABASE_URL");
-    let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(database_url);
-    let pool = bb8::Pool::builder()
-        .build(manager)
+    let db: DatabaseConnection = Database::connect(database_url)
         .await
-        .expect("Failed to create pool");
+        .expect("Failed to create sea connection");
 
     let cookie_key = dotenv!("COOKIE_KEY");
     let secret_key = Key::from(cookie_key.as_bytes());
 
     let state = AppState {
-        db_pool: pool,
+        db_sea: db,
         cookie_key: secret_key,
     };
 

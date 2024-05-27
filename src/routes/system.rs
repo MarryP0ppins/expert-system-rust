@@ -1,7 +1,7 @@
 use crate::{
-    models::{
+    entity::{
         error::CustomErrors,
-        system::{NewSystemMultipart, SystemDelete, UpdateSystemMultipart},
+        systems::{NewSystemMultipartModel, SystemDeleteModel, UpdateSystemMultipartModel},
     },
     pagination::SystemListPagination,
     services::{
@@ -29,9 +29,9 @@ use tower_cookies::Cookies;
     post,
     path = "/systems",
     context_path ="/api/v1",
-    request_body(content = NewSystemMultipart, description = "Multipart file", content_type = "multipart/form-data"),
+    request_body(content = NewSystemMultipartModel, description = "Multipart file", content_type = "multipart/form-data"),
     responses(
-        (status = 200, description = "System create successfully", body=System),
+        (status = 200, description = "System create successfully", body=SystemModel),
         (status = 401, description = "Unauthorized to create System", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -42,19 +42,13 @@ use tower_cookies::Cookies;
 pub async fn system_create(
     State(state): State<AppState>,
     cookie: Cookies,
-    TypedMultipart(system_info): TypedMultipart<NewSystemMultipart>,
+    TypedMultipart(system_info): TypedMultipart<NewSystemMultipartModel>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
+    let user = cookie_check(&state.db_sea, cookie, &state.cookie_key).await?;
 
-    let user = cookie_check(&mut connection, cookie, &state.cookie_key).await?;
-
-    match create_system(&mut connection, system_info, user.id).await {
+    match create_system(&state.db_sea, system_info, user.id).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -66,7 +60,7 @@ pub async fn system_create(
     path = "/systems",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching Systems by query", body = SystemsWithPageCount),
+        (status = 200, description = "List matching Systems by query", body = [SystemModel]),
         (status = 401, description = "Unauthorized to list Systems", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -82,20 +76,13 @@ pub async fn system_list(
     State(state): State<AppState>,
     Query(pagination): Query<SystemListPagination>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    let pagination: SystemListPagination = pagination;
-    match get_systems(&mut connection, pagination).await {
+    match get_systems(&state.db_sea, pagination).await {
         Ok(result) => {
             let mut headers = HeaderMap::new();
             headers.insert("x-pages", result.pages.to_string().parse().unwrap());
             Ok((headers, Json(result.systems)))
         }
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -107,7 +94,7 @@ pub async fn system_list(
     path = "/systems/{id}",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "Matching System by query", body=System),
+        (status = 200, description = "Matching System by query", body=SystemModel),
         (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -123,15 +110,9 @@ pub async fn system_retrieve(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match get_system(&mut connection, system_id).await {
+    match get_system(&state.db_sea, system_id).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -143,7 +124,7 @@ pub async fn system_retrieve(
     path = "/systems/{id}/test",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "Matching System by query", body=SystemData),
+        (status = 200, description = "Matching System by query", body=QuestionWithAnswersModel),
         (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -159,15 +140,9 @@ pub async fn system_start(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match get_ready_to_start_system(&mut connection, system_id).await {
+    match get_ready_to_start_system(&state.db_sea, system_id).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -195,13 +170,7 @@ pub async fn system_backup(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match backup_from_system(&mut connection, system_id).await {
+    match backup_from_system(&state.db_sea, system_id).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(err),
     }
@@ -212,7 +181,7 @@ pub async fn system_backup(
     path = "/systems/restore",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "Sususfully restore", body = System),
+        (status = 200, description = "Sususfully restore", body = SystemModel),
         (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -226,13 +195,7 @@ pub async fn system_restore(
     cookie: Cookies,
     Json(system_decode): Json<Vec<u8>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match system_from_backup(&mut connection, system_decode, cookie, &state.cookie_key).await {
+    match system_from_backup(&state.db_sea, system_decode, cookie, &state.cookie_key).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(err),
     }
@@ -242,9 +205,9 @@ pub async fn system_restore(
     patch,
     path = "/systems/{id}",
     context_path ="/api/v1",
-    request_body(content = UpdateSystemMultipart, description = "Multipart file", content_type = "multipart/form-data"),
+    request_body(content = UpdateSystemMultipartModel, description = "Multipart file", content_type = "multipart/form-data"),
     responses(
-        (status = 200, description = "System and it dependences updated successfully", body = System),
+        (status = 200, description = "System and it dependences updated successfully", body = SystemModel),
         (status = 401, description = "Unauthorized to update System and it dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -260,17 +223,11 @@ pub async fn system_restore(
 pub async fn system_partial_update(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
-    TypedMultipart(system_info): TypedMultipart<UpdateSystemMultipart>,
+    TypedMultipart(system_info): TypedMultipart<UpdateSystemMultipartModel>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match update_system(&mut connection, system_id, system_info).await {
+    match update_system(&state.db_sea, system_id, system_info).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -281,9 +238,9 @@ pub async fn system_partial_update(
     delete,
     path = "/systems/{id}",
     context_path ="/api/v1",
-    request_body=SystemDelete,
+    request_body=SystemDeleteModel,
     responses(
-        (status = 200, description = "System and it dependences deleted successfully", body = CustomErrors, example = json!(())),
+        (status = 200, description = "System and it dependences deleted successfully", body = u64),
         (status = 401, description = "Unauthorized to delete System and it dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -300,25 +257,19 @@ pub async fn system_delete(
     State(state): State<AppState>,
     cookie: Cookies,
     Path(system_id): Path<i32>,
-    Json(system_info): Json<SystemDelete>,
+    Json(system_info): Json<SystemDeleteModel>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
     password_check(
-        &mut connection,
+        &state.db_sea,
         cookie,
         &state.cookie_key,
         &system_info.password,
     )
     .await?;
 
-    match delete_system(&mut connection, system_id).await {
+    match delete_system(&state.db_sea, system_id).await {
         Ok(_) => Ok(()),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),

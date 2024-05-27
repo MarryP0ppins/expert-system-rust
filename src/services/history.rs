@@ -1,70 +1,85 @@
-use crate::{
-    models::history::{HistoryWithSystem, NewHistory},
-    schema::{histories::dsl::*, systems, users},
+use crate::entity::{
+    histories::{Entity as HistoryEntity, HistoryWithSystem, Model as HistoryModel},
+    systems::{Column as SystemColumn, Entity as SystemEntity},
+    users::{Column as UserColumn, Entity as UserEntity},
 };
-use diesel::{delete, insert_into, prelude::*, result::Error};
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use sea_orm::*;
 
-pub async fn get_histories(
-    connection: &mut AsyncPgConnection,
+pub async fn get_histories<C>(
+    db: &C,
     _system: Option<i32>,
     _user: Option<i32>,
-) -> Result<Vec<HistoryWithSystem>, Error> {
-    let mut query = histories
-        .inner_join(systems::table)
-        .inner_join(users::table)
-        .into_boxed();
+) -> Result<Vec<HistoryWithSystem>, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let mut query = HistoryEntity::find();
 
     if let Some(param) = _system {
-        query = query.filter(systems::id.eq(param));
+        query = query
+            .inner_join(SystemEntity)
+            .filter(SystemColumn::Id.eq(param));
     }
     if let Some(param) = _user {
-        query = query.or_filter(users::id.eq(param));
+        query = query
+            .inner_join(UserEntity)
+            .filter(UserColumn::Id.eq(param));
     }
 
-    Ok(query
-        .select((
-            id,
-            (systems::all_columns),
-            answered_questions,
-            results,
-            started_at,
-            finished_at,
-        ))
-        .load::<HistoryWithSystem>(connection)
-        .await?)
+    let histories = query.find_also_related(SystemEntity).all(db).await?;
+
+    let mut result = histories
+        .into_iter()
+        .map(|(history, system_option)| {
+            let system = system_option.ok_or(DbErr::Custom("system error".to_string()))?;
+            Ok(HistoryWithSystem {
+                id: history.id,
+                system,
+                answered_questions: history.answered_questions,
+                results: history.results,
+                started_at: history.started_at,
+                finished_at: history.finished_at,
+            })
+        })
+        .collect::<Result<Vec<HistoryWithSystem>, DbErr>>()?;
+
+    result.sort_by(|a, b| a.id.cmp(&b.id));
+
+    Ok(result)
 }
 
-pub async fn create_history(
-    connection: &mut AsyncPgConnection,
-    history_info: NewHistory,
-) -> Result<HistoryWithSystem, Error> {
-    let insert_raw_id = insert_into(histories)
-        .values::<NewHistory>(history_info)
-        .returning(id)
-        .get_result::<i32>(connection)
-        .await?;
+pub async fn create_history<C>(
+    db: &C,
+    history_info: HistoryModel,
+) -> Result<HistoryWithSystem, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let new_history = history_info.into_active_model().insert(db).await?;
 
-    Ok(histories
-        .find(insert_raw_id)
-        .inner_join(systems::table)
-        .select((
-            id,
-            (systems::all_columns),
-            answered_questions,
-            results,
-            started_at,
-            finished_at,
-        ))
-        .first::<HistoryWithSystem>(connection)
-        .await?)
+    let system = SystemEntity::find_by_id(new_history.system_id)
+        .one(db)
+        .await?
+        .ok_or(DbErr::Custom("Ошибка создания записи истории".to_string()))?;
+
+    let result = HistoryWithSystem {
+        id: new_history.id,
+        system,
+        answered_questions: new_history.answered_questions,
+        results: new_history.results,
+        started_at: new_history.started_at,
+        finished_at: new_history.finished_at,
+    };
+
+    Ok(result)
 }
 
-pub async fn delete_history(
-    connection: &mut AsyncPgConnection,
-    history_id: i32,
-) -> Result<usize, Error> {
-    Ok(delete(histories.find(history_id))
-        .execute(connection)
-        .await?)
+pub async fn delete_history<C>(db: &C, history_id: i32) -> Result<u64, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    Ok(HistoryEntity::delete_by_id(history_id)
+        .exec(db)
+        .await?
+        .rows_affected)
 }

@@ -1,5 +1,5 @@
 use crate::{
-    models::{error::CustomErrors, rule_question_answer::NewRuleQuestionAnswer},
+    entity::{error::CustomErrors, rule_question_answer::Model as RuleQuestionAnswerModel},
     services::rule_question_answer::{
         create_rule_question_answers, multiple_delete_rule_question_answers,
     },
@@ -18,9 +18,9 @@ use axum::{
     post,
     path = "/rule-answer",
     context_path ="/api/v1",
-    request_body = [NewRuleQuestionAnswer],
+    request_body = [RuleQuestionAnswerModel],
     responses(
-        (status = 200, description = "RuleQuestionAnswers and their dependences create successfully", body = CustomErrors, example = json!(())),
+        (status = 200, description = "RuleQuestionAnswers and their dependences create successfully", body = [RuleQuestionAnswerModel]),
         (status = 401, description = "Unauthorized to create RuleQuestionAnswers and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -31,17 +31,11 @@ use axum::{
 #[debug_handler]
 pub async fn rule_question_answer_create(
     State(state): State<AppState>,
-    Json(rule_question_answer_info): Json<Vec<NewRuleQuestionAnswer>>,
+    Json(rule_question_answer_info): Json<Vec<RuleQuestionAnswerModel>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match create_rule_question_answers(&mut connection, rule_question_answer_info).await {
+    match create_rule_question_answers(&state.db_sea, rule_question_answer_info).await {
         Ok(_) => Ok(()),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -54,7 +48,7 @@ pub async fn rule_question_answer_create(
     context_path ="/api/v1",
     request_body = [i32],
     responses(
-        (status = 200, description = "RuleQuestionAnswers and their dependences deleted successfully", body = CustomErrors, example = json!(())),
+        (status = 200, description = "RuleQuestionAnswers and their dependences deleted successfully", body = u64),
         (status = 401, description = "Unauthorized to delete RuleQuestionAnswers and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -68,15 +62,9 @@ pub async fn rule_question_answer_multiple_delete(
     State(state): State<AppState>,
     Json(rule_question_answer_info): Json<Vec<i32>>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match multiple_delete_rule_question_answers(&mut connection, rule_question_answer_info).await {
-        Ok(_) => Ok(()),
-        Err(err) => Err(CustomErrors::DieselError {
+    match multiple_delete_rule_question_answers(&state.db_sea, rule_question_answer_info).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),

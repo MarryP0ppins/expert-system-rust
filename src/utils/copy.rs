@@ -1,76 +1,80 @@
 use std::collections::HashMap;
 
-use crate::{
-    models::{
-        answer::{Answer, NewAnswer},
-        attribute::{Attribute, NewAttribute},
-        attribute_value::{AttributeValue, NewAttributeValue},
-        clause::{Clause, NewClause},
-        error::CustomErrors,
-        object::{NewObject, Object},
-        object_attribute_attributevalue::{
-            NewObjectAttributeAttributevalue, ObjectAttributeAttributevalue,
-        },
-        question::{NewQuestion, Question},
-        rule::{NewRule, Rule},
-        rule_attribute_attributevalue::{
-            NewRuleAttributeAttributeValue, RuleAttributeAttributeValue,
-        },
-        rule_question_answer::{NewRuleQuestionAnswer, RuleQuestionAnswer},
-        system::{NewSystem, System},
+use crate::entity::{
+    answers::{ActiveModel as AnswerActiveModel, Model as AnswerModel},
+    attributes::{ActiveModel as AttributeActiveModel, Model as AttributeModel},
+    attributesvalues::{ActiveModel as AttributeValueActiveModel, Model as AttributeValueModel},
+    clauses::{ActiveModel as ClauseActiveModel, Model as ClauseModel},
+    error::CustomErrors,
+    object_attribute_attributevalue::{
+        ActiveModel as ObjectAttributeAttributeValueActiveModel,
+        Model as ObjectAttributeAttributeValueModel,
     },
-    schema::{
-        answers, attributes, attributesvalues, clauses, object_attribute_attributevalue, objects,
-        questions, rule_attribute_attributevalue, rule_question_answer, rules, systems::dsl::*,
+    objects::{ActiveModel as ObjectActiveModel, Model as ObjectModel},
+    questions::{ActiveModel as QuestionActiveModel, Model as QuestionModel},
+    rule_attribute_attributevalue::{
+        ActiveModel as RuleAttributeAttributeValueActiveModel,
+        Model as RuleAttributeAttributeValueModel,
     },
+    rule_question_answer::{
+        ActiveModel as RuleQuestionAnswerActiveModel, Model as RuleQuestionAnswerModel,
+    },
+    rules::{ActiveModel as RuleActiveModel, Model as RuleModel},
+    systems::{ActiveModel as SystemActiveModel, Model as SystemModel},
 };
-use diesel::insert_into;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use http::StatusCode;
+use futures::{
+    future::try_join_all,
+    stream::{StreamExt, TryStreamExt},
+};
 
-pub async fn copy_system(
-    connection: &mut AsyncPgConnection,
-    old_system: &System,
-) -> Result<System, CustomErrors> {
+use http::StatusCode;
+use sea_orm::*;
+
+pub async fn copy_system<C>(db: &C, old_system: &SystemModel) -> Result<SystemModel, CustomErrors>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
     let mut split_name = old_system.name.clone();
     let _ = split_name.split_off(94);
-    Ok(insert_into(systems)
-        .values::<NewSystem>(NewSystem {
-            user_id: old_system.user_id,
-            about: old_system.about.clone(),
-            name: format!("{} - {}", split_name, chrono::Utc::now()),
-            image_uri: old_system.image_uri.clone(),
-            private: old_system.private,
-        })
-        .get_result::<System>(connection)
+
+    let model = SystemActiveModel {
+        user_id: Set(old_system.user_id),
+        about: Set(old_system.about.clone()),
+        name: Set(format!("{} - {}", split_name, chrono::Utc::now())),
+        private: Set(old_system.private),
+        image_uri: Set(old_system.image_uri.clone()),
+        ..Default::default()
+    };
+    Ok(model
+        .insert(db)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
         })?)
 }
 
-pub async fn copy_questions(
-    connection: &mut AsyncPgConnection,
+pub async fn copy_questions<C>(
+    db: &C,
     new_system_id: i32,
-    old_questions: &Vec<Question>,
+    old_questions: &Vec<QuestionModel>,
     question_map: &mut HashMap<i32, i32>,
-) -> Result<Vec<Question>, CustomErrors> {
-    let new_questions = insert_into(questions::table)
-        .values::<Vec<NewQuestion>>(
-            old_questions
-                .as_slice()
-                .into_iter()
-                .map(|question| NewQuestion {
-                    system_id: new_system_id,
-                    body: question.body.clone(),
-                    with_chooses: question.with_chooses,
-                })
-                .collect::<Vec<NewQuestion>>(),
-        )
-        .get_results::<Question>(connection)
+) -> Result<Vec<QuestionModel>, CustomErrors>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let new_questions = old_questions.into_iter().map(|question| {
+        let model = QuestionActiveModel {
+            system_id: Set(new_system_id),
+            body: Set(question.body.clone()),
+            with_chooses: Set(question.with_chooses),
+            ..Default::default()
+        };
+        model.insert(db)
+    });
+    let result = try_join_all(new_questions)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
         })?;
@@ -78,33 +82,33 @@ pub async fn copy_questions(
     question_map.extend(
         old_questions
             .into_iter()
-            .zip(&new_questions)
+            .zip(&result)
             .map(|(old_question, new_question)| (old_question.id, new_question.id)),
     );
 
-    Ok(new_questions)
+    Ok(result)
 }
 
-pub async fn copy_attributes(
-    connection: &mut AsyncPgConnection,
+pub async fn copy_attributes<C>(
+    db: &C,
     new_system_id: i32,
-    old_attributes: &Vec<Attribute>,
+    old_attributes: &Vec<AttributeModel>,
     attribute_map: &mut HashMap<i32, i32>,
-) -> Result<Vec<Attribute>, CustomErrors> {
-    let new_attributes = insert_into(attributes::table)
-        .values::<Vec<NewAttribute>>(
-            old_attributes
-                .as_slice()
-                .into_iter()
-                .map(|attribute| NewAttribute {
-                    system_id: new_system_id,
-                    name: attribute.name.clone(),
-                })
-                .collect::<Vec<NewAttribute>>(),
-        )
-        .get_results::<Attribute>(connection)
+) -> Result<Vec<AttributeModel>, CustomErrors>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let new_attributes = old_attributes.into_iter().map(|attribute| {
+        let model = AttributeActiveModel {
+            system_id: Set(new_system_id),
+            name: Set(attribute.name.clone()),
+            ..Default::default()
+        };
+        model.insert(db)
+    });
+    let result = try_join_all(new_attributes)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
         })?;
@@ -112,33 +116,33 @@ pub async fn copy_attributes(
     attribute_map.extend(
         old_attributes
             .into_iter()
-            .zip(&new_attributes)
+            .zip(&result)
             .map(|(old_question, new_question)| (old_question.id, new_question.id)),
     );
 
-    Ok(new_attributes)
+    Ok(result)
 }
 
-pub async fn copy_objects(
-    connection: &mut AsyncPgConnection,
+pub async fn copy_objects<C>(
+    db: &C,
     new_system_id: i32,
-    old_objects: &Vec<Object>,
+    old_objects: &Vec<ObjectModel>,
     object_map: &mut HashMap<i32, i32>,
-) -> Result<Vec<Object>, CustomErrors> {
-    let new_objects = insert_into(objects::table)
-        .values::<Vec<NewObject>>(
-            old_objects
-                .as_slice()
-                .into_iter()
-                .map(|object| NewObject {
-                    system_id: new_system_id,
-                    name: object.name.clone(),
-                })
-                .collect::<Vec<NewObject>>(),
-        )
-        .get_results::<Object>(connection)
+) -> Result<Vec<ObjectModel>, CustomErrors>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let new_objects = old_objects.into_iter().map(|object| {
+        let model = ObjectActiveModel {
+            system_id: Set(new_system_id),
+            name: Set(object.name.clone()),
+            ..Default::default()
+        };
+        model.insert(db)
+    });
+    let result = try_join_all(new_objects)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
         })?;
@@ -146,33 +150,33 @@ pub async fn copy_objects(
     object_map.extend(
         old_objects
             .into_iter()
-            .zip(&new_objects)
+            .zip(&result)
             .map(|(old_object, new_object)| (old_object.id, new_object.id)),
     );
 
-    Ok(new_objects)
+    Ok(result)
 }
 
-pub async fn copy_rules(
-    connection: &mut AsyncPgConnection,
+pub async fn copy_rules<C>(
+    db: &C,
     new_system_id: i32,
-    old_rules: &Vec<Rule>,
+    old_rules: &Vec<RuleModel>,
     rule_map: &mut HashMap<i32, i32>,
-) -> Result<Vec<Rule>, CustomErrors> {
-    let new_rules = insert_into(rules::table)
-        .values::<Vec<NewRule>>(
-            old_rules
-                .as_slice()
-                .into_iter()
-                .map(|rule| NewRule {
-                    system_id: new_system_id,
-                    attribute_rule: rule.attribute_rule,
-                })
-                .collect::<Vec<NewRule>>(),
-        )
-        .get_results::<Rule>(connection)
+) -> Result<Vec<RuleModel>, CustomErrors>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let new_rules = old_rules.into_iter().map(|rule| {
+        let model = RuleActiveModel {
+            system_id: Set(new_system_id),
+            attribute_rule: Set(rule.attribute_rule),
+            ..Default::default()
+        };
+        model.insert(db)
+    });
+    let result = try_join_all(new_rules)
         .await
-        .map_err(|err| CustomErrors::DieselError {
+        .map_err(|err| CustomErrors::SeaORMError {
             error: err,
             message: None,
         })?;
@@ -180,308 +184,297 @@ pub async fn copy_rules(
     rule_map.extend(
         old_rules
             .into_iter()
-            .zip(&new_rules)
+            .zip(&result)
             .map(|(old_rule, new_rule)| (old_rule.id, new_rule.id)),
     );
 
-    Ok(new_rules)
+    Ok(result)
 }
 
-pub async fn copy_attribute_values(
-    connection: &mut AsyncPgConnection,
-    old_attribute_values: &Vec<AttributeValue>,
+pub async fn copy_attribute_values<C>(
+    db: &C,
+    old_attribute_values: &Vec<AttributeValueModel>,
     attribute_map: &HashMap<i32, i32>,
     attributevalue_map: &mut HashMap<i32, i32>,
-) -> Result<Vec<AttributeValue>, CustomErrors> {
-    let new_new_attribute_values: Result<Vec<NewAttributeValue>, CustomErrors> =
-        old_attribute_values
-            .into_iter()
-            .map(|old_attribute_value| {
-                let new_attribute_id = attribute_map
-                    .get(&old_attribute_value.attribute_id)
-                    .ok_or_else(|| CustomErrors::StringError {
-                        status: StatusCode::UNPROCESSABLE_ENTITY,
-                        error: "Ошибка в расшифровке системы".to_string(),
-                    })?;
-                Ok(NewAttributeValue {
-                    attribute_id: *new_attribute_id,
-                    value: old_attribute_value.value.clone(),
-                })
-            })
-            .collect();
-    let new_new_attribute_values = match new_new_attribute_values {
-        Ok(values) => values,
-        Err(err) => return Err(err),
-    };
-    let new_attributevalues = insert_into(attributesvalues::table)
-        .values(&new_new_attribute_values)
-        .get_results::<AttributeValue>(connection)
-        .await
-        .map_err(|err| CustomErrors::DieselError {
-            error: err,
-            message: None,
-        })?;
-
-    attributevalue_map.extend(
-        old_attribute_values
-            .into_iter()
-            .zip(&new_attributevalues)
-            .map(|(old_attributevalue, new_attributevalue)| {
-                (old_attributevalue.id, new_attributevalue.id)
-            }),
-    );
-
-    Ok(new_attributevalues)
-}
-
-pub async fn copy_answers(
-    connection: &mut AsyncPgConnection,
-    old_answers: &Vec<Answer>,
-    question_map: &HashMap<i32, i32>,
-    answer_map: &mut HashMap<i32, i32>,
-) -> Result<Vec<Answer>, CustomErrors> {
-    let new_new_answers: Result<Vec<NewAnswer>, CustomErrors> = old_answers
-        .into_iter()
-        .map(|old_answer| {
-            let new_question_id = question_map.get(&old_answer.question_id).ok_or_else(|| {
+) -> Result<Vec<AttributeValueModel>, CustomErrors>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let new_attribute_values_stream =
+        futures::stream::iter(old_attribute_values).then(|old_attribute_value| async move {
+            let new_attribute_id = attribute_map.get(&old_attribute_value.attribute_id).ok_or(
                 CustomErrors::StringError {
                     status: StatusCode::UNPROCESSABLE_ENTITY,
                     error: "Ошибка в расшифровке системы".to_string(),
-                }
-            })?;
-            Ok(NewAnswer {
-                question_id: *new_question_id,
-                body: old_answer.body.clone(),
+                },
+            )?;
+
+            let model = AttributeValueActiveModel {
+                attribute_id: Set(*new_attribute_id),
+                value: Set(old_attribute_value.value.clone()),
+                ..Default::default()
+            };
+
+            model
+                .insert(db)
+                .await
+                .map_err(|err| CustomErrors::SeaORMError {
+                    error: err,
+                    message: None,
+                })
+        });
+
+    let result: Vec<AttributeValueModel> = new_attribute_values_stream.try_collect().await?;
+
+    attributevalue_map.extend(old_attribute_values.iter().zip(&result).map(
+        |(old_attribute_value, new_attribute_value)| {
+            (old_attribute_value.id, new_attribute_value.id)
+        },
+    ));
+
+    Ok(result)
+}
+
+pub async fn copy_answers<C>(
+    db: &C,
+    old_answers: &Vec<AnswerModel>,
+    question_map: &HashMap<i32, i32>,
+    answer_map: &mut HashMap<i32, i32>,
+) -> Result<Vec<AnswerModel>, CustomErrors>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let new_new_answers = futures::stream::iter(old_answers).then(|old_answer| async move {
+        let new_question_id =
+            question_map
+                .get(&old_answer.question_id)
+                .ok_or(CustomErrors::StringError {
+                    status: StatusCode::UNPROCESSABLE_ENTITY,
+                    error: "Ошибка в расшифровке системы".to_string(),
+                })?;
+        let model = AnswerActiveModel {
+            question_id: Set(*new_question_id),
+            body: Set(old_answer.body.clone()),
+            ..Default::default()
+        };
+        model
+            .insert(db)
+            .await
+            .map_err(|err| CustomErrors::SeaORMError {
+                error: err,
+                message: None,
             })
-        })
-        .collect();
-    let new_new_answers = match new_new_answers {
-        Ok(values) => values,
-        Err(err) => return Err(err),
-    };
-    let new_answers = insert_into(answers::table)
-        .values(&new_new_answers)
-        .get_results::<Answer>(connection)
-        .await
-        .map_err(|err| CustomErrors::DieselError {
-            error: err,
-            message: None,
-        })?;
+    });
+    let result: Vec<AnswerModel> = new_new_answers.try_collect().await?;
 
     answer_map.extend(
         old_answers
             .into_iter()
-            .zip(&new_answers)
+            .zip(&result)
             .map(|(old_answer, new_answer)| (old_answer.id, new_answer.id)),
     );
 
-    Ok(new_answers)
+    Ok(result)
 }
 
-pub async fn copy_clauses(
-    connection: &mut AsyncPgConnection,
-    old_clauses: &Vec<Clause>,
+pub async fn copy_clauses<C>(
+    db: &C,
+    old_clauses: &Vec<ClauseModel>,
     rule_map: &HashMap<i32, i32>,
     question_map: &HashMap<i32, i32>,
-) -> Result<Vec<Clause>, CustomErrors> {
-    let new_new_clauses: Result<Vec<NewClause>, CustomErrors> = old_clauses
-        .into_iter()
-        .map(|old_clause| {
-            let new_rule_id =
-                rule_map
-                    .get(&old_clause.rule_id)
-                    .ok_or_else(|| CustomErrors::StringError {
-                        status: StatusCode::UNPROCESSABLE_ENTITY,
-                        error: "Ошибка в расшифровке системы".to_string(),
-                    })?;
-            let new_question_id = question_map.get(&old_clause.question_id).ok_or_else(|| {
-                CustomErrors::StringError {
+) -> Result<Vec<ClauseModel>, CustomErrors>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let new_clauses_stream = futures::stream::iter(old_clauses).then(|old_clause| async move {
+        let new_rule_id = rule_map
+            .get(&old_clause.rule_id)
+            .ok_or(CustomErrors::StringError {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                error: "Ошибка в расшифровке системы".to_string(),
+            })?;
+
+        let new_question_id =
+            question_map
+                .get(&old_clause.question_id)
+                .ok_or(CustomErrors::StringError {
                     status: StatusCode::UNPROCESSABLE_ENTITY,
                     error: "Ошибка в расшифровке системы".to_string(),
-                }
-            })?;
-            Ok(NewClause {
-                rule_id: *new_rule_id,
-                compared_value: old_clause.compared_value.clone(),
-                logical_group: old_clause.logical_group.clone(),
-                operator: old_clause.operator.clone(),
-                question_id: *new_question_id,
-            })
-        })
-        .collect();
-    let new_new_clauses = match new_new_clauses {
-        Ok(values) => values,
-        Err(err) => return Err(err),
-    };
-    let new_clauses = insert_into(clauses::table)
-        .values(&new_new_clauses)
-        .get_results::<Clause>(connection)
-        .await
-        .map_err(|err| CustomErrors::DieselError {
-            error: err,
-            message: None,
-        })?;
+                })?;
 
-    Ok(new_clauses)
+        let model = ClauseActiveModel {
+            rule_id: Set(*new_rule_id),
+            compared_value: Set(old_clause.compared_value.clone()),
+            logical_group: Set(old_clause.logical_group.clone()),
+            operator: Set(old_clause.operator.clone()),
+            question_id: Set(*new_question_id),
+            ..Default::default()
+        };
+
+        model
+            .insert(db)
+            .await
+            .map_err(|err| CustomErrors::SeaORMError {
+                error: err,
+                message: None,
+            })
+    });
+
+    let result = new_clauses_stream.try_collect().await?;
+
+    Ok(result)
 }
 
-pub async fn copy_rule_attribute_attributevalues(
-    connection: &mut AsyncPgConnection,
-    old_rule_attribute_attributevalues: &Vec<RuleAttributeAttributeValue>,
+pub async fn copy_rule_attribute_attributevalues<C>(
+    db: &C,
+    old_rule_attribute_attributevalues: &Vec<RuleAttributeAttributeValueModel>,
     rule_map: &HashMap<i32, i32>,
     attribute_map: &HashMap<i32, i32>,
     attributevalue_map: &HashMap<i32, i32>,
-) -> Result<Vec<RuleAttributeAttributeValue>, CustomErrors> {
-    let new_new_rule_attribute_attributevalue: Result<
-        Vec<NewRuleAttributeAttributeValue>,
-        CustomErrors,
-    > = old_rule_attribute_attributevalues
-        .into_iter()
-        .map(|old_rule_attribute_attributevalue| {
-            let new_rule_id = rule_map
-                .get(&old_rule_attribute_attributevalue.rule_id)
-                .ok_or_else(|| CustomErrors::StringError {
-                    status: StatusCode::UNPROCESSABLE_ENTITY,
-                    error: "Ошибка в расшифровке системы".to_string(),
-                })?;
-            let new_attribute_id = attribute_map
-                .get(&old_rule_attribute_attributevalue.attribute_id)
-                .ok_or_else(|| CustomErrors::StringError {
-                    status: StatusCode::UNPROCESSABLE_ENTITY,
-                    error: "Ошибка в расшифровке системы".to_string(),
-                })?;
-            let new_attribute_value_id = attributevalue_map
-                .get(&old_rule_attribute_attributevalue.attribute_value_id)
-                .ok_or_else(|| CustomErrors::StringError {
-                    status: StatusCode::UNPROCESSABLE_ENTITY,
-                    error: "Ошибка в расшифровке системы".to_string(),
-                })?;
-            Ok(NewRuleAttributeAttributeValue {
-                rule_id: *new_rule_id,
-                attribute_value_id: *new_attribute_value_id,
-                attribute_id: *new_attribute_id,
+) -> Result<Vec<RuleAttributeAttributeValueModel>, CustomErrors>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let new_new_rule_attribute_attributevalue = futures::stream::iter(
+        old_rule_attribute_attributevalues,
+    )
+    .then(|old_rule_attribute_attributevalue| async move {
+        let new_rule_id = rule_map
+            .get(&old_rule_attribute_attributevalue.rule_id)
+            .ok_or(CustomErrors::StringError {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                error: "Ошибка в расшифровке системы".to_string(),
+            })?;
+        let new_attribute_id = attribute_map
+            .get(&old_rule_attribute_attributevalue.attribute_id)
+            .ok_or(CustomErrors::StringError {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                error: "Ошибка в расшифровке системы".to_string(),
+            })?;
+        let new_attribute_value_id = attributevalue_map
+            .get(&old_rule_attribute_attributevalue.attribute_value_id)
+            .ok_or(CustomErrors::StringError {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                error: "Ошибка в расшифровке системы".to_string(),
+            })?;
+        let model = RuleAttributeAttributeValueActiveModel {
+            rule_id: Set(*new_rule_id),
+            attribute_value_id: Set(*new_attribute_value_id),
+            attribute_id: Set(*new_attribute_id),
+            ..Default::default()
+        };
+        model
+            .insert(db)
+            .await
+            .map_err(|err| CustomErrors::SeaORMError {
+                error: err,
+                message: None,
             })
-        })
-        .collect();
-    let new_new_rule_attribute_attributevalue = match new_new_rule_attribute_attributevalue {
-        Ok(values) => values,
-        Err(err) => return Err(err),
-    };
-    let new_rule_attribute_attributevalues = insert_into(rule_attribute_attributevalue::table)
-        .values(&new_new_rule_attribute_attributevalue)
-        .get_results::<RuleAttributeAttributeValue>(connection)
-        .await
-        .map_err(|err| CustomErrors::DieselError {
-            error: err,
-            message: None,
-        })?;
+    });
+    let result = new_new_rule_attribute_attributevalue.try_collect().await?;
 
-    Ok(new_rule_attribute_attributevalues)
+    Ok(result)
 }
 
-pub async fn copy_rule_question_answers(
-    connection: &mut AsyncPgConnection,
-    old_rule_question_answers: &Vec<RuleQuestionAnswer>,
+pub async fn copy_rule_question_answers<C>(
+    db: &C,
+    old_rule_question_answers: &Vec<RuleQuestionAnswerModel>,
     rule_map: &HashMap<i32, i32>,
     answer_map: &HashMap<i32, i32>,
     question_map: &HashMap<i32, i32>,
-) -> Result<Vec<RuleQuestionAnswer>, CustomErrors> {
-    let new_new_rule_question_answer: Result<Vec<NewRuleQuestionAnswer>, CustomErrors> =
-        old_rule_question_answers
-            .into_iter()
-            .map(|old_rule_question_answer| {
-                let new_rule_id =
-                    rule_map
-                        .get(&old_rule_question_answer.rule_id)
-                        .ok_or_else(|| CustomErrors::StringError {
-                            status: StatusCode::UNPROCESSABLE_ENTITY,
-                            error: "Ошибка в расшифровке системы".to_string(),
-                        })?;
-                let new_question_id = question_map
-                    .get(&old_rule_question_answer.question_id)
-                    .ok_or_else(|| CustomErrors::StringError {
-                        status: StatusCode::UNPROCESSABLE_ENTITY,
-                        error: "Ошибка в расшифровке системы".to_string(),
-                    })?;
-                let new_answer_id = answer_map
-                    .get(&old_rule_question_answer.answer_id)
-                    .ok_or_else(|| CustomErrors::StringError {
-                        status: StatusCode::UNPROCESSABLE_ENTITY,
-                        error: "Ошибка в расшифровке системы".to_string(),
-                    })?;
-                Ok(NewRuleQuestionAnswer {
-                    rule_id: *new_rule_id,
-                    answer_id: *new_answer_id,
-                    question_id: *new_question_id,
+) -> Result<Vec<RuleQuestionAnswerModel>, CustomErrors>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let new_new_rule_question_answer = futures::stream::iter(old_rule_question_answers).then(
+        |old_rule_question_answer| async move {
+            let new_rule_id = rule_map.get(&old_rule_question_answer.rule_id).ok_or(
+                CustomErrors::StringError {
+                    status: StatusCode::UNPROCESSABLE_ENTITY,
+                    error: "Ошибка в расшифровке системы".to_string(),
+                },
+            )?;
+            let new_question_id = question_map
+                .get(&old_rule_question_answer.question_id)
+                .ok_or(CustomErrors::StringError {
+                    status: StatusCode::UNPROCESSABLE_ENTITY,
+                    error: "Ошибка в расшифровке системы".to_string(),
+                })?;
+            let new_answer_id = answer_map.get(&old_rule_question_answer.answer_id).ok_or(
+                CustomErrors::StringError {
+                    status: StatusCode::UNPROCESSABLE_ENTITY,
+                    error: "Ошибка в расшифровке системы".to_string(),
+                },
+            )?;
+            let model = RuleQuestionAnswerActiveModel {
+                rule_id: Set(*new_rule_id),
+                answer_id: Set(*new_answer_id),
+                question_id: Set(*new_question_id),
+                ..Default::default()
+            };
+            model
+                .insert(db)
+                .await
+                .map_err(|err| CustomErrors::SeaORMError {
+                    error: err,
+                    message: None,
                 })
-            })
-            .collect();
-    let new_new_rule_question_answer = match new_new_rule_question_answer {
-        Ok(values) => values,
-        Err(err) => return Err(err),
-    };
-    let new_rule_question_answers = insert_into(rule_question_answer::table)
-        .values(&new_new_rule_question_answer)
-        .get_results::<RuleQuestionAnswer>(connection)
-        .await
-        .map_err(|err| CustomErrors::DieselError {
-            error: err,
-            message: None,
-        })?;
+        },
+    );
+    let result = new_new_rule_question_answer.try_collect().await?;
 
-    Ok(new_rule_question_answers)
+    Ok(result)
 }
 
-pub async fn copy_object_attribute_attributevalues(
-    connection: &mut AsyncPgConnection,
-    old_object_attribute_attributevalues: &Vec<ObjectAttributeAttributevalue>,
+pub async fn copy_object_attribute_attributevalues<C>(
+    db: &C,
+    old_object_attribute_attributevalues: &Vec<ObjectAttributeAttributeValueModel>,
     object_map: &HashMap<i32, i32>,
     attribute_map: &HashMap<i32, i32>,
     attributevalue_map: &HashMap<i32, i32>,
-) -> Result<Vec<ObjectAttributeAttributevalue>, CustomErrors> {
-    let new_new_object_attribute_attributevalue: Result<
-        Vec<NewObjectAttributeAttributevalue>,
-        CustomErrors,
-    > = old_object_attribute_attributevalues
-        .into_iter()
-        .map(|old_object_attribute_attributevalue| {
-            let new_object_id = object_map
-                .get(&old_object_attribute_attributevalue.object_id)
-                .ok_or_else(|| CustomErrors::StringError {
-                    status: StatusCode::UNPROCESSABLE_ENTITY,
-                    error: "Ошибка в расшифровке системы".to_string(),
-                })?;
-            let new_attribute_id = attribute_map
-                .get(&old_object_attribute_attributevalue.attribute_id)
-                .ok_or_else(|| CustomErrors::StringError {
-                    status: StatusCode::UNPROCESSABLE_ENTITY,
-                    error: "Ошибка в расшифровке системы".to_string(),
-                })?;
-            let new_attribute_value_id = attributevalue_map
-                .get(&old_object_attribute_attributevalue.attribute_value_id)
-                .ok_or_else(|| CustomErrors::StringError {
-                    status: StatusCode::UNPROCESSABLE_ENTITY,
-                    error: "Ошибка в расшифровке системы".to_string(),
-                })?;
-            Ok(NewObjectAttributeAttributevalue {
-                object_id: *new_object_id,
-                attribute_value_id: *new_attribute_value_id,
-                attribute_id: *new_attribute_id,
+) -> Result<Vec<ObjectAttributeAttributeValueModel>, CustomErrors>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let new_new_object_attribute_attributevalue = futures::stream::iter(
+        old_object_attribute_attributevalues,
+    )
+    .then(|old_object_attribute_attributevalue| async move {
+        let new_object_id = object_map
+            .get(&old_object_attribute_attributevalue.object_id)
+            .ok_or(CustomErrors::StringError {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                error: "Ошибка в расшифровке системы".to_string(),
+            })?;
+        let new_attribute_id = attribute_map
+            .get(&old_object_attribute_attributevalue.attribute_id)
+            .ok_or(CustomErrors::StringError {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                error: "Ошибка в расшифровке системы".to_string(),
+            })?;
+        let new_attribute_value_id = attributevalue_map
+            .get(&old_object_attribute_attributevalue.attribute_value_id)
+            .ok_or(CustomErrors::StringError {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                error: "Ошибка в расшифровке системы".to_string(),
+            })?;
+        let model = ObjectAttributeAttributeValueActiveModel {
+            object_id: Set(*new_object_id),
+            attribute_value_id: Set(*new_attribute_value_id),
+            attribute_id: Set(*new_attribute_id),
+            ..Default::default()
+        };
+        model
+            .insert(db)
+            .await
+            .map_err(|err| CustomErrors::SeaORMError {
+                error: err,
+                message: None,
             })
-        })
-        .collect();
-    let new_new_object_attribute_attributevalue = match new_new_object_attribute_attributevalue {
-        Ok(values) => values,
-        Err(err) => return Err(err),
-    };
-    let new_object_attribute_attributevalues = insert_into(object_attribute_attributevalue::table)
-        .values(&new_new_object_attribute_attributevalue)
-        .get_results::<ObjectAttributeAttributevalue>(connection)
-        .await
-        .map_err(|err| CustomErrors::DieselError {
-            error: err,
-            message: None,
-        })?;
+    });
+    let result = new_new_object_attribute_attributevalue
+        .try_collect()
+        .await?;
 
-    Ok(new_object_attribute_attributevalues)
+    Ok(result)
 }

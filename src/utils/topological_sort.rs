@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-pub fn topological_sort(graph: &HashMap<i32, Vec<i32>>) -> Vec<i32> {
+pub fn topological_sort(graph: &HashMap<i32, HashSet<i32>>) -> Vec<i32> {
     let mut result: Vec<i32> = Vec::new();
     let mut visited: HashSet<i32> = HashSet::new();
     let mut stack: VecDeque<i32> = VecDeque::new();

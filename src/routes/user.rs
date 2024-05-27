@@ -1,8 +1,8 @@
 use crate::{
     constants::COOKIE_NAME,
-    models::{
+    entity::{
         error::CustomErrors,
-        user::{NewUser, UpdateUserResponse, UserLogin},
+        users::{LoginUserModel, Model as UserModel, UpdateUserResponse},
     },
     services::user::{create_user, get_user, login_user, update_user},
     utils::auth::password_check,
@@ -22,9 +22,9 @@ use tower_cookies::{Cookie, Cookies};
     post,
     path = "/user/login",
     context_path ="/api/v1",
-    request_body = UserLogin,
+    request_body = LoginUserModel,
     responses(
-        (status = 200, description = "User login successfully", body = UserWithoutPassword),
+        (status = 200, description = "User login successfully", body = UserModel),
         (status = 400, description = "Invalid credantials provided", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -35,17 +35,14 @@ use tower_cookies::{Cookie, Cookies};
 pub async fn user_login(
     State(state): State<AppState>,
     cookie: Cookies,
-    Json(user_info): Json<UserLogin>,
+    Json(user_info): Json<LoginUserModel>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match login_user(&mut connection, user_info, cookie, &state.cookie_key).await {
+    match login_user(&state.db_sea, user_info, cookie, &state.cookie_key).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(err),
+        Err(err) => Err(CustomErrors::SeaORMError {
+            error: err,
+            message: None,
+        }),
     }
 }
 
@@ -68,9 +65,9 @@ pub async fn user_logout(cookie: Cookies) -> impl IntoResponse {
     post,
     path = "/user/registration",
     context_path ="/api/v1",
-    request_body = NewUser,
+    request_body = UserModel,
     responses(
-        (status = 200, description = "User registration successfully", body = UserWithoutPassword),
+        (status = 200, description = "User registration successfully", body = UserModel),
         (status = 400, description = "Invalid credantials provided", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -81,17 +78,11 @@ pub async fn user_logout(cookie: Cookies) -> impl IntoResponse {
 pub async fn user_registration(
     State(state): State<AppState>,
     cookie: Cookies,
-    Json(user_info): Json<NewUser>,
+    Json(user_info): Json<UserModel>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match create_user(&mut connection, user_info, cookie, &state.cookie_key).await {
+    match create_user(&state.db_sea, user_info, cookie, &state.cookie_key).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -103,7 +94,7 @@ pub async fn user_registration(
     path = "/user",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "Matching User", body = UserWithoutPassword),
+        (status = 200, description = "Matching User", body = UserModel),
         (status = 401, description = "Unauthorized to User", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -113,30 +104,22 @@ pub async fn user_registration(
 )]
 #[debug_handler]
 pub async fn user_get(State(state): State<AppState>, cookie: Cookies) -> impl IntoResponse {
-    let user_id: i32;
-    match cookie
+    let user_id = cookie
         .private(&state.cookie_key)
         .get(COOKIE_NAME)
-        .map(|res| res.value().to_owned())
-    {
-        Some(res) => user_id = res.parse::<i32>().expect("Server Error"),
-        None => {
-            return Err(CustomErrors::StringError {
-                status: StatusCode::UNAUTHORIZED,
-                error: "Not authorized".to_string(),
-            })
-        }
-    };
+        .map(|res| res.value().to_owned().parse::<i32>())
+        .ok_or(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Пользователь не авторизован".to_string(),
+        })?
+        .map_err(|err| CustomErrors::StringError {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            error: err.to_string(),
+        })?;
 
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
-    match get_user(&mut connection, user_id).await {
+    match get_user(&state.db_sea, user_id).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),
@@ -148,7 +131,7 @@ pub async fn user_get(State(state): State<AppState>, cookie: Cookies) -> impl In
     path = "/user",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "Matching User", body = UserWithoutPassword),
+        (status = 200, description = "Matching User", body = UserModel),
         (status = 401, description = "Unauthorized to User", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -162,18 +145,12 @@ pub async fn user_patch(
     cookie: Cookies,
     Json(user): Json<UpdateUserResponse>,
 ) -> impl IntoResponse {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
     let user_cookie =
-        password_check(&mut connection, cookie, &state.cookie_key, &user.password).await?;
+        password_check(&state.db_sea, cookie, &state.cookie_key, &user.password).await?;
 
-    match update_user(&mut connection, user, user_cookie.id).await {
+    match update_user(&state.db_sea, user, user_cookie.id).await {
         Ok(result) => Ok(Json(result)),
-        Err(err) => Err(CustomErrors::DieselError {
+        Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
         }),

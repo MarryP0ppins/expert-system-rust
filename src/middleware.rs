@@ -7,7 +7,7 @@ use axum::{
 use tower_cookies::Cookies;
 
 use crate::{
-    constants::URI_WITHOUT_AUTH, models::error::CustomErrors, utils::auth::cookie_check, AppState,
+    constants::URI_WITHOUT_AUTH, entity::error::CustomErrors, utils::auth::cookie_check, AppState,
 };
 
 pub async fn auth(
@@ -16,17 +16,11 @@ pub async fn auth(
     req: Request,
     next: Next,
 ) -> Result<Response, impl IntoResponse> {
-    let mut connection = state
-        .db_pool
-        .get()
-        .await
-        .map_err(|err| CustomErrors::PoolConnectionError(err))?;
-
     if !URI_WITHOUT_AUTH
         .into_iter()
         .any(|uri| uri.uri == req.uri().path() && uri.method == req.method())
     {
-        match cookie_check(&mut connection, cookie, &state.cookie_key).await {
+        match cookie_check(&state.db_sea, cookie, &state.cookie_key).await {
             Ok(_) => (),
             Err(err) => return Err(err),
         };
