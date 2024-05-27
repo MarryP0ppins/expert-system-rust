@@ -14,8 +14,6 @@ pub struct Model {
     pub body: String,
 }
 
-pub type AnswerModel = Model;
-
 #[derive(Clone, Debug, Serialize, Deserialize, DeriveIntoActiveModel, ToSchema)]
 pub struct UpdateAnswerModel {
     pub id: i32,

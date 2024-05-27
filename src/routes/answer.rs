@@ -1,5 +1,5 @@
 use crate::{
-    entity::answers::{AnswerModel, UpdateAnswerModel},
+    entity::answers::{Model as AnswerModel, UpdateAnswerModel},
     models::error::CustomErrors,
     pagination::AnswerListPagination,
     services::answer::{
