@@ -22,7 +22,7 @@ use axum::{
     context_path ="/api/v1",
     request_body = [NewAttributeWithAttributeValuesModel],
     responses(
-        (status = 200, description = "Attributes and their dependences create successfully", body = [AttributeWithAttributeValuesModel]),
+        (status = 200, description = "Attributes and their dependences create successfully", body = [AttributeWithAttributeValuesModelSwagger]),
         (status = 401, description = "Unauthorized to create Attributes and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -49,7 +49,7 @@ pub async fn attribute_create(
     path = "/attributes",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching Attributes and their dependences by query", body = [AttributeWithAttributeValuesModel]),
+        (status = 200, description = "List matching Attributes and their dependences by query", body = [AttributeWithAttributeValuesModelSwagger]),
         (status = 401, description = "Unauthorized to list Attributes and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -109,7 +109,7 @@ pub async fn attribute_multiple_delete(
     context_path ="/api/v1",
     request_body = [UpdateAttributeModel],
     responses(
-        (status = 200, description = "Attributes and their dependences updated successfully", body = [AttributeWithAttributeValuesModel]),
+        (status = 200, description = "Attributes and their dependences updated successfully", body = [AttributeWithAttributeValuesModelSwagger]),
         (status = 401, description = "Unauthorized to update Attributes and their dependences", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),

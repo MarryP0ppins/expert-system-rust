@@ -4,7 +4,7 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use super::attributesvalues;
+use super::attributesvalues::{self, AttributeValueModelSwagger};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, DeriveEntityModel, Eq, ToSchema)]
 #[sea_orm(table_name = "attributes")]
@@ -14,6 +14,14 @@ pub struct Model {
     pub id: i32,
     pub system_id: i32,
     pub name: String,
+}
+
+#[derive(ToSchema)]
+pub struct AttributeModelSwagger {
+    #[schema(read_only)]
+    pub id: i32,
+    pub question_id: i32,
+    pub body: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, DeriveIntoActiveModel, ToSchema)]
@@ -28,6 +36,14 @@ pub struct AttributeWithAttributeValuesModel {
     pub system_id: i32,
     pub name: String,
     pub values: Vec<attributesvalues::Model>,
+}
+
+#[derive(ToSchema)]
+pub struct AttributeWithAttributeValuesModelSwagger {
+    pub id: i32,
+    pub system_id: i32,
+    pub name: String,
+    pub values: Vec<AttributeValueModelSwagger>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]

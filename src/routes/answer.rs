@@ -20,9 +20,9 @@ use axum::{
     post,
     path = "/answers",
     context_path ="/api/v1",
-    request_body = [AnswerModel],
+    request_body = [AnswerModelSwagger],
     responses(
-        (status = 200, description = "Answers create successfully", body = [AnswerModel]),
+        (status = 200, description = "Answers create successfully", body = [AnswerModelSwagger]),
         (status = 401, description = "Unauthorized to create Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -49,7 +49,7 @@ pub async fn answer_create(
     path = "/answers",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching Answers by query", body = [AnswerModel]),
+        (status = 200, description = "List matching Answers by query", body = [AnswerModelSwagger]),
         (status = 401, description = "Unauthorized to list Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -109,7 +109,7 @@ pub async fn answer_multiple_delete(
     context_path ="/api/v1",
     request_body = [UpdateAnswerModel],
     responses(
-        (status = 200, description = "Answers updated successfully", body = [AnswerModel]),
+        (status = 200, description = "Answers updated successfully", body = [AnswerModelSwagger]),
         (status = 401, description = "Unauthorized to update Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),

@@ -14,6 +14,14 @@ pub struct Model {
     pub body: String,
 }
 
+#[derive(ToSchema)]
+pub struct AnswerModelSwagger {
+    #[schema(read_only)]
+    pub id: i32,
+    pub question_id: i32,
+    pub body: String,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, DeriveIntoActiveModel, ToSchema)]
 pub struct UpdateAnswerModel {
     pub id: i32,

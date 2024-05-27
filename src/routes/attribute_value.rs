@@ -21,9 +21,9 @@ use axum::{
     post,
     path = "/attributevalues",
     context_path ="/api/v1",
-    request_body = [AttributeValueModel],
+    request_body = [AttributeValueModelSwagger],
     responses(
-        (status = 200, description = "AttributeValues create successfully", body = [AttributeValueModel]),
+        (status = 200, description = "AttributeValues create successfully", body = [AttributeValueModelSwagger]),
         (status = 401, description = "Unauthorized to create AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -50,7 +50,7 @@ pub async fn attribute_value_create(
     path = "/attributevalues",
     context_path ="/api/v1",
     responses(
-        (status = 200, description = "List matching AttributeValues by query", body = [AttributeValueModel]),
+        (status = 200, description = "List matching AttributeValues by query", body = [AttributeValueModelSwagger]),
         (status = 401, description = "Unauthorized to list AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
@@ -110,7 +110,7 @@ pub async fn attribute_value_multiple_delete(
     context_path ="/api/v1",
     request_body = [UpdateAttributeValueModel],
     responses(
-        (status = 200, description = "AttributeValues updated successfully", body = [AttributeValueModel]),
+        (status = 200, description = "AttributeValues updated successfully", body = [AttributeValueModelSwagger]),
         (status = 401, description = "Unauthorized to update AttributeValues", body = CustomErrors, example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),

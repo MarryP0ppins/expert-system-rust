@@ -14,6 +14,13 @@ pub struct Model {
     pub value: String,
 }
 
+#[derive(ToSchema)]
+pub struct AttributeValueModelSwagger {
+    pub id: i32,
+    pub attribute_id: i32,
+    pub value: String,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, DeriveIntoActiveModel, ToSchema)]
 pub struct UpdateAttributeValueModel {
     pub id: i32,
