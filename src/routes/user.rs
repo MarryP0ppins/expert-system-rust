@@ -1,13 +1,13 @@
 use crate::{
     constants::COOKIE_NAME,
     error::CustomErrors,
-    services::user::{create_user, get_user, login_user, update_user},
+    services::user::{create_user, get_user, login_user, update_user, verify_email},
     utils::auth::password_check,
     AppState,
 };
 use axum::{
     debug_handler,
-    extract::State,
+    extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Json},
     routing::{get, post},
@@ -75,10 +75,9 @@ pub async fn user_logout(cookie: Cookies) -> impl IntoResponse {
 #[debug_handler]
 pub async fn user_registration(
     State(state): State<AppState>,
-    cookie: Cookies,
     Json(user_info): Json<UserModel>,
 ) -> impl IntoResponse {
-    match create_user(&state.db_sea, user_info, cookie, &state.config.cookie_key).await {
+    match create_user(&state.db_sea, user_info, &state.config).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
@@ -160,10 +159,45 @@ pub async fn user_patch(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/user/verifyemail/{verification_code}",
+    context_path ="/api/v1",
+    responses(
+        (status = 200, description = "Matching User", body = UserModel),
+        (status = 401, description = "Unauthorized to User", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
+    )
+)]
+#[debug_handler]
+pub async fn verify_email_handler(
+    State(state): State<AppState>,
+    cookie: Cookies,
+    Path(verification_code): Path<String>,
+) -> impl IntoResponse {
+    match verify_email(
+        &state.db_sea,
+        verification_code,
+        cookie,
+        &state.config.cookie_key,
+    )
+    .await
+    {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::SeaORMError {
+            error: err,
+            message: None,
+        }),
+    }
+}
+
 pub fn user_routes() -> Router<AppState> {
     Router::new()
         .route("/", get(user_get).patch(user_patch))
         .route("/logout", post(user_logout))
         .route("/login", post(user_login))
         .route("/registration", post(user_registration))
+        .route("/verifyemail/:verification_code", get(verify_email_handler))
 }

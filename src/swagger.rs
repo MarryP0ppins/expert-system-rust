@@ -111,6 +111,8 @@ use utoipa::{
         user_model::UserModel,
         user_model::LoginUserModel,
         user_model::UpdateUserResponse,
+        user_model::ForgotPasswordModel,
+        user_model::ResetPasswordModel,
         sea_orm_active_enums_model::Operatorenum
     ))
 )]

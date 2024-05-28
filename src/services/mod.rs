@@ -12,3 +12,4 @@ pub mod rule_attribute_attributevalue;
 pub mod rule_question_answer;
 pub mod system;
 pub mod user;
+pub mod email;

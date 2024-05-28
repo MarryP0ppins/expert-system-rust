@@ -40,6 +40,7 @@ mod config;
 mod constants;
 mod error;
 mod middleware;
+mod models;
 mod pagination;
 mod routes;
 mod schema;

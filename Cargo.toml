@@ -24,6 +24,7 @@ sea-orm = { version = "1.0.0-rc.4", features = [
     "with-json",
     "debug-print",
 ] }
+lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 utoipa = { version = "4.2", features = [
@@ -42,9 +43,7 @@ http = "1.1"
 dotenv = "0.15"
 futures = "0.3"
 regex = "1.10.4"
-
-[dev-dependencies]
-
+rand = "0.8.5"
 
 [profile.release]
 strip = true
