@@ -6,7 +6,7 @@ use crate::{
 };
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
-    LoaderTrait, PaginatorTrait, QueryFilter, QuerySelect, Set, TransactionTrait,
+    LoaderTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
 };
 
 use super::question::get_questions;
@@ -61,12 +61,12 @@ where
     let per_page = params.per_page.unwrap_or(20) as u64;
     let page = params.page.unwrap_or(1) as u64 - 1;
 
-    let mut _systems = query
+    let _systems = query
+        .order_by_desc(SystemColumn::UpdatedAt)
         .limit(per_page)
         .offset(per_page * page)
         .all(db)
         .await?;
-    _systems.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
 
     Ok(SystemsWithPageCount {
         systems: _systems,
