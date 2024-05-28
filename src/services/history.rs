@@ -1,9 +1,12 @@
-use crate::entity::{
+use entity::{
     histories::{Entity as HistoryEntity, HistoryWithSystem, Model as HistoryModel},
     systems::{Column as SystemColumn, Entity as SystemEntity},
     users::{Column as UserColumn, Entity as UserEntity},
 };
-use sea_orm::*;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
+    QueryFilter, TransactionTrait,
+};
 
 pub async fn get_histories<C>(
     db: &C,

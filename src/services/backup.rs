@@ -1,20 +1,5 @@
-use std::collections::HashMap;
-
 use crate::{
-    entity::{
-        answers::Entity as AnswerEntity,
-        attributes::Entity as AttributeEntity,
-        attributesvalues::Entity as AttributeValueEntity,
-        clauses::Entity as ClauseEntity,
-        error::CustomErrors,
-        object_attribute_attributevalue::Entity as ObjectAttributeAttributeValueEntity,
-        objects::Entity as ObjectEntity,
-        questions::Entity as QuestionEntity,
-        rule_attribute_attributevalue::Entity as RuleAttributeAttributeValueEntity,
-        rule_question_answer::Entity as RuleQuestionAnswerEntity,
-        rules::Entity as RuleEntity,
-        systems::{Entity as SystemEntity, Model as SystemModel, SystemBackupModel},
-    },
+    error::CustomErrors,
     utils::{
         auth::cookie_check,
         copy::{
@@ -26,12 +11,31 @@ use crate::{
         crypto::{decrypt_data, encrypt_data},
     },
 };
+use entity::{
+    answers::Entity as AnswerEntity,
+    attributes::Entity as AttributeEntity,
+    attributesvalues::Entity as AttributeValueEntity,
+    clauses::Entity as ClauseEntity,
+    object_attribute_attributevalue::Entity as ObjectAttributeAttributeValueEntity,
+    objects::Entity as ObjectEntity,
+    questions::Entity as QuestionEntity,
+    rule_attribute_attributevalue::Entity as RuleAttributeAttributeValueEntity,
+    rule_question_answer::Entity as RuleQuestionAnswerEntity,
+    rules::Entity as RuleEntity,
+    systems::{Entity as SystemEntity, Model as SystemModel, SystemBackupModel},
+};
 use http::StatusCode;
-use sea_orm::*;
+use sea_orm::{ConnectionTrait, EntityTrait, LoaderTrait, ModelTrait, TransactionTrait};
+use std::collections::HashMap;
 use tokio::try_join;
 use tower_cookies::{Cookies, Key};
 
-pub async fn backup_from_system<C>(db: &C, system_id: i32) -> Result<Vec<u8>, CustomErrors>
+pub async fn backup_from_system<C>(
+    db: &C,
+    system_id: i32,
+    crypto_key: &[u8],
+    nonce_key: &[u8],
+) -> Result<Vec<u8>, CustomErrors>
 where
     C: ConnectionTrait + TransactionTrait,
 {
@@ -102,10 +106,8 @@ where
     };
     let encoded: Vec<u8> = bincode::serialize(&struct_to_encrypt).expect("serialize error");
 
-    let crypt_key: &[u8] = dotenv!("CRYPTO_KEY").as_bytes();
-    let nonce_key: &[u8] = dotenv!("NONCE_KEY").as_bytes();
     let encrypt_backup =
-        encrypt_data(crypt_key, nonce_key, &encoded).map_err(|err| CustomErrors::AesGsmError {
+        encrypt_data(crypto_key, nonce_key, &encoded).map_err(|err| CustomErrors::AesGsmError {
             error: err,
             message: Some("Ошибка в создании резервной копии".to_string()),
         })?;
@@ -118,14 +120,13 @@ pub async fn system_from_backup<C>(
     encrypted_system: Vec<u8>,
     cookie: Cookies,
     cookie_key: &Key,
+    crypto_key: &[u8],
+    nonce_key: &[u8],
 ) -> Result<SystemModel, CustomErrors>
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let crypt_key: &[u8] = dotenv!("CRYPTO_KEY").as_bytes();
-    let nonce_key: &[u8] = dotenv!("NONCE_KEY").as_bytes();
-
-    let decoded_system = decrypt_data(crypt_key, nonce_key, &encrypted_system).map_err(|err| {
+    let decoded_system = decrypt_data(crypto_key, nonce_key, &encrypted_system).map_err(|err| {
         CustomErrors::AesGsmError {
             error: err,
             message: Some("Файл поврежден или изменен".to_string()),

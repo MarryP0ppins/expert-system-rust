@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::entity::{
+use entity::{
     answers::{Entity as AnswerEntity, Model as AnswerModel},
     questions::{
         ActiveModel as QuestionActiveModel, Column as QuestionColumn, Entity as QuestionEntity,
@@ -9,7 +9,10 @@ use crate::entity::{
 };
 
 use futures::future::try_join_all;
-use sea_orm::*;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
+    LoaderTrait, QueryFilter, Set, TransactionTrait,
+};
 
 use super::answer::create_answer;
 

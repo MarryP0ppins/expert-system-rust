@@ -1,20 +1,23 @@
 use crate::{
     constants::COOKIE_NAME,
-    entity::{
-        error::CustomErrors,
-        users::{LoginUserModel, Model as UserModel, UpdateUserResponse},
+    error::CustomErrors,
+    services::user::{
+        create_user, forgot_password, get_user, login_user, reset_password, update_user,
+        verify_email,
     },
-    services::user::{create_user, get_user, login_user, update_user},
     utils::auth::password_check,
     AppState,
 };
 use axum::{
     debug_handler,
-    extract::State,
+    extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Json},
     routing::{get, post},
     Router,
+};
+use entity::users::{
+    ForgotPasswordModel, LoginUserModel, ResetPasswordModel, UpdateUserResponse, UserModel,
 };
 use tower_cookies::{Cookie, Cookies};
 
@@ -37,7 +40,7 @@ pub async fn user_login(
     cookie: Cookies,
     Json(user_info): Json<LoginUserModel>,
 ) -> impl IntoResponse {
-    match login_user(&state.db_sea, user_info, cookie, &state.cookie_key).await {
+    match login_user(&state.db_sea, user_info, cookie, &state.config.cookie_key).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
@@ -77,10 +80,9 @@ pub async fn user_logout(cookie: Cookies) -> impl IntoResponse {
 #[debug_handler]
 pub async fn user_registration(
     State(state): State<AppState>,
-    cookie: Cookies,
     Json(user_info): Json<UserModel>,
 ) -> impl IntoResponse {
-    match create_user(&state.db_sea, user_info, cookie, &state.cookie_key).await {
+    match create_user(&state.db_sea, user_info, &state.config).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
@@ -105,7 +107,7 @@ pub async fn user_registration(
 #[debug_handler]
 pub async fn user_get(State(state): State<AppState>, cookie: Cookies) -> impl IntoResponse {
     let user_id = cookie
-        .private(&state.cookie_key)
+        .private(&state.config.cookie_key)
         .get(COOKIE_NAME)
         .map(|res| res.value().to_owned().parse::<i32>())
         .ok_or(CustomErrors::StringError {
@@ -145,10 +147,102 @@ pub async fn user_patch(
     cookie: Cookies,
     Json(user): Json<UpdateUserResponse>,
 ) -> impl IntoResponse {
-    let user_cookie =
-        password_check(&state.db_sea, cookie, &state.cookie_key, &user.password).await?;
+    let user_cookie = password_check(
+        &state.db_sea,
+        cookie,
+        &state.config.cookie_key,
+        &user.password,
+    )
+    .await?;
 
     match update_user(&state.db_sea, user, user_cookie.id).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::SeaORMError {
+            error: err,
+            message: None,
+        }),
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/user/verifyemail/{verification_code}",
+    context_path ="/api/v1",
+    responses(
+        (status = 200, description = "Matching User", body = UserModel),
+        (status = 401, description = "Unauthorized to User", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
+    )
+)]
+#[debug_handler]
+pub async fn verify_email_handler(
+    State(state): State<AppState>,
+    cookie: Cookies,
+    Path(verification_code): Path<String>,
+) -> impl IntoResponse {
+    match verify_email(
+        &state.db_sea,
+        verification_code,
+        cookie,
+        &state.config.cookie_key,
+    )
+    .await
+    {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::SeaORMError {
+            error: err,
+            message: None,
+        }),
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/user/forgotpassword",
+    context_path ="/api/v1",
+    responses(
+        (status = 200, description = "Matching User", body = CustomErrors, example=json!(())),
+        (status = 401, description = "Unauthorized to User", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
+    )
+)]
+#[debug_handler]
+pub async fn forgot_password_hadler(
+    State(state): State<AppState>,
+    Json(forgot_password_model): Json<ForgotPasswordModel>,
+) -> impl IntoResponse {
+    match forgot_password(&state.db_sea, forgot_password_model, state.config).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::SeaORMError {
+            error: err,
+            message: None,
+        }),
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/user/resetpassword",
+    context_path ="/api/v1",
+    responses(
+        (status = 200, description = "Matching User", body = CustomErrors, example=json!(())),
+        (status = 401, description = "Unauthorized to User", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
+    )
+)]
+#[debug_handler]
+pub async fn reset_password_hadler(
+    State(state): State<AppState>,
+    Path(verification_code): Path<String>,
+    Json(reset_password_model): Json<ResetPasswordModel>,
+) -> impl IntoResponse {
+    match reset_password(&state.db_sea, reset_password_model, verification_code).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
@@ -163,4 +257,13 @@ pub fn user_routes() -> Router<AppState> {
         .route("/logout", post(user_logout))
         .route("/login", post(user_login))
         .route("/registration", post(user_registration))
+        .route(
+            "/verifyemail/:verification_code",
+            post(verify_email_handler),
+        )
+        .route("/forgotpassword", post(forgot_password_hadler))
+        .route(
+            "/resetpassword/:verification_code",
+            post(reset_password_hadler),
+        )
 }

@@ -1,8 +1,5 @@
 use crate::{
-    entity::{
-        error::CustomErrors,
-        rule_attribute_attributevalue::Model as RuleAttributeAttributeValueModel,
-    },
+    error::CustomErrors,
     services::rule_attribute_attributevalue::{
         create_rule_attribute_attributevalues, multiple_delete_rule_attribute_attributevalues,
     },
@@ -16,6 +13,7 @@ use axum::{
     routing::{delete, post},
     Json, Router,
 };
+use entity::rule_attribute_attributevalue::RuleAttributeAttributeValueModel;
 
 #[utoipa::path(
     post,

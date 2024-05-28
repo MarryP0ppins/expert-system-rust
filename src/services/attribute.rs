@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
 use futures::future::try_join_all;
-use sea_orm::*;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
+    LoaderTrait, QueryFilter, Set, TransactionTrait,
+};
 
-use crate::entity::{
+use entity::{
     attributes::{
         ActiveModel as AttributeActiveModel, AttributeWithAttributeValuesModel,
         Column as AttributeColumn, Entity as AttributeEntity, NewAttributeWithAttributeValuesModel,

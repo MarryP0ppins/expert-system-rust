@@ -1,8 +1,5 @@
 use crate::{
-    entity::{
-        answers::{Model as AnswerModel, UpdateAnswerModel},
-        error::CustomErrors,
-    },
+    error::CustomErrors,
     pagination::AnswerListPagination,
     services::answer::{
         create_answer, get_answers, multiple_delete_answers, multiple_update_answers,
@@ -17,6 +14,7 @@ use axum::{
     routing::{delete, patch, post},
     Json, Router,
 };
+use entity::answers::{AnswerModel, UpdateAnswerModel};
 
 #[utoipa::path(
     post,

@@ -1,9 +1,12 @@
-use crate::entity::attributesvalues::{
+use entity::attributesvalues::{
     ActiveModel as AttributeValueActiveModel, Column as AttributeValueColumn,
     Entity as AttributeValueEntity, Model as AttributeValueModel, UpdateAttributeValueModel,
 };
 use futures::future::try_join_all;
-use sea_orm::*;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
+    QueryFilter, Set, TransactionTrait,
+};
 
 pub async fn get_attribute_values<C>(
     db: &C,

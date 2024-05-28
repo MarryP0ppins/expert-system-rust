@@ -1,9 +1,12 @@
-use crate::entity::rule_question_answer::{
+use entity::rule_question_answer::{
     ActiveModel as RuleQuestionAnswerActiveModel, Column as RuleQuestionAnswerColumn,
     Entity as RuleQuestionAnswerEntity, Model as RuleQuestionAnswerModel,
 };
 use futures::future::try_join_all;
-use sea_orm::*;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, Set,
+    TransactionTrait,
+};
 
 pub async fn create_rule_question_answers<C>(
     db: &C,

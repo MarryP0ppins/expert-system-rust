@@ -8,7 +8,7 @@ use regex::RegexBuilder;
 use tower_cookies::Cookies;
 
 use crate::{
-    constants::URI_WITHOUT_AUTH, entity::error::CustomErrors, utils::auth::cookie_check, AppState,
+    constants::URI_WITHOUT_AUTH, error::CustomErrors, utils::auth::cookie_check, AppState,
 };
 
 pub async fn auth(
@@ -25,7 +25,7 @@ pub async fn auth(
             .is_match(req.uri().path())
             && uri.method == req.method()
     }) {
-        match cookie_check(&state.db_sea, cookie, &state.cookie_key).await {
+        match cookie_check(&state.db_sea, cookie, &state.config.cookie_key).await {
             Ok(_) => (),
             Err(err) => return Err(err),
         };

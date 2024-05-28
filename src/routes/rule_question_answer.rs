@@ -1,5 +1,5 @@
 use crate::{
-    entity::{error::CustomErrors, rule_question_answer::Model as RuleQuestionAnswerModel},
+    error::CustomErrors,
     services::rule_question_answer::{
         create_rule_question_answers, multiple_delete_rule_question_answers,
     },
@@ -13,6 +13,7 @@ use axum::{
     routing::{delete, post},
     Json, Router,
 };
+use entity::rule_question_answer::RuleQuestionAnswerModel;
 
 #[utoipa::path(
     post,

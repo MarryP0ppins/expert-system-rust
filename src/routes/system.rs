@@ -1,8 +1,5 @@
 use crate::{
-    entity::{
-        error::CustomErrors,
-        systems::{NewSystemMultipartModel, SystemDeleteModel, UpdateSystemMultipartModel},
-    },
+    error::CustomErrors,
     pagination::SystemListPagination,
     services::{
         backup::{backup_from_system, system_from_backup},
@@ -23,6 +20,7 @@ use axum::{
     Json, Router,
 };
 use axum_typed_multipart::TypedMultipart;
+use entity::systems::{NewSystemMultipartModel, SystemDeleteModel, UpdateSystemMultipartModel};
 use tower_cookies::Cookies;
 
 #[utoipa::path(
@@ -44,7 +42,7 @@ pub async fn system_create(
     cookie: Cookies,
     TypedMultipart(system_info): TypedMultipart<NewSystemMultipartModel>,
 ) -> impl IntoResponse {
-    let user = cookie_check(&state.db_sea, cookie, &state.cookie_key).await?;
+    let user = cookie_check(&state.db_sea, cookie, &state.config.cookie_key).await?;
 
     match create_system(&state.db_sea, system_info, user.id).await {
         Ok(result) => Ok(Json(result)),
@@ -170,7 +168,14 @@ pub async fn system_backup(
     State(state): State<AppState>,
     Path(system_id): Path<i32>,
 ) -> impl IntoResponse {
-    match backup_from_system(&state.db_sea, system_id).await {
+    match backup_from_system(
+        &state.db_sea,
+        system_id,
+        state.config.crypto_key.as_bytes(),
+        state.config.nonce_key.as_bytes(),
+    )
+    .await
+    {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(err),
     }
@@ -195,7 +200,16 @@ pub async fn system_restore(
     cookie: Cookies,
     Json(system_decode): Json<Vec<u8>>,
 ) -> impl IntoResponse {
-    match system_from_backup(&state.db_sea, system_decode, cookie, &state.cookie_key).await {
+    match system_from_backup(
+        &state.db_sea,
+        system_decode,
+        cookie,
+        &state.config.cookie_key,
+        state.config.crypto_key.as_bytes(),
+        state.config.nonce_key.as_bytes(),
+    )
+    .await
+    {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(err),
     }
@@ -262,7 +276,7 @@ pub async fn system_delete(
     password_check(
         &state.db_sea,
         cookie,
-        &state.cookie_key,
+        &state.config.cookie_key,
         &system_info.password,
     )
     .await?;

@@ -1,8 +1,5 @@
 use crate::{
-    entity::{
-        attributesvalues::{Model as AttributeValueModel, UpdateAttributeValueModel},
-        error::CustomErrors,
-    },
+    error::CustomErrors,
     pagination::AttributeValueListPagination,
     services::attribute_value::{
         create_attributes_values, get_attribute_values, multiple_delete_attributes_values,
@@ -18,6 +15,7 @@ use axum::{
     routing::{delete, patch, post},
     Json, Router,
 };
+use entity::attributesvalues::{AttributeValueModel, UpdateAttributeValueModel};
 
 #[utoipa::path(
     post,
