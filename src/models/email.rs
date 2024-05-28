@@ -15,7 +15,7 @@ pub struct Email {
 
 impl Email {
     pub fn new(user: UserModel, url: String, config: Config) -> Self {
-        let from = format!("ExpertSsytem <{}>", config.smtp_from.to_owned());
+        let from = format!("ИПО ПЭС <{}>", config.smtp_from.to_owned());
 
         Email {
             user,
@@ -31,7 +31,7 @@ impl Email {
             self.config.smtp_pass.to_owned(),
         );
 
-        let transport = SmtpTransport::relay(&self.config.smtp_host.to_owned())?
+        let transport = SmtpTransport::starttls_relay(&self.config.smtp_host.to_owned())?
             .port(self.config.smtp_port)
             .credentials(creds)
             .build();
@@ -65,8 +65,11 @@ impl Email {
     }
 
     pub async fn send_verification_code(&self) -> Result<(), Box<dyn std::error::Error>> {
-        self.send_email("verification_code", "Your account verification code")
-            .await
+        self.send_email(
+            "Перейдите по ссылке для подтверждения аккаунта:",
+            "Подтверждение аккаунта ИПО ПЭС",
+        )
+        .await
     }
 
     pub async fn send_password_reset_token(

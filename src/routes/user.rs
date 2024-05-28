@@ -1,7 +1,10 @@
 use crate::{
     constants::COOKIE_NAME,
     error::CustomErrors,
-    services::user::{create_user, get_user, login_user, update_user, verify_email},
+    services::user::{
+        create_user, forgot_password, get_user, login_user, reset_password, update_user,
+        verify_email,
+    },
     utils::auth::password_check,
     AppState,
 };
@@ -13,7 +16,9 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use entity::users::{LoginUserModel, UpdateUserResponse, UserModel};
+use entity::users::{
+    ForgotPasswordModel, LoginUserModel, ResetPasswordModel, UpdateUserResponse, UserModel,
+};
 use tower_cookies::{Cookie, Cookies};
 
 #[utoipa::path(
@@ -193,6 +198,59 @@ pub async fn verify_email_handler(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/user/forgotpassword",
+    context_path ="/api/v1",
+    responses(
+        (status = 200, description = "Matching User", body = CustomErrors, example=json!(())),
+        (status = 401, description = "Unauthorized to User", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
+    )
+)]
+#[debug_handler]
+pub async fn forgot_password_hadler(
+    State(state): State<AppState>,
+    Json(forgot_password_model): Json<ForgotPasswordModel>,
+) -> impl IntoResponse {
+    match forgot_password(&state.db_sea, forgot_password_model, state.config).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::SeaORMError {
+            error: err,
+            message: None,
+        }),
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/user/resetpassword",
+    context_path ="/api/v1",
+    responses(
+        (status = 200, description = "Matching User", body = CustomErrors, example=json!(())),
+        (status = 401, description = "Unauthorized to User", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
+    )
+)]
+#[debug_handler]
+pub async fn reset_password_hadler(
+    State(state): State<AppState>,
+    Path(verification_code): Path<String>,
+    Json(reset_password_model): Json<ResetPasswordModel>,
+) -> impl IntoResponse {
+    match reset_password(&state.db_sea, reset_password_model, verification_code).await {
+        Ok(result) => Ok(Json(result)),
+        Err(err) => Err(CustomErrors::SeaORMError {
+            error: err,
+            message: None,
+        }),
+    }
+}
+
 pub fn user_routes() -> Router<AppState> {
     Router::new()
         .route("/", get(user_get).patch(user_patch))
@@ -202,5 +260,10 @@ pub fn user_routes() -> Router<AppState> {
         .route(
             "/verifyemail/:verification_code",
             post(verify_email_handler),
+        )
+        .route("/forgotpassword", post(forgot_password_hadler))
+        .route(
+            "/resetpassword/:verification_code",
+            post(reset_password_hadler),
         )
 }

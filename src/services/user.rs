@@ -7,9 +7,11 @@ use crate::{
         generate_random_string::generate_random_string,
     },
 };
+use chrono::{Duration as ChronoDuration, Utc};
 use entity::users::{
-    ActiveModel as UserActiveModel, Column as UserColumn, Entity as UserEntity, LoginUserModel,
-    Model as UserModel, UpdateUserModel, UpdateUserResponse,
+    ActiveModel as UserActiveModel, Column as UserColumn, Entity as UserEntity,
+    ForgotPasswordModel, LoginUserModel, Model as UserModel, ResetPasswordModel, UpdateUserModel,
+    UpdateUserResponse,
 };
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
@@ -49,7 +51,6 @@ where
         password: user_data.new_password,
         verified: None,
         verification_code: None,
-        password_reset_token: None,
         password_reset_at: None,
     };
 
@@ -64,6 +65,8 @@ pub async fn create_user<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
+    let txn = db.begin().await?;
+
     let verification_code = generate_random_string(20);
 
     let new_user = UserActiveModel {
@@ -74,7 +77,7 @@ where
         last_name: Set(user_info.last_name),
         ..Default::default()
     };
-    let user = new_user.insert(db).await?;
+    let user = new_user.insert(&txn).await?;
     println!("{:?}", &user);
     let verification_url = format!(
         "{}/verifyemail/{}",
@@ -91,8 +94,10 @@ where
         verification_code: Set(Some(verification_code)),
         ..Default::default()
     }
-    .update(db)
+    .update(&txn)
     .await?;
+
+    txn.commit().await?;
 
     Ok(user)
 }
@@ -179,4 +184,82 @@ where
     );
 
     Ok(user)
+}
+
+pub async fn forgot_password<C>(
+    db: &C,
+    forgot_password_model: ForgotPasswordModel,
+    config: Config,
+) -> Result<(), DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let user = UserEntity::find()
+        .filter(UserColumn::Email.eq(forgot_password_model.email))
+        .one(db)
+        .await?
+        .ok_or(DbErr::Custom(
+            "Пользователь с указаной почтой не найден".to_string(),
+        ))?;
+
+    let password_reset_token = generate_random_string(20);
+    let password_token_expires_in = 10; // 10 minutes
+    let password_reset_at = Utc::now().naive_utc() + ChronoDuration::minutes(10);
+
+    let password_reset_url = format!(
+        "{}/resetpassword/{}",
+        config.frontend_origin.to_owned(),
+        password_reset_token
+    );
+
+    let email_instance = Email::new(user.clone(), password_reset_url, config.clone());
+    email_instance
+        .send_password_reset_token(password_token_expires_in)
+        .await
+        .map_err(|_| {
+            DbErr::Custom(
+                "Something bad happended while sending the password reset code".to_string(),
+            )
+        })?;
+
+    UserActiveModel {
+        id: Unchanged(user.id),
+        verification_code: Set(Some(password_reset_token)),
+        password_reset_at: Set(Some(password_reset_at)),
+        ..Default::default()
+    }
+    .update(db)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn reset_password<C>(
+    db: &C,
+    reset_password_model: ResetPasswordModel,
+    reset_password_token: String,
+) -> Result<(), DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let user = UserEntity::find()
+        .filter(UserColumn::VerificationCode.eq(reset_password_token))
+        .filter(UserColumn::PasswordResetAt.gt(Utc::now().naive_utc()))
+        .one(db)
+        .await?
+        .ok_or(DbErr::Custom(
+            "Токен востановления пароля недействителен".to_string(),
+        ))?;
+
+    UserActiveModel {
+        id: Unchanged(user.id),
+        verification_code: Set(None),
+        password_reset_at: Set(None),
+        password: Set(hash_password(&reset_password_model.password)),
+        ..Default::default()
+    }
+    .update(db)
+    .await?;
+
+    Ok(())
 }

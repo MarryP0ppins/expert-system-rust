@@ -29,8 +29,6 @@ pub struct Model {
     #[serde(skip_deserializing)]
     pub verification_code: Option<String>,
     #[serde(skip_deserializing)]
-    pub password_reset_token: Option<String>,
-    #[serde(skip_deserializing)]
     pub password_reset_at: Option<NaiveDateTime>,
 }
 
@@ -60,7 +58,6 @@ pub struct UpdateUserModel {
     pub password: Option<String>,
     pub verified: Option<bool>,
     pub verification_code: Option<String>,
-    pub password_reset_token: Option<String>,
     pub password_reset_at: Option<NaiveDateTime>,
 }
 
@@ -72,7 +69,6 @@ pub struct ForgotPasswordModel {
 #[derive(Debug, Clone, Deserialize, ToSchema)]
 pub struct ResetPasswordModel {
     pub password: String,
-    pub password_confirm: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
