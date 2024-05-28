@@ -1,9 +1,12 @@
 use futures::future::try_join_all;
-use sea_orm::*;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
+    QueryFilter, Set, TransactionTrait,
+};
 
-use crate::entity::answers::{
-    ActiveModel as AnswerActiveModel, Column as AnswerColumn, Entity as AnswerEntity,
-    Model as AnswerModel, UpdateAnswerModel,
+use entity::answers::{
+    ActiveModel as AnswerActiveModel, AnswerModel, Column as AnswerColumn, Entity as AnswerEntity,
+    UpdateAnswerModel,
 };
 
 pub async fn get_answers<C>(db: &C, question_id: i32) -> Result<Vec<AnswerModel>, DbErr>

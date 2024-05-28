@@ -1,8 +1,5 @@
 use crate::{
-    entity::{
-        clauses::{Model as ClauseModel, UpdateClauseModel},
-        error::CustomErrors,
-    },
+    error::CustomErrors,
     pagination::ClauseListPagination,
     services::clause::{
         create_clauses, get_clauses, multiple_delete_clauses, multiple_update_clauses,
@@ -18,6 +15,7 @@ use axum::{
     routing::{delete, patch, post},
     Json, Router,
 };
+use entity::clauses::{ClauseModel, UpdateClauseModel};
 
 #[utoipa::path(
     post,

@@ -1,5 +1,5 @@
 use crate::{
-    entity::{error::CustomErrors, rules::NewRuleWithClausesAndEffects},
+    error::CustomErrors,
     pagination::RuleListPagination,
     services::rule::{create_rule, get_rules, multiple_delete_rules},
     AppState,
@@ -12,6 +12,7 @@ use axum::{
     routing::{delete, post},
     Json, Router,
 };
+use entity::rules::NewRuleWithClausesAndEffects;
 
 #[utoipa::path(
     post,

@@ -1,30 +1,33 @@
 use crate::{
-    entity::{
-        clauses::Entity as ClauseEntity,
-        questions::QuestionWithAnswersModel,
-        rule_question_answer::Entity as RuleQuestionAnswerEntity,
-        rules::Model as RuleModel,
-        systems::{
-            ActiveModel as SystemActiveModel, Column as SystemColumn, Entity as SystemEntity,
-            Model as SystemModel, NewSystemMultipartModel, SystemsWithPageCount, TestSystemModel,
-            UpdateSystemModel, UpdateSystemMultipartModel,
-        },
-        users::{Column as UserColumn, Entity as UserEntity},
-    },
     pagination::SystemListPagination,
     services::{object::get_objects, rule::get_rules},
     utils::topological_sort::topological_sort,
     IMAGE_DIR,
 };
-use sea_orm::*;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
+    LoaderTrait, PaginatorTrait, QueryFilter, QuerySelect, Set, TransactionTrait,
+};
+
+use super::question::get_questions;
+use entity::{
+    clauses::Entity as ClauseEntity,
+    questions::QuestionWithAnswersModel,
+    rule_question_answer::Entity as RuleQuestionAnswerEntity,
+    rules::Model as RuleModel,
+    systems::{
+        ActiveModel as SystemActiveModel, Column as SystemColumn, Entity as SystemEntity,
+        Model as SystemModel, NewSystemMultipartModel, SystemsWithPageCount, TestSystemModel,
+        UpdateSystemModel, UpdateSystemMultipartModel,
+    },
+    users::{Column as UserColumn, Entity as UserEntity},
+};
 use std::collections::{HashMap, HashSet};
 use tokio::{
     fs::{self, File},
     io::AsyncWriteExt,
     try_join,
 };
-
-use super::question::get_questions;
 
 pub async fn get_systems<C>(
     db: &C,

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::entity::{
+use entity::{
     object_attribute_attributevalue::{
         Entity as ObjectAttributeAttributeValueEntity, Model as ObjectAttributeAttributeValueModel,
     },
@@ -10,7 +10,10 @@ use crate::entity::{
     },
 };
 use futures::future::try_join_all;
-use sea_orm::*;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
+    LoaderTrait, QueryFilter, Set, TransactionTrait,
+};
 
 use super::object_attribute_attributevalue::create_attribute_values_objects;
 

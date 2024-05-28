@@ -1,8 +1,5 @@
 use crate::{
-    entity::{
-        error::CustomErrors,
-        objects::{NewObjectWithAttributesValueIdsModel, UpdateObjectModel},
-    },
+    error::CustomErrors,
     pagination::ObjectListPagination,
     services::object::{
         create_objects, get_objects, multiple_delete_objects, multiple_update_objects,
@@ -17,6 +14,7 @@ use axum::{
     routing::{delete, patch, post},
     Json, Router,
 };
+use entity::objects::{NewObjectWithAttributesValueIdsModel, UpdateObjectModel};
 
 #[utoipa::path(
     post,

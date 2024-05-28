@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use crate::entity::{
+use crate::error::CustomErrors;
+use entity::{
     answers::{ActiveModel as AnswerActiveModel, Model as AnswerModel},
     attributes::{ActiveModel as AttributeActiveModel, Model as AttributeModel},
     attributesvalues::{ActiveModel as AttributeValueActiveModel, Model as AttributeValueModel},
     clauses::{ActiveModel as ClauseActiveModel, Model as ClauseModel},
-    error::CustomErrors,
     object_attribute_attributevalue::{
         ActiveModel as ObjectAttributeAttributeValueActiveModel,
         Model as ObjectAttributeAttributeValueModel,
@@ -26,9 +26,8 @@ use futures::{
     future::try_join_all,
     stream::{StreamExt, TryStreamExt},
 };
-
 use http::StatusCode;
-use sea_orm::*;
+use sea_orm::{ActiveModelTrait, ConnectionTrait, Set, TransactionTrait};
 
 pub async fn copy_system<C>(db: &C, old_system: &SystemModel) -> Result<SystemModel, CustomErrors>
 where

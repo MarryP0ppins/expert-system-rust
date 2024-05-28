@@ -1,16 +1,11 @@
-use crate::{
-    constants::COOKIE_NAME,
-    entity::{
-        error::CustomErrors,
-        users::{Entity as UserEntity, Model as UserModel},
-    },
-};
+use crate::{constants::COOKIE_NAME, error::CustomErrors};
 use argon2::{
     password_hash::{rand_core::OsRng, Error, PasswordHasher, SaltString},
     Argon2, PasswordHash, PasswordVerifier,
 };
 use axum::http::StatusCode;
-use sea_orm::*;
+use entity::users::{Entity as UserEntity, Model as UserModel};
+use sea_orm::{ConnectionTrait, EntityTrait, TransactionTrait};
 use tower_cookies::{Cookies, Key};
 
 pub async fn cookie_check<'a, C>(

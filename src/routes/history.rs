@@ -1,5 +1,5 @@
 use crate::{
-    entity::{error::CustomErrors, histories::Model as HistoryModel},
+    error::CustomErrors,
     pagination::HistoryListPagination,
     services::history::{create_history, delete_history, get_histories},
     AppState,
@@ -12,6 +12,7 @@ use axum::{
     routing::{delete, post},
     Json, Router,
 };
+use entity::histories::HistoryModel;
 
 #[utoipa::path(
     post,

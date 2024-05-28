@@ -1,10 +1,13 @@
-use crate::entity::rule_attribute_attributevalue::{
+use entity::rule_attribute_attributevalue::{
     ActiveModel as RuleAttributeAttributevalueActiveModel,
     Column as RuleAttributeAttributevalueColumn, Entity as RuleAttributeAttributevalueEntity,
     Model as RuleAttributeAttributevalueModel,
 };
 use futures::future::try_join_all;
-use sea_orm::*;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, Set,
+    TransactionTrait,
+};
 
 pub async fn create_rule_attribute_attributevalues<C>(
     db: &C,

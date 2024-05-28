@@ -1,12 +1,11 @@
 use crate::{
     constants::COOKIE_NAME,
-    entity::users::{
-        Column as UserColumn, Entity as UserEntity, LoginUserModel, Model as UserModel,
-        UpdateUserModel, UpdateUserResponse,
-    },
     utils::auth::{check_password, hash_password},
 };
-
+use entity::users::{
+    Column as UserColumn, Entity as UserEntity, LoginUserModel, Model as UserModel,
+    UpdateUserModel, UpdateUserResponse,
+};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
     QueryFilter, TransactionTrait,

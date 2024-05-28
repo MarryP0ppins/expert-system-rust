@@ -1,9 +1,12 @@
-use crate::entity::clauses::{
+use entity::clauses::{
     ActiveModel as ClauseActiveModel, Column as ClauseColumn, Entity as ClauseEntity,
     Model as ClauseModel, UpdateClauseModel,
 };
 use futures::future::try_join_all;
-use sea_orm::*;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
+    QueryFilter, Set, TransactionTrait,
+};
 
 pub async fn get_clauses<C>(db: &C, rule_id: i32) -> Result<Vec<ClauseModel>, DbErr>
 where
@@ -11,7 +14,6 @@ where
 {
     let mut clauses = ClauseEntity::find()
         .filter(ClauseColumn::RuleId.eq(rule_id))
-        .order_by_asc(ClauseColumn::Id)
         .all(db)
         .await?;
     clauses.sort_by_key(|clause| clause.id);

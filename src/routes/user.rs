@@ -1,9 +1,6 @@
 use crate::{
     constants::COOKIE_NAME,
-    entity::{
-        error::CustomErrors,
-        users::{LoginUserModel, Model as UserModel, UpdateUserResponse},
-    },
+    error::CustomErrors,
     services::user::{create_user, get_user, login_user, update_user},
     utils::auth::password_check,
     AppState,
@@ -16,6 +13,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use entity::users::{LoginUserModel, UpdateUserResponse, UserModel};
 use tower_cookies::{Cookie, Cookies};
 
 #[utoipa::path(
@@ -37,7 +35,7 @@ pub async fn user_login(
     cookie: Cookies,
     Json(user_info): Json<LoginUserModel>,
 ) -> impl IntoResponse {
-    match login_user(&state.db_sea, user_info, cookie, &state.cookie_key).await {
+    match login_user(&state.db_sea, user_info, cookie, &state.config.cookie_key).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
@@ -80,7 +78,7 @@ pub async fn user_registration(
     cookie: Cookies,
     Json(user_info): Json<UserModel>,
 ) -> impl IntoResponse {
-    match create_user(&state.db_sea, user_info, cookie, &state.cookie_key).await {
+    match create_user(&state.db_sea, user_info, cookie, &state.config.cookie_key).await {
         Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
@@ -105,7 +103,7 @@ pub async fn user_registration(
 #[debug_handler]
 pub async fn user_get(State(state): State<AppState>, cookie: Cookies) -> impl IntoResponse {
     let user_id = cookie
-        .private(&state.cookie_key)
+        .private(&state.config.cookie_key)
         .get(COOKIE_NAME)
         .map(|res| res.value().to_owned().parse::<i32>())
         .ok_or(CustomErrors::StringError {
@@ -145,8 +143,13 @@ pub async fn user_patch(
     cookie: Cookies,
     Json(user): Json<UpdateUserResponse>,
 ) -> impl IntoResponse {
-    let user_cookie =
-        password_check(&state.db_sea, cookie, &state.cookie_key, &user.password).await?;
+    let user_cookie = password_check(
+        &state.db_sea,
+        cookie,
+        &state.config.cookie_key,
+        &user.password,
+    )
+    .await?;
 
     match update_user(&state.db_sea, user, user_cookie.id).await {
         Ok(result) => Ok(Json(result)),

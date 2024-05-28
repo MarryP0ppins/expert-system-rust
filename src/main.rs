@@ -1,13 +1,10 @@
-#[macro_use]
-extern crate dotenv_codegen;
-extern crate dotenv;
-
 #[cfg(not(debug_assertions))]
 use axum::routing::get;
 use axum::{
     http::{HeaderValue, Method},
     middleware as axum_middleware, Router,
 };
+use config::Config;
 use constants::IMAGE_DIR;
 use dotenv::dotenv;
 use http::{
@@ -32,15 +29,16 @@ use swagger::openapi;
 #[cfg(debug_assertions)]
 use swagger::ApiDoc;
 
-use tower_cookies::{cookie::Key, CookieManagerLayer};
+use tower_cookies::CookieManagerLayer;
 use tower_http::{cors::CorsLayer, services::ServeDir};
 #[cfg(debug_assertions)]
 use utoipa::OpenApi;
 #[cfg(debug_assertions)]
 use utoipa_swagger_ui::SwaggerUi;
 
+mod config;
 mod constants;
-mod entity;
+mod error;
 mod middleware;
 mod pagination;
 mod routes;
@@ -52,12 +50,14 @@ mod utils;
 #[derive(Clone)]
 struct AppState {
     db_sea: DatabaseConnection,
-    cookie_key: Key,
+    config: Config,
 }
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+
+    let config = Config::init();
 
     #[cfg(debug_assertions)]
     {
@@ -67,22 +67,18 @@ async fn main() {
             .init();
     }
 
-    let database_url = dotenv!("DATABASE_URL");
-    let db: DatabaseConnection = Database::connect(database_url)
+    let db: DatabaseConnection = Database::connect(&config.database_url)
         .await
         .expect("Failed to create sea connection");
 
-    let cookie_key = dotenv!("COOKIE_KEY");
-    let secret_key = Key::from(cookie_key.as_bytes());
-
     let state = AppState {
         db_sea: db,
-        cookie_key: secret_key,
+        config: config.clone(),
     };
 
     let page_header = HeaderName::from_lowercase(b"x-pages").unwrap();
     let cors = CorsLayer::new()
-        .allow_origin(dotenv!("ALLOW_ORIGIN").parse::<HeaderValue>().unwrap())
+        .allow_origin(config.frontend_origin.parse::<HeaderValue>().unwrap())
         .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
         .allow_headers([CONTENT_TYPE, SET_COOKIE, ACCEPT, X_CONTENT_TYPE_OPTIONS])
         .expose_headers([page_header])

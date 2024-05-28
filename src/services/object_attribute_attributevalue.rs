@@ -1,11 +1,14 @@
-use crate::entity::object_attribute_attributevalue::{
+use entity::object_attribute_attributevalue::{
     ActiveModel as ObjectAttributeAttributeValueActiveModel,
     Column as ObjectAttributeAttributeValueColumn, Entity as ObjectAttributeAttributeValueEntity,
     Model as ObjectAttributeAttributeValueModel,
 };
 
 use futures::future::try_join_all;
-use sea_orm::*;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, Set,
+    TransactionTrait,
+};
 
 pub async fn create_attribute_values_objects<C>(
     db: &C,

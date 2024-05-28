@@ -1,15 +1,5 @@
 use crate::{
-    entity::{
-        answers as answer_model, attributes as attributes_model,
-        attributesvalues as attributesvalues_model, clauses as clause_model, error,
-        histories as history_model,
-        object_attribute_attributevalue as object_attribute_attributevalue_model,
-        objects as object_model, questions as question_model,
-        rule_attribute_attributevalue as rule_attribute_attributevalue_model,
-        rule_question_answer as rule_question_answer_model, rules as rule_model,
-        sea_orm_active_enums as sea_orm_active_enums_model, systems as system_model,
-        users as user_model,
-    },
+    error,
     routes::{
         answer, attribute, attribute_value, clause, history, object,
         object_attribute_attributevalue, question, rule, rule_attribute_attributevalue,
@@ -18,6 +8,17 @@ use crate::{
 };
 #[cfg(not(debug_assertions))]
 use axum::Json;
+use entity::{
+    answers as answer_model, attributes as attributes_model,
+    attributesvalues as attributesvalues_model, clauses as clause_model,
+    histories as history_model,
+    object_attribute_attributevalue as object_attribute_attributevalue_model,
+    objects as object_model, questions as question_model,
+    rule_attribute_attributevalue as rule_attribute_attributevalue_model,
+    rule_question_answer as rule_question_answer_model, rules as rule_model,
+    sea_orm_active_enums as sea_orm_active_enums_model, systems as system_model,
+    users as user_model,
+};
 use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
     Modify, OpenApi,
