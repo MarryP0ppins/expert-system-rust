@@ -57,9 +57,8 @@ impl Email {
             .subject(subject)
             .header(ContentType::TEXT_HTML)
             .body(format!("{}: \n {}", template_name, self.url))?;
-        println!("{:?}", &email);
+
         let transport = self.new_transport()?;
-        println!("{:?}", &transport);
 
         transport.send(&email)?;
         Ok(())

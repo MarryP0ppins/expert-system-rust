@@ -199,5 +199,8 @@ pub fn user_routes() -> Router<AppState> {
         .route("/logout", post(user_logout))
         .route("/login", post(user_login))
         .route("/registration", post(user_registration))
-        .route("/verifyemail/:verification_code", get(verify_email_handler))
+        .route(
+            "/verifyemail/:verification_code",
+            post(verify_email_handler),
+        )
 }

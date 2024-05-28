@@ -14,8 +14,8 @@ use entity::{
 };
 use futures::future::try_join_all;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait,
-    LoaderTrait, QueryFilter, Set, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, LoaderTrait, QueryFilter,
+    Set, TransactionTrait,
 };
 
 use tokio::try_join;
