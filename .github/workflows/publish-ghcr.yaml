@@ -11,5 +11,5 @@ jobs:
       - name: Build and push the image
         run: |
           docker login --username marryp0ppins --password ${{ secrets.GT_PAS }} ghcr.io
-          docker build . --tag ghcr.io/marryp0ppins/expert-system-backend:latest
+          docker build -f rust.dockerfile --tag ghcr.io/marryp0ppins/expert-system-backend:latest
           docker push ghcr.io/marryp0ppins/expert-system-backend:latest
