@@ -66,7 +66,7 @@ impl Email {
 
     pub async fn send_verification_code(&self) -> Result<(), Box<dyn std::error::Error>> {
         self.send_email(
-            "Перейдите по ссылке для подтверждения аккаунта:",
+            "Перейдите по ссылке для подтверждения аккаунта",
             "Подтверждение аккаунта ИПО ПЭС",
         )
         .await

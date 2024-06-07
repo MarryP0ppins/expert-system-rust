@@ -13,6 +13,7 @@ use http::{
 };
 use middleware::{auth, handler_404};
 
+use migration::{Migrator, MigratorTrait};
 use routes::{
     answer::answer_routes, attribute::attribute_routes, attribute_value::attribute_value_routes,
     clause::clause_routes, history::history_routes, object::object_routes,
@@ -72,6 +73,10 @@ async fn main() {
         .await
         .expect("Failed to create sea connection");
 
+    Migrator::up(&db, None)
+        .await
+        .expect("Failed to run migrations");
+
     let state = AppState {
         db_sea: db,
         config: config.clone(),
@@ -127,7 +132,7 @@ async fn main() {
             .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
     }
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8000));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }

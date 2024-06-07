@@ -75,10 +75,11 @@ where
         username: Set(user_info.username),
         first_name: Set(user_info.first_name),
         last_name: Set(user_info.last_name),
+        verification_code: Set(Some(verification_code.clone())),
         ..Default::default()
     };
     let user = new_user.insert(&txn).await?;
-    println!("{:?}", &user);
+
     let verification_url = format!(
         "{}/verifyemail/{}",
         config.frontend_origin, verification_code
@@ -88,14 +89,6 @@ where
     email_instance.send_verification_code().await.map_err(|_| {
         DbErr::Custom("Something bad happended while sending the verification code".to_string())
     })?;
-
-    UserActiveModel {
-        id: Unchanged(user.id),
-        verification_code: Set(Some(verification_code)),
-        ..Default::default()
-    }
-    .update(&txn)
-    .await?;
 
     txn.commit().await?;
 
