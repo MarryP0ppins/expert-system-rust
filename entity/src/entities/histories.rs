@@ -21,7 +21,9 @@ pub struct Model {
     pub answered_questions: String,
     #[schema(value_type=HashMap<String, u8>)]
     pub results: Value,
+    #[serde(skip_deserializing)]
     pub started_at: DateTime,
+    #[serde(skip_deserializing)]
     pub finished_at: DateTime,
 }
 

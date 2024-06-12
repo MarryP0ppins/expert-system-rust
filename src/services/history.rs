@@ -1,11 +1,12 @@
+use chrono::Local;
 use entity::{
     histories::{Entity as HistoryEntity, HistoryWithSystem, Model as HistoryModel},
     systems::{Column as SystemColumn, Entity as SystemEntity},
     users::{Column as UserColumn, Entity as UserEntity},
 };
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
-    QueryFilter, TransactionTrait,
+    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, ConnectionTrait, DbErr, EntityTrait,
+    IntoActiveModel, QueryFilter, TransactionTrait,
 };
 
 pub async fn get_histories<C>(
@@ -58,7 +59,9 @@ pub async fn create_history<C>(
 where
     C: ConnectionTrait + TransactionTrait,
 {
-    let new_history = history_info.into_active_model().insert(db).await?;
+    let mut new_history_active_model = history_info.into_active_model();
+    new_history_active_model.id = NotSet;
+    let new_history = new_history_active_model.insert(db).await?;
 
     let system = SystemEntity::find_by_id(new_history.system_id)
         .one(db)
@@ -70,8 +73,8 @@ where
         system,
         answered_questions: new_history.answered_questions,
         results: new_history.results,
-        started_at: new_history.started_at,
-        finished_at: new_history.finished_at,
+        started_at: Local::now().naive_local(),
+        finished_at: Local::now().naive_local(),
     };
 
     Ok(result)

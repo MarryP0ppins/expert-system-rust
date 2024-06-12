@@ -44,7 +44,6 @@ mod middleware;
 mod models;
 mod pagination;
 mod routes;
-mod schema;
 mod services;
 mod swagger;
 mod utils;

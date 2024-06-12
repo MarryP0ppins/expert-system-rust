@@ -98,7 +98,7 @@ where
         .as_slice()
         .into_iter()
         .filter_map(|rule| {
-            if !rule.attribute_rule {
+            if rule.attribute_rule {
                 return None;
             }
             Some(RuleModel {

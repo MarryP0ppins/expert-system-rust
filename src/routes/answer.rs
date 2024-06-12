@@ -23,7 +23,8 @@ use entity::answers::{AnswerModel, UpdateAnswerModel};
     request_body = [AnswerModel],
     responses(
         (status = 200, description = "Answers create successfully", body = [AnswerModel]),
-        (status = 401, description = "Unauthorized to create Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
+        (status = 401, description = "Unauthorized to create Answers", body = CustomErrors,
+            example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         }))
@@ -50,7 +51,8 @@ pub async fn answer_create(
     context_path ="/api/v1",
     responses(
         (status = 200, description = "List matching Answers by query", body = [AnswerModel]),
-        (status = 401, description = "Unauthorized to list Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
+        (status = 401, description = "Unauthorized to list Answers", body = CustomErrors,
+            example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         }))
@@ -81,7 +83,8 @@ pub async fn answer_list(
     request_body = [i32],
     responses(
         (status = 200, description = "Answers deleted successfully", body = u64),
-        (status = 401, description = "Unauthorized to delete Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
+        (status = 401, description = "Unauthorized to delete Answers", body = CustomErrors,
+            example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         })),
@@ -110,7 +113,8 @@ pub async fn answer_multiple_delete(
     request_body = [UpdateAnswerModel],
     responses(
         (status = 200, description = "Answers updated successfully", body = [AnswerModel]),
-        (status = 401, description = "Unauthorized to update Answers", body = CustomErrors, example = json!(CustomErrors::StringError {
+        (status = 401, description = "Unauthorized to update Answers", body = CustomErrors,
+            example = json!(CustomErrors::StringError {
             status: StatusCode::UNAUTHORIZED,
             error: "Not authorized".to_string(),
         })),
