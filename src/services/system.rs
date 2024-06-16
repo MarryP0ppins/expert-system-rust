@@ -94,6 +94,7 @@ where
         get_objects(db, system_id)
     )?;
 
+    //println!("11111111111111111111 {:?}", &_questions_with_answers);
     let _rules_with_question_rule: Vec<RuleModel> = _rules
         .as_slice()
         .into_iter()
@@ -108,11 +109,11 @@ where
             })
         })
         .collect();
-
+    //println!("222222222222222222 {:?}", &_rules_with_question_rule);
     let clauses = _rules_with_question_rule
         .load_many(ClauseEntity, db)
         .await?;
-
+    //println!("3333333333333333333 {:?}", &clauses);
     let _rules_with_question_deps: HashMap<i32, Vec<i32>> = clauses
         .into_iter()
         .zip(&_rules_with_question_rule)
@@ -126,11 +127,11 @@ where
             )
         })
         .collect();
-
+    //println!("444444444444444444444 {:?}", &_rules_with_question_deps);
     let rule_question_answers = _rules_with_question_rule
         .load_many(RuleQuestionAnswerEntity, db)
         .await?;
-
+    //println!("555555555555555555555 {:?}", &rule_question_answers);
     let mut rules_belonging_questions: HashMap<i32, HashSet<i32>> = HashMap::new();
 
     rule_question_answers
@@ -151,7 +152,7 @@ where
                     .or_insert(dependancies.into_iter().collect());
             })
         });
-
+    //println!("666666666666666666 {:?}", &rules_belonging_questions);
     _questions_with_answers
         .as_slice()
         .into_iter()
@@ -160,9 +161,9 @@ where
                 .entry(question.id)
                 .or_insert(HashSet::new());
         });
-
+    //println!("77777777777777777777 {:?}", &rules_belonging_questions);
     let belonging_questions_order = topological_sort(&rules_belonging_questions);
-
+    //println!("8888888888888888888888 {:?}", &belonging_questions_order);
     let ordered_questions = belonging_questions_order
         .into_iter()
         .filter_map(|question_order_id| {
@@ -172,7 +173,7 @@ where
                 .cloned()
         })
         .collect::<Vec<QuestionWithAnswersModel>>();
-
+    //println!("99999999999999999999 {:?}", &ordered_questions);
     Ok(TestSystemModel {
         questions: ordered_questions,
         rules: _rules,

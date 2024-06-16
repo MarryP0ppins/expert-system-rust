@@ -1,35 +1,41 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 pub fn topological_sort(graph: &HashMap<i32, HashSet<i32>>) -> Vec<i32> {
-    let mut result: Vec<i32> = Vec::new();
-    let mut visited: HashSet<i32> = HashSet::new();
-    let mut stack: VecDeque<i32> = VecDeque::new();
+    let mut in_degree = HashMap::new();
+    let mut sorted = Vec::with_capacity(graph.len());
+    let mut queue = VecDeque::new();
 
-    // Добавляем в стек все вершины, которые не имеют зависимостей
-    for node in graph.keys() {
-        if graph[node].is_empty() {
-            stack.push_back(*node);
+    for (&node, neighbors) in graph.iter() {
+        in_degree.entry(node).or_insert(0);
+        for &neighbor in neighbors {
+            *in_degree.entry(neighbor).or_insert(0) += 1;
         }
     }
 
-    // Обходим граф
-    while let Some(node) = stack.pop_front() {
-        if !visited.contains(&node) {
-            visited.insert(node);
-            result.push(node);
+    for (&node, &degree) in in_degree.iter() {
+        if degree == 0 {
+            queue.push_back(node);
+        }
+    }
 
-            // Добавляем в стек все вершины, которые могут быть обработаны после текущей
-            for (next_node, structure) in graph.iter() {
-                if !visited.contains(next_node) && structure.contains(&node) {
-                    let all_dependencies_visited =
-                        structure.iter().all(|dep| visited.contains(dep));
-                    if all_dependencies_visited {
-                        stack.push_back(*next_node);
+    while let Some(node) = queue.pop_front() {
+        sorted.push(node);
+        if let Some(neighbors) = graph.get(&node) {
+            for &neighbor in neighbors {
+                if let Some(degree) = in_degree.get_mut(&neighbor) {
+                    *degree -= 1;
+                    if *degree == 0 {
+                        queue.push_back(neighbor);
                     }
                 }
             }
         }
     }
 
-    result
+    sorted.reverse();
+    if sorted.len() == graph.len() {
+        sorted
+    } else {
+        Vec::new()
+    }
 }
