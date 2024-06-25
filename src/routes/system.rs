@@ -72,8 +72,13 @@ pub async fn system_create(
 #[debug_handler]
 pub async fn system_list(
     State(state): State<AppState>,
+    cookie: Cookies,
     Query(pagination): Query<SystemListPagination>,
 ) -> impl IntoResponse {
+    if let Some(_) = pagination.all_types {
+        let _ = cookie_check(&state.db_sea, cookie, &state.config.cookie_key).await?;
+    }
+
     match get_systems(&state.db_sea, pagination).await {
         Ok(result) => {
             let mut headers = HeaderMap::new();

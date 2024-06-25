@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use entity::{
     answers::{Entity as AnswerEntity, Model as AnswerModel},
     questions::{
@@ -13,6 +11,7 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
     LoaderTrait, QueryFilter, Set, TransactionTrait,
 };
+use std::sync::Arc;
 
 use super::answer::create_answer;
 

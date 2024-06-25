@@ -95,7 +95,7 @@ pub async fn question_multiple_delete(
     Json(question_info): Json<Vec<i32>>,
 ) -> impl IntoResponse {
     match multiple_delete_questions(&state.db_sea, question_info).await {
-        Ok(_) => Ok(()),
+        Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
