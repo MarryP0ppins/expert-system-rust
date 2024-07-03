@@ -1,16 +1,10 @@
 #[cfg(not(debug_assertions))]
 use axum::routing::get;
-use axum::{
-    http::{HeaderValue, Method},
-    middleware as axum_middleware, Router,
-};
+use axum::{middleware as axum_middleware, Router};
 use config::Config;
 use constants::IMAGE_DIR;
 use dotenv::dotenv;
-use http::{
-    header::{ACCEPT, CONTENT_TYPE, SET_COOKIE, X_CONTENT_TYPE_OPTIONS},
-    HeaderName,
-};
+use http::{header, HeaderName, HeaderValue, Method};
 use middleware::{auth, handler_404};
 
 use migration::{Migrator, MigratorTrait};
@@ -83,9 +77,23 @@ async fn main() {
 
     let page_header = HeaderName::from_lowercase(b"x-pages").unwrap();
     let cors = CorsLayer::new()
-        .allow_origin(config.frontend_origin.parse::<HeaderValue>().unwrap())
-        .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
-        .allow_headers([CONTENT_TYPE, SET_COOKIE, ACCEPT, X_CONTENT_TYPE_OPTIONS])
+        .allow_origin([
+            config.frontend_origin.parse::<HeaderValue>().unwrap(),
+            "http://10.0.2.2:3000/".parse::<HeaderValue>().unwrap(),
+        ])
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PATCH,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        .allow_headers([
+            header::CONTENT_TYPE,
+            header::SET_COOKIE,
+            header::ACCEPT,
+            header::X_CONTENT_TYPE_OPTIONS,
+        ])
         .expose_headers([page_header])
         .allow_credentials(true);
 

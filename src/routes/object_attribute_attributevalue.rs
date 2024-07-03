@@ -36,7 +36,7 @@ pub async fn attribute_values_objects_create(
     Json(attribute_values_objects_info): Json<Vec<ObjectAttributeAttributeValueModel>>,
 ) -> impl IntoResponse {
     match create_attribute_values_objects(&state.db_sea, attribute_values_objects_info).await {
-        Ok(_) => Ok(()),
+        Ok(result) => Ok(Json(result)),
         Err(err) => Err(CustomErrors::SeaORMError {
             error: err,
             message: None,
