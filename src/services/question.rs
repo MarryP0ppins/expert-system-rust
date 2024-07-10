@@ -118,7 +118,7 @@ where
         .map(|questions_for_update| questions_for_update.into_active_model().update(db));
 
     let mut questions = try_join_all(updated_questions).await?;
-    questions.sort_by(|a, b| a.id.cmp(&b.id));
+    questions.sort_by_key(|question| question.id);
 
     let questions_answers = questions.load_many(AnswerEntity, db).await?;
 
@@ -126,7 +126,7 @@ where
         .into_iter()
         .zip(questions_answers)
         .map(|(question, mut question_answers)| {
-            question_answers.sort_by(|a, b| a.id.cmp(&b.id));
+            question_answers.sort_by_key(|answer| answer.id);
             QuestionWithAnswersModel {
                 id: question.id,
                 system_id: question.system_id,

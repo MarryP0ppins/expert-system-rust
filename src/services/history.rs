@@ -47,7 +47,7 @@ where
         })
         .collect::<Result<Vec<HistoryWithSystem>, DbErr>>()?;
 
-    result.sort_by(|a, b| a.id.cmp(&b.id));
+    result.sort_by_key(|history| -1 * history.id);
 
     Ok(result)
 }

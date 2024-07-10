@@ -5,6 +5,7 @@ pub mod attributes;
 pub mod attributesvalues;
 pub mod clauses;
 pub mod histories;
+pub mod likes;
 pub mod object_attribute_attributevalue;
 pub mod objects;
 pub mod questions;

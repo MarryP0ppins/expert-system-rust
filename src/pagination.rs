@@ -13,6 +13,12 @@ pub struct SystemListPagination {
     pub all_types: Option<bool>,
 }
 
+#[derive(Deserialize, IntoParams, Debug)]
+pub struct SystemStars {
+    pub inc: Option<bool>,
+    pub dec: Option<bool>,
+}
+
 #[derive(Deserialize, IntoParams)]
 pub struct HistoryListPagination {
     pub system: Option<i32>,
@@ -52,4 +58,9 @@ pub struct QuestionListPagination {
 #[derive(Deserialize, IntoParams)]
 pub struct RuleListPagination {
     pub system_id: i32,
+}
+
+#[derive(Deserialize, IntoParams)]
+pub struct LikeListPagination {
+    pub user_id: i32,
 }

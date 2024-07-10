@@ -75,6 +75,8 @@ pub struct ResetPasswordModel {
 pub enum Relation {
     #[sea_orm(has_many = "super::histories::Entity")]
     Histories,
+    #[sea_orm(has_many = "super::likes::Entity")]
+    Likes,
     #[sea_orm(has_many = "super::systems::Entity")]
     Systems,
 }
@@ -82,6 +84,12 @@ pub enum Relation {
 impl Related<super::histories::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Histories.def()
+    }
+}
+
+impl Related<super::likes::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Likes.def()
     }
 }
 

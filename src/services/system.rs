@@ -1,12 +1,13 @@
 use crate::{
-    pagination::SystemListPagination,
+    pagination::{SystemListPagination, SystemStars},
     services::{object::get_objects, rule::get_rules},
     utils::topological_sort::topological_sort,
     IMAGE_DIR,
 };
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
-    LoaderTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseBackend, DbErr, EntityTrait,
+    IntoActiveModel, LoaderTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
+    Statement, TransactionTrait,
 };
 
 use super::question::get_questions;
@@ -62,7 +63,7 @@ where
     let page = params.page.unwrap_or(1) as u64 - 1;
 
     let _systems = query
-        .order_by_desc(SystemColumn::UpdatedAt)
+        .order_by_desc(SystemColumn::Stars)
         .limit(per_page)
         .offset(per_page * page)
         .all(db)
@@ -311,4 +312,26 @@ where
         .exec(db)
         .await?
         .rows_affected)
+}
+
+pub async fn update_stars<C>(db: &C, system_id: i32, params: SystemStars) -> Result<u64, DbErr>
+where
+    C: ConnectionTrait + TransactionTrait,
+{
+    let mut count = 0;
+    if let Some(inc) = params.inc {
+        count = 1 * (inc as i32)
+    }
+    if let Some(dec) = params.dec {
+        count = -1 * (dec as i32)
+    }
+    let exec_res = db
+        .execute(Statement::from_sql_and_values(
+            DatabaseBackend::Postgres,
+            "UPDATE `systems` SET stars = stars + $1 WHERE id = $2;",
+            [count.into(), system_id.into()],
+        ))
+        .await?;
+
+    Ok(exec_res.rows_affected())
 }

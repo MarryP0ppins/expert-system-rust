@@ -10,7 +10,7 @@ use middleware::{auth, handler_404};
 use migration::{Migrator, MigratorTrait};
 use routes::{
     answer::answer_routes, attribute::attribute_routes, attribute_value::attribute_value_routes,
-    clause::clause_routes, history::history_routes, object::object_routes,
+    clause::clause_routes, history::history_routes, likes::like_routes, object::object_routes,
     object_attribute_attributevalue::object_attribute_attributevalue_routes,
     question::question_routes, rule::rule_routes,
     rule_attribute_attributevalue::rule_attribute_attributevalue_routes,
@@ -77,10 +77,7 @@ async fn main() {
 
     let page_header = HeaderName::from_lowercase(b"x-pages").unwrap();
     let cors = CorsLayer::new()
-        .allow_origin([
-            config.frontend_origin.parse::<HeaderValue>().unwrap(),
-            "http://10.0.2.2:3000/".parse::<HeaderValue>().unwrap(),
-        ])
+        .allow_origin(config.frontend_origin.parse::<HeaderValue>().unwrap())
         .allow_methods([
             Method::GET,
             Method::POST,
@@ -119,7 +116,8 @@ async fn main() {
                     "/rule-attribute-attributevalue",
                     rule_attribute_attributevalue_routes(),
                 )
-                .nest("/rule-question-answer", rule_question_answer_routes()),
+                .nest("/rule-question-answer", rule_question_answer_routes())
+                .nest("/likes", like_routes()),
         )
         .layer(axum_middleware::from_fn_with_state(state.clone(), auth))
         .nest_service("/api/v1/images", ServeDir::new(IMAGE_DIR))

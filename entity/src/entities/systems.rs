@@ -38,6 +38,7 @@ pub struct Model {
     pub name: String,
     pub private: bool,
     pub image_uri: Option<String>,
+    pub stars: i32,
 }
 
 pub use Model as SystemModel;
@@ -114,6 +115,8 @@ pub enum Relation {
     Objects,
     #[sea_orm(has_many = "super::questions::Entity")]
     Questions,
+    #[sea_orm(has_many = "super::likes::Entity")]
+    Likes,
     #[sea_orm(has_many = "super::rules::Entity")]
     Rules,
     #[sea_orm(
@@ -141,6 +144,12 @@ impl Related<super::histories::Entity> for Entity {
 impl Related<super::objects::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Objects.def()
+    }
+}
+
+impl Related<super::likes::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Likes.def()
     }
 }
 

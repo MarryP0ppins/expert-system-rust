@@ -1,11 +1,11 @@
 use crate::{
     error::CustomErrors,
-    pagination::SystemListPagination,
+    pagination::{SystemListPagination, SystemStars},
     services::{
         backup::{backup_from_system, system_from_backup},
         system::{
             create_system, delete_system, get_ready_to_start_system, get_system, get_systems,
-            update_system,
+            update_stars, update_system,
         },
     },
     utils::auth::{cookie_check, password_check},
@@ -295,6 +295,34 @@ pub async fn system_delete(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/systems/{id}/stars",
+    context_path ="/api/v1",
+    responses(
+        (status = 200, description = "Sususfully restore", body = SystemModel),
+        (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {
+            status: StatusCode::UNAUTHORIZED,
+            error: "Not authorized".to_string(),
+        }))
+    ),
+    security(("Cookie" = []))
+)]
+#[debug_handler]
+pub async fn system_stars(
+    State(state): State<AppState>,
+    Query(pagination): Query<SystemStars>,
+    Path(system_id): Path<i32>,
+) -> impl IntoResponse {
+    match update_stars(&state.db_sea, system_id, pagination).await {
+        Ok(_) => Ok(()),
+        Err(err) => Err(CustomErrors::SeaORMError {
+            error: err,
+            message: None,
+        }),
+    }
+}
+
 pub fn system_routes() -> Router<AppState> {
     Router::new()
         .route("/", post(system_create).get(system_list))
@@ -306,5 +334,6 @@ pub fn system_routes() -> Router<AppState> {
         )
         .route("/:system_id/test", get(system_start))
         .route("/:system_id/backup", get(system_backup))
+        .route("/:system_id/stars", post(system_stars))
         .route("/restore", post(system_restore))
 }

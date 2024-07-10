@@ -3,6 +3,7 @@ pub mod attribute;
 pub mod attribute_value;
 pub mod clause;
 pub mod history;
+pub mod likes;
 pub mod object;
 pub mod object_attribute_attributevalue;
 pub mod question;
