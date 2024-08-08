@@ -48,7 +48,7 @@ where
         .filter(LikesColumn::Id.eq(like_id))
         .one(db)
         .await?;
-    println!("{:?}", &like);
+
     if let Some(like_model) = like {
         like_model.clone().delete(db).await?;
 
