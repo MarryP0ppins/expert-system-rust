@@ -11,12 +11,12 @@ members = [".", "migration", "entity"]
 migration = { path = "migration" }
 entity = { path = "entity" }
 
-axum = { version = "0.7", features = ["macros"] }
-axum_typed_multipart = "0.11"
-tokio = { version = "1", features = ["full"] }
-tower-cookies = { version = "0.10", features = ["private"] }
-tower-http = { version = "0.5", features = ["fs", "cors", "trace"] }
-sea-orm = { version = "1.0.0", features = [
+axum = { version = "^0", features = ["macros"] }
+axum_typed_multipart = "^0"
+tokio = { version = "^1", features = ["full"] }
+tower-cookies = { version = "^0", features = ["private"] }
+tower-http = { version = "^0", features = ["fs", "cors", "trace"] }
+sea-orm = { version = "^1", features = [
     "sqlx-postgres",
     "runtime-tokio-rustls",
     "macros",
@@ -24,29 +24,29 @@ sea-orm = { version = "1.0.0", features = [
     "with-json",
     "debug-print",
 ] }
-lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls"] }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-utoipa = { version = "4.2", features = [
+lettre = { version = "^0", features = ["tokio1", "tokio1-native-tls"] }
+tracing = "^0"
+tracing-subscriber = { version = "^0", features = ["env-filter"] }
+utoipa = { version = "^4", features = [
     "axum_extras",
     "preserve_order",
     "chrono",
 ] }
-utoipa-swagger-ui = { version = "7.1", features = ["axum"] }
-chrono = { version = "0.4", features = ["serde"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1" }
-argon2 = { version = "0.5" }
-aes-gcm-siv = "0.11"
-bincode = { version = "1.3" }
-http = "1.1"
-dotenv = "0.15"
-futures = "0.3"
-regex = "1.10.4"
-rand = "0.8.5"
+utoipa-swagger-ui = { version = "^7", features = ["axum"] }
+chrono = { version = "^0", features = ["serde"] }
+serde = { version = "^1", features = ["derive"] }
+serde_json = { version = "^1" }
+argon2 = { version = "^0" }
+aes-gcm-siv = "^0"
+bincode = { version = "^1" }
+http = "^1"
+dotenv = "^0"
+futures = "^0"
+regex = "^1"
+rand = "^0"
 
 [target.'cfg(unix)'.dependencies]
-openssl = { version = "0.10", features = ["vendored"] }
+openssl = { version = "^0", features = ["vendored"] }
 
 [profile.release]
 strip = true
