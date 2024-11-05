@@ -20,7 +20,8 @@ use axum::{
     Json, Router,
 };
 use axum_typed_multipart::TypedMultipart;
-use entity::systems::{NewSystemMultipartModel, SystemDeleteModel, UpdateSystemMultipartModel};
+use entity::systems::{NewSystemMultipartModel, SystemDeleteModel, UpdateSystemMultipartModel, SystemModel};
+use entity::questions::QuestionWithAnswersModel;
 use tower_cookies::Cookies;
 
 #[utoipa::path(
@@ -190,6 +191,7 @@ pub async fn system_backup(
     post,
     path = "/systems/restore",
     context_path ="/api/v1",
+    request_body(content =Vec<u8>, content_type = "application/json"),
     responses(
         (status = 200, description = "Sususfully restore", body = SystemModel),
         (status = 401, description = "Unauthorized to retrive System", body = CustomErrors, example = json!(CustomErrors::StringError {

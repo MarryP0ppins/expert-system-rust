@@ -12,7 +12,7 @@ use axum::{
     routing::{delete, post},
     Json, Router,
 };
-use entity::histories::HistoryModel;
+use entity::histories::{HistoryModel, HistoryWithSystem};
 
 #[utoipa::path(
     post,

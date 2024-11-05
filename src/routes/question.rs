@@ -14,7 +14,7 @@ use axum::{
     routing::{delete, patch, post},
     Json, Router,
 };
-use entity::questions::{NewQuestionWithAnswersModel, UpdateQuestionModel};
+use entity::questions::{NewQuestionWithAnswersModel, UpdateQuestionModel, QuestionWithAnswersModel};
 
 #[utoipa::path(
     post,

@@ -12,7 +12,7 @@ use axum::{
     routing::{delete, post},
     Json, Router,
 };
-use entity::rules::NewRuleWithClausesAndEffects;
+use entity::rules::{NewRuleWithClausesAndEffects, RuleWithClausesAndEffects};
 
 #[utoipa::path(
     post,

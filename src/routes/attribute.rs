@@ -14,7 +14,7 @@ use axum::{
     routing::{delete, patch, post},
     Json, Router,
 };
-use entity::attributes::{NewAttributeWithAttributeValuesModel, UpdateAttributeModel};
+use entity::attributes::{AttributeWithAttributeValuesModel, NewAttributeWithAttributeValuesModel, UpdateAttributeModel};
 
 #[utoipa::path(
     post,

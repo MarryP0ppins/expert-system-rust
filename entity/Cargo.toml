@@ -13,6 +13,6 @@ sea-orm = "^1"
 chrono = { version = "^0", features = ["serde"] }
 serde = { version = "^1", features = ["derive"] }
 serde_json = { version = "^1" }
-utoipa = { version = "^4", features = ["chrono"] }
+utoipa = { version = "^5", features = ["chrono"] }
 axum = { version = "^0", features = ["macros"] }
 axum_typed_multipart = "^0"

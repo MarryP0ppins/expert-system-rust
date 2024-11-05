@@ -27,12 +27,12 @@ sea-orm = { version = "^1", features = [
 lettre = { version = "^0", features = ["tokio1", "tokio1-native-tls"] }
 tracing = "^0"
 tracing-subscriber = { version = "^0", features = ["env-filter"] }
-utoipa = { version = "^4", features = [
+utoipa = { version = "^5", features = [
     "axum_extras",
     "preserve_order",
     "chrono",
 ] }
-utoipa-swagger-ui = { version = "^7", features = ["axum"] }
+utoipa-swagger-ui = { version = "^8", features = ["axum"] }
 chrono = { version = "^0", features = ["serde"] }
 serde = { version = "^1", features = ["derive"] }
 serde_json = { version = "^1" }
