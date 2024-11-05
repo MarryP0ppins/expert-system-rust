@@ -10,6 +10,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build and push the image
         run: |
-          docker login --username marryp0ppins --password ${{ secrets.GT_PAS }} ghcr.io
+          docker login --username marryp0ppins --password-stdin ${{ secrets.GT_PAS }} ghcr.io
           docker build -f ./rust.dockerfile -t ghcr.io/marryp0ppins/expert-system-backend:latest .
           docker push ghcr.io/marryp0ppins/expert-system-backend:latest
